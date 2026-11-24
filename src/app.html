@@ -290,6 +290,8 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 }
 
 /* ===== Ritocchi grafici ===== */
+.note.warn{background:var(--col-soft)}
+label.btn{cursor:pointer}
 .aisle{margin-top:14px}
 .aisle h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--basil-text);padding-bottom:4px;border-bottom:1px solid var(--line)}
 .aisle ul{margin-top:6px}
@@ -1249,6 +1251,29 @@ function viewConsigli(){
     <div class="tips">${list.map(t=>`<article class="tip"><span class="eyebrow">${t.cat}</span><h3>${esc(t.t)}</h3><p>${esc(t.b)}</p><span class="src">Fonte: ${esc(t.src)}</span></article>`).join('')}</div>
     ${proteinTable()}`;
 }
+/* ---------- Backup ---------- */
+const BK_KEYS = ['profile','plan','favs','shop','mine','log','prog','timers','recent','badges','cooked'];
+function exportData(){
+  const data={}; BK_KEYS.forEach(k=>{ const v=store.get(k,undefined); if(v!==undefined) data[k]=v; });
+  return JSON.stringify({app:'foodie',v:1,at:new Date().toISOString(),data});
+}
+function importData(text){
+  let o; try{ o=JSON.parse(text); }catch(e){ return {ok:false,msg:'Questo non è un backup di Foodie: il testo non è leggibile.'}; }
+  if(!o||o.app!=='foodie') return {ok:false,msg:'Questo non è un backup di Foodie.'};
+  if(!o.data||typeof o.data!=='object'||Array.isArray(o.data)) return {ok:false,msg:'Il backup è vuoto o rovinato: nessun dato modificato.'};
+  const keys=Object.keys(o.data).filter(k=>BK_KEYS.includes(k)); if(!keys.length) return {ok:false,msg:'Il backup non contiene dati di Foodie.'};
+  keys.forEach(k=>store.set(k,o.data[k]));
+  return {ok:true,msg:`Ripristinati ${keys.length} gruppi di dati.`};
+}
+function backupBlock(){
+  return `<section class="panel" id="backup"><h3 style="font-size:1.1rem">Backup dei tuoi dati</h3>
+    <p class="muted" style="margin:0;font-size:.88rem">Profilo, diario, ricette tue, progressi e medaglie sono salvati solo su questo telefono. Fai un backup ogni tanto, e prima di cambiare telefono.</p>
+    <div class="row"><button class="btn primary" data-act="backup-dl">Scarica backup</button><button class="btn" data-act="backup-copy">Copia backup</button></div>
+    <div class="field"><label for="bk-in">Ripristina: incolla qui un backup o scegli il file</label>
+      <textarea id="bk-in" rows="3" placeholder='{"app":"foodie", ...}'></textarea></div>
+    <div class="row"><label class="btn" for="bk-file">Scegli file</label><input id="bk-file" type="file" accept=".json,application/json,text/plain" hidden><button class="btn" data-act="backup-restore">Ripristina</button></div>
+    <div id="bk-msg" aria-live="polite"></div></section>`;
+}
 function viewProfilo(){
   const el = document.getElementById('v-profilo');
   const c = calc(profile), p = profile;
@@ -1275,7 +1300,8 @@ function viewProfilo(){
     </div>
     ${c.floored?`<p class="note"><b>Ho alzato le calorie al minimo di sicurezza</b> (${p.sesso==='m'?'1.500':'1.200'} kcal). Scendere sotto questa soglia senza un medico non è consigliato.</p>`:''}
     ${p.dieta==='nopork'?'<p class="note"><b>Senza maiale:</b> nessuna ricetta contiene maiale, salumi, strutto o gelatina. Controlla però le etichette di piadine, cracker, pane confezionato e dolci: a volte contengono strutto.</p>':''}
-    <p class="note">Calcolo con la formula di <b>Mifflin-St Jeor</b>, moltiplicata per il livello di attività. Per dimagrire tolgo il 20% (massimo 500 kcal); per la ricomposizione (skinny fat) il 10% (massimo 300 kcal); per aumentare massa aggiungo 250 kcal. Proteine ${fmt(PROT[p.obj])} g per kg, grassi al 30% delle calorie, il resto carboidrati.</p>`;
+    <p class="note">Calcolo con la formula di <b>Mifflin-St Jeor</b>, moltiplicata per il livello di attività. Per dimagrire tolgo il 20% (massimo 500 kcal); per la ricomposizione (skinny fat) il 10% (massimo 300 kcal); per aumentare massa aggiungo 250 kcal. Proteine ${fmt(PROT[p.obj])} g per kg, grassi al 30% delle calorie, il resto carboidrati.</p>
+    ${backupBlock()}`;
 }
 
 /* ---------- Scheda ricetta ---------- */
@@ -1905,6 +1931,13 @@ const HANDLERS = {
   daynext:()=>{ ui.dayOff=Math.max(0,ui.dayOff-1); viewOggi(); },
   daytoday:()=>{ ui.dayOff=0; viewOggi(); },
   goday:t=>{ ui.dayOff=+t.dataset.off; viewOggi(); },
+  'backup-dl':()=>{ try{ const b=new Blob([exportData()],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`foodie-backup-${todayKey()}.json`; document.body.appendChild(a); a.click(); a.remove(); $('bk-msg').innerHTML='<p class="note" style="margin:0">Se il file non si è scaricato, usa "Copia backup" e incollalo in una nota.</p>'; }catch(e){ HANDLERS['backup-copy'](); } },
+  'backup-copy':()=>{ const s=exportData(), ta=$('bk-in'); const done=()=>{ $('bk-msg').innerHTML='<p class="ck-ok">Backup copiato: incollalo in una nota o in un messaggio a te stesso.</p>'; };
+    try{ navigator.clipboard.writeText(s).then(done).catch(()=>{ ta.value=s; ta.select(); $('bk-msg').innerHTML='<p class="note" style="margin:0">Ho messo il backup nel riquadro e l\'ho selezionato: copialo tu.</p>'; }); }catch(e){ ta.value=s; ta.select(); } },
+  'backup-restore':()=>{ const t=$('bk-in').value.trim(); if(!t){ $('bk-msg').innerHTML='<p class="note" style="margin:0">Incolla prima il backup nel riquadro.</p>'; return; }
+    $('bk-msg').innerHTML='<div class="note warn" style="display:grid;gap:8px"><b>I dati attuali verranno sostituiti da quelli del backup.</b><div class="row"><button class="btn primary" data-act="backup-confirm">Sì, ripristina</button><button class="btn" data-act="backup-cancel">Annulla</button></div></div>'; },
+  'backup-cancel':()=>{ $('bk-msg').innerHTML=''; },
+  'backup-confirm':()=>{ const r=importData($('bk-in').value.trim()); $('bk-msg').innerHTML=`<p class="${r.ok?'ck-ok':'note'}" style="margin:0">${esc(r.msg)}${r.ok?' Ricarico l\'app…':''}</p>`; if(r.ok) setTimeout(()=>location.reload(),900); },
   rmprog:t=>{ prog=prog.filter(x=>String(x.t)!==t.dataset.d); store.set('prog',prog); viewOggi(); }
 };
 document.addEventListener('click',e=>{
@@ -1925,6 +1958,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='pantry'){ ui.pantry=e.target.value; $('cards').innerHTML=cardsHTML(); }
 });
 document.addEventListener('change',e=>{
+  if(e.target.id==='bk-file'&&e.target.files&&e.target.files[0]){ const fr=new FileReader(); fr.onload=()=>{ $('bk-in').value=fr.result; HANDLERS['backup-restore'](); }; fr.readAsText(e.target.files[0]); return; }
   if(e.target.dataset.shop){const k=e.target.dataset.shop;e.target.checked?shopDone.add(k):shopDone.delete(k);store.set('shop',[...shopDone]);
     const items=shopList();const span=document.querySelector('.shop .row .muted');if(span)span.textContent=`${items.filter(([k])=>!shopDone.has(k)).length} da prendere su ${items.length}`;}
 });

@@ -80,6 +80,21 @@ test('lista spesa raggruppata', async p => {
   assert(heads.length >= 5 && heads[0] === 'Frutta e verdura', JSON.stringify(heads));
 });
 
+/* ---------- Task 5: backup ---------- */
+test('export → import ripristina', async p => {
+  const r = await ev(p, () => { const s = exportData(); const before = localStorage.getItem('pp.profile'); localStorage.clear(); const res = importData(s); return [res.ok, localStorage.getItem('pp.profile') === before, JSON.parse(s).app]; });
+  assertEq(r, [true, true, 'foodie']);
+}, { seed: { 'pp.profile': REAL, 'pp.log': { [keyOf(0)]: { items: [{ n: 'x', k: 100, p: 5, c: 0, f: 0, src: 'q' }], water: 3 } } } });
+test('[RF 2] backup non valido non tocca i dati', async p => {
+  const r = await ev(p, () => { const before = localStorage.getItem('pp.profile'); const a = importData('ciao'), b = importData('{"app":"altra","data":{"profile":{}}}'), c = importData('{"app":"foodie","v":1,"data":"x"}'); return [a.ok, b.ok, c.ok, !!a.msg, localStorage.getItem('pp.profile') === before]; });
+  assertEq(r, [false, false, false, true, true]);
+}, { seed: { 'pp.profile': REAL } });
+test('riquadro backup in Profilo', async p => {
+  await ev(p, () => { location.hash = 'profilo'; });
+  await p.waitForTimeout(150);
+  assert(await p.locator('[data-act="backup-copy"]').count() === 1 && await p.locator('#bk-in').count() === 1);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

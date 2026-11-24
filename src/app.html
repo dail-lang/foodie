@@ -1449,7 +1449,7 @@ function pool(slot){ return R.filter(r=>r.m.includes(slot)&&dietOK(r,profile.die
 function portion(r,kcal){ const x=Math.round((kcal/r.k)*4)/4; return Math.min(2,Math.max(.5,x)); }
 const pick = a => a[Math.floor(Math.random()*a.length)];
 // In modalità Superfood i piatti con più micronutrienti hanno più probabilità di uscire
-const pickWeight = r => (profile.sf?(r.mi.length+1)**2:1) * (profile.ai?(1+aiScore(r))**2:1);
+const pickWeight = r => (profile.sf?(r.mi.length+1)**2:1) * (profile.ai?(1+aiScore(r))**3:1);
 function pickW(a){ const w=a.map(pickWeight); let x=Math.random()*w.reduce((s,v)=>s+v,0); for(let i=0;i<a.length;i++){x-=w[i];if(x<=0)return a[i]} return a[a.length-1]; }
 const choose = a => (profile.sf||profile.ai) ? pickW(a) : pick(a);
 function coverage(days){ const c={}; Object.keys(NUTR).forEach(k=>c[k]=0); days.forEach(d=>SLOTS.forEach(([sl])=>byId[d[sl].id].mi.forEach(m=>c[m]++))); return c; }

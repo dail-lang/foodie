@@ -177,6 +177,31 @@ test('anello del voto grande', async p => {
   assert(w >= 80, 'larghezza ' + w);
 });
 
+/* ---------- Revisione finale ---------- */
+test('backup con contenuto rovinato non tocca i dati', async p => {
+  const r = await ev(p, () => { const before = JSON.stringify(Object.fromEntries(Object.keys(localStorage).map(k => [k, localStorage.getItem(k)])));
+    const bad = [{ profile: null }, { profile: 'x' }, { plan: { target: 2000 } }, { mine: {} }, { prog: null }, { log: { '2026-01-01': { water: 2 } } }, { profile: { peso: 70, alt: 175, eta: 30, sesso: 'm', att: 'leggero', obj: 'giu', dieta: 'onni' }, cooked: 'tanti' }];
+    const res = bad.map(d => importData(JSON.stringify({ app: 'foodie', v: 1, data: d })).ok);
+    return [res, JSON.stringify(Object.fromEntries(Object.keys(localStorage).map(k => [k, localStorage.getItem(k)]))) === before]; });
+  assertEq(r, [[false, false, false, false, false, false, false], true]);
+}, { seed: { 'pp.profile': REAL } });
+test('nell’obiettivo resiste a un giorno appena iniziato', async p => {
+  const r = await ev(p, () => { const c = calc(profile); const good = { items: [{ n: 'a', k: c.target - 2, p: c.prot + 5, c: 0, f: 0, fib: 5, src: 'q' }, { n: 'b', k: 1, p: 0, c: 0, f: 0, fib: 4, src: 'q' }, { n: 'c', k: 1, p: 0, c: 0, f: 0, fib: 3, src: 'q' }], water: 8, train: 'A' };
+    for (let i = 1; i <= 3; i++) { const d = new Date(); d.setDate(d.getDate() - i); log[todayKey(d)] = JSON.parse(JSON.stringify(good)); }
+    log[todayKey()] = { items: [{ n: 'colazione', k: 400, p: 20, c: 0, f: 0, src: 'q' }], water: 1 };
+    return streaks(todayKey()); });
+  assertEq(r, { logged: 4, good: 3 });
+}, { seed: { 'pp.profile': REAL } });
+test('Oggi: pasti prima di allenamento e medaglie in fondo', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(150);
+  const y = await ev(p, () => { const top = s => document.querySelector(s).getBoundingClientRect().top; return { eat: top('#v-oggi [data-act="eat"]'), txt: top('#q-txt'), train: top('#v-oggi [data-act="train"]'), badges: top('#v-oggi .badges'), prog: top('#pr-peso') }; });
+  assert(y.eat < y.train && y.txt < y.train && y.badges > y.prog, JSON.stringify(y));
+});
+test('ricette senza glutine non hanno cereali col glutine', async p => {
+  const bad = await ev(p, () => R.filter(r => r.tags.includes('gf') && r.ing.some(i => /pangrattato|pasta|^pane|farro|orzo|cous|avena|farina(?! di mais)|piadina|biscotti|savoiardi|cracker|tortillas integrali|sfoglie|gnocchi|corn flakes/i.test(i[0]))).map(r => r.id));
+  assertEq(bad, []);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

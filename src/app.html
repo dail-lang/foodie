@@ -710,7 +710,7 @@ const R = [
   ing:[['Spaghetti integrali',80,'g'],['Gamberi sgusciati',150,'g'],['Zucchine',150,'g'],['Olio extravergine d\'oliva',1,'cucchiai'],['Limone','0','q.b.'],['Aglio','0','q.b.']],
   s:['Metti a bollire gli spaghetti.','Salta aglio e zucchine a julienne nell\'olio per 4 minuti.','Aggiungi i gamberi e cuoci 2 minuti.','Scola la pasta al dente e mantecala con scorza e succo di limone.'],
   h:'I gamberi surgelati sono comodi ed economici: scongelali in frigo o sotto acqua fredda.'},
- {id:'polpette-tacchino',n:'Polpette di tacchino al sugo con purè leggero',m:['cena','pranzo'],t:30,p:46,c:53,f:15,tags:['carne','gf'],
+ {id:'polpette-tacchino',n:'Polpette di tacchino al sugo con purè leggero',m:['cena','pranzo'],t:30,p:46,c:53,f:15,tags:['carne'],
   ing:[['Macinato di tacchino',150,'g'],['Albume',30,'g'],['Pangrattato',15,'g'],['Passata di pomodoro',150,'g'],['Patate',200,'g'],['Latte parz. scremato',50,'ml'],['Parmigiano',10,'g']],
   s:['Lessa le patate a pezzi per 15 minuti.','Impasta tacchino, albume, pangrattato e sale e forma 8 polpette.','Cuocile nella passata per 15 minuti, a pentola coperta.','Schiaccia le patate con latte e parmigiano e servi.'],
   h:'Il purè col latte al posto del burro ha meno della metà dei grassi.'},
@@ -999,8 +999,11 @@ function scoreOf(d){ return dayScore(log[todayKey(d)], calc(profile), isTrainDay
 function streaks(k){
   const has=d=>{ const L=log[todayKey(d)]; return !!(L&&L.items.length); };
   let d=keyDate(k); if(!has(d)) d.setDate(d.getDate()-1);
-  let logged=0, good=0, goodOn=true;
-  for(let i=0;i<400&&has(d);i++){ logged++; if(goodOn){ const sc=scoreOf(d); if(sc&&sc.score>=70) good++; else goodOn=false; } d.setDate(d.getDate()-1); }
+  const start=new Date(d); let logged=0, good=0;
+  for(let i=0;i<400&&has(d);i++){ logged++; d.setDate(d.getDate()-1); }
+  const g=new Date(start), today=keyDate(k);
+  if(todayKey(g)===todayKey(today)){ const sc=scoreOf(g); if(!sc||sc.score<70) g.setDate(g.getDate()-1); }
+  for(let i=0;i<400&&has(g);i++){ const sc=scoreOf(g); if(sc&&sc.score>=70){ good++; g.setDate(g.getDate()-1); } else break; }
   return {logged,good};
 }
 function setTrain(k,kind){ if(!log[k]) log[k]={items:[],water:0}; if(kind) log[k].train=kind; else delete log[k].train; saveLog(); }
@@ -1382,6 +1385,15 @@ function viewConsigli(){
 }
 /* ---------- Backup ---------- */
 const BK_KEYS = ['profile','plan','favs','shop','mine','log','prog','timers','recent','badges','cooked'];
+const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+const BK_SHAPE={
+  profile:v=>isObj(v)&&['peso','alt','eta'].every(k=>typeof v[k]==='number'&&v[k]>0),
+  plan:v=>v===null||(isObj(v)&&Array.isArray(v.days)&&v.days.every(isObj)),
+  favs:Array.isArray, shop:Array.isArray, timers:Array.isArray, recent:Array.isArray, prog:v=>Array.isArray(v)&&v.every(isObj),
+  mine:v=>Array.isArray(v)&&v.every(r=>isObj(r)&&r.id&&Array.isArray(r.ing)&&Array.isArray(r.s)&&Array.isArray(r.m)&&Array.isArray(r.tags)),
+  log:v=>isObj(v)&&Object.values(v).every(d=>isObj(d)&&Array.isArray(d.items)),
+  badges:isObj, cooked:v=>typeof v==='number'&&v>=0
+};
 function exportData(){
   const data={}; BK_KEYS.forEach(k=>{ const v=store.get(k,undefined); if(v!==undefined) data[k]=v; });
   return JSON.stringify({app:'foodie',v:1,at:new Date().toISOString(),data});
@@ -1391,6 +1403,7 @@ function importData(text){
   if(!o||o.app!=='foodie') return {ok:false,msg:'Questo non è un backup di Foodie.'};
   if(!o.data||typeof o.data!=='object'||Array.isArray(o.data)) return {ok:false,msg:'Il backup è vuoto o rovinato: nessun dato modificato.'};
   const keys=Object.keys(o.data).filter(k=>BK_KEYS.includes(k)); if(!keys.length) return {ok:false,msg:'Il backup non contiene dati di Foodie.'};
+  const bad=keys.filter(k=>!BK_SHAPE[k](o.data[k])); if(bad.length) return {ok:false,msg:'Il backup è rovinato: nessun dato modificato.'};
   keys.forEach(k=>store.set(k,o.data[k]));
   return {ok:true,msg:`Ripristinati ${keys.length} gruppi di dati.`};
 }
@@ -1830,9 +1843,6 @@ function viewOggi(){
       <div class="macros">${bar('Proteine',tot.p,c.prot,'g','var(--c-cen)')}${bar('Carboidrati',tot.c,c.carb,'g','var(--c-col)')}${bar('Grassi',tot.f,c.fat,'g','var(--c-pra)')}</div>
       <p style="margin:0">${msg}</p>
     </div>
-    ${trainBlock(D)}
-    ${weekBlock(c)}
-    ${badgesBlock()}
     <div class="two">
       <div class="panel"><h3 style="font-size:1.1rem">Dal piano${off?' di '+DAYS[di].toLowerCase():' di oggi'}</h3>${meals}
         ${SLOTS_IDS.every(sl=>L.items.some(i=>i.src==='plan:'+sl))?'<p class="ck-ok" style="font-size:.9rem">Tutti i pasti del piano sono segnati.</p>':'<button class="btn primary" data-act="eatall">Ho mangiato tutto come da piano</button>'}</div>
@@ -1867,7 +1877,10 @@ function viewOggi(){
         ${pr.length?`<ul class="items">${pr.slice().reverse().slice(0,5).map(x=>`<li><span class="num">${x.d.split('-').reverse().slice(0,2).join('/')}</span><span class="num muted">${x.peso?fmt(x.peso)+' kg':''}${x.peso&&x.vita?' · ':''}${x.vita?fmt(x.vita)+' cm':''}</span><button class="icon-btn sm" data-act="rmprog" data-d="${x.t}" aria-label="Elimina misura">×</button></li>`).join('')}</ul>`:''}
         <p class="muted" style="margin:0;font-size:.84rem">Misurati una volta a settimana, al mattino a digiuno. In ricomposizione il giro vita conta più del peso.</p>
       </div>
-    </div>`;
+    </div>
+    ${trainBlock(D)}
+    ${weekBlock(c)}
+    ${badgesBlock()}`;
 }
 
 /* ---------- Miniature illustrate dei piatti ---------- */

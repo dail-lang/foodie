@@ -484,7 +484,7 @@ const PIN = [
   ['spaghetti aglio olio e peperoncino', ['Pasta aglio, olio e peperoncino']], ['paccheri al ragù', ['Pasta al ragù']], ['tagliatelle alla carbonara', ['Carbonara']], ['linguine alle vongole', ['Spaghetti alle vongole']],
   ['mezze maniche cacio e pepe', ['Amatriciana']], ['orecchiette al ragù', ['Pasta al ragù']], ['orecchiette con le cime di rapa', ['Pasta con broccoli o cime di rapa']], ['orecchiette', ['Pasta (peso da cruda)']],
   ['spiedini di verdure', ['Verdure miste']], ['spiedini di carne', ['Souvlaki o spiedini']], ['uova lesse', ['Uova']], ['lasagne gratinate', ['Lasagne']], ['verdure gratinate', ['Verdure gratinate']],
-  ['il secondo caffè', ['Caffè espresso']], ['secondo di pesce', ['Pesce bianco']], ['mousse di tonno', ['Tonno sott\'olio']], ['frappe di carnevale', ['Frittelle']], ['cipolline in agrodolce', ['Cipolla e porro'.replace('Cipolla e porro', 'Verdure miste')]],
+  ['il secondo caffè', ['Caffè espresso']], ['secondo di pesce', ['Pesce bianco']], ['mousse di tonno', ['Tonno sott\'olio']], ['frappe di carnevale', ['Chiacchiere']], ['cipolline in agrodolce', ['Cipolla e porro'.replace('Cipolla e porro', 'Verdure miste')]],
   ['pollo al forno', ['Pollo arrosto']], ['mezze maniche alla carbonara', ['Carbonara']], ['fusilli al pomodoro', ['Pasta al pomodoro']], ['penne al pesto', ['Pasta al pesto']],
   ['insalata con tonno', ['Insalata', 'Tonno sott\'olio']], ['pasta in brodo', ['Pastina in brodo']], ['orecchiette con salsiccia', ['Pasta (peso da cruda)', 'Salsiccia']], ['pasta 90 g', ['Pasta (peso da cruda)']], ['chili con carne e riso', ['Chili con carne', 'Riso (peso da crudo)']], ['pasta e fagioli', ['Zuppa di legumi']], ['150 g petto di pollo con patate al forno', ['Petto di pollo', 'Patate al forno']]
 ];
@@ -499,6 +499,96 @@ test('nome insegnato con simboli non rompe il calcolatore', async p => {
 test('cibo sconosciuto mantiene maiuscole e accenti', async p => { assertEq(await ev(p, () => analyzeFood('Zighinì della mamma').unknown), ['Zighinì della mamma']); });
 
 test('fagottino di mele non è pain au chocolat', async p => { assert(await ev(p, () => !analyzeFood('fagottino di mele').items.some(i => i.food.n === 'Pain au chocolat'))); });
+
+/* ---------- Pezzi giusti ---------- */
+const PIECE_REF = {
+  'zucchero': [5, 'CREA'], 'birra': [330, 'CREA'], 'cornetto': [60, 'CREA'], 'brioche': [60, 'CREA'], 'croissant': [60, 'CREA'], 'cornetto crema': [60, 'CREA'],
+  'cornetto cioccolato': [60, 'CREA'], 'cornetto marmellata': [60, 'CREA'], 'biscotti': [8, 'CREA'], 'biscotti secchi': [8, 'CREA'], 'biscotto': [8, 'CREA'], 'frollini': [10, 'CREA'],
+  'biscotti frollini': [10, 'CREA'], 'biscotti al cioccolato': [10, 'CREA'], 'gocciole': [10, 'etichetta'], 'pan di stelle': [10, 'etichetta'], 'fette biscottate': [9, 'CREA'], 'fetta biscottata': [9, 'CREA'],
+  'fette': [9, 'CREA'], 'yogurt': [125, 'CREA'], 'yogurt bianco': [125, 'CREA'], 'yogurt intero': [125, 'CREA'], 'yogurt greco': [170, 'CREA'], 'greco': [170, 'CREA'],
+  'skyr': [170, 'CREA'], 'yogurt alla frutta': [125, 'CREA'], 'yogurt frutta': [125, 'CREA'], 'pane': [35, 'CREA'], 'pane bianco': [35, 'CREA'], 'rosetta': [60, 'USDA'],
+  'baguette': [250, 'USDA'], 'pane integrale': [35, 'CREA'], 'pane di segale': [35, 'CREA'], 'pane ai cereali': [35, 'CREA'], 'piadina': [100, 'CREA'], 'piadina farcita': [250, 'CREA'],
+  'piadina crudo': [250, 'CREA'], 'piadina prosciutto': [250, 'CREA'], 'crackers': [25, 'CREA'], 'cracker': [25, 'CREA'], 'grissini': [6, 'CREA'], 'grissino': [6, 'CREA'],
+  'focaccia': [100, 'CREA'], 'schiacciata': [100, 'CREA'], 'toast': [120, 'CREA'], 'toast prosciutto formaggio': [120, 'CREA'], 'tramezzino': [100, 'CREA'], 'panino': [150, 'CREA'],
+  'panino imbottito': [150, 'CREA'], 'panino al prosciutto': [150, 'CREA'], 'panino crudo': [150, 'CREA'], 'panino cotto': [150, 'CREA'], 'sandwich': [150, 'CREA'], 'pane del panino': [80, 'CREA'],
+  'hamburger': [210, 'CREA'], 'burger': [210, 'CREA'], 'cheeseburger': [120, 'USDA'], 'big mac': [210, 'etichetta'], 'panino hamburger': [210, 'CREA'], 'hot dog': [150, 'CREA'],
+  'hotdog': [150, 'CREA'], 'patatine in busta': [25, 'CREA'], 'chips': [25, 'CREA'], 'patatine busta': [25, 'CREA'], 'kebab': [350, 'CREA'], 'kebap': [350, 'CREA'],
+  'doner': [350, 'CREA'], 'piadina kebab': [350, 'CREA'], 'sushi': [30, 'CREA'], 'nigiri': [30, 'CREA'], 'uramaki': [30, 'CREA'], 'maki': [30, 'CREA'],
+  'hosomaki': [15, 'USDA'], 'california': [30, 'CREA'], 'sashimi': [15, 'CREA'], 'poke': [450, 'CREA'], 'poke bowl': [450, 'CREA'], 'bowl': [450, 'CREA'],
+  'ramen': [550, 'CREA'], 'burrito': [300, 'CREA'], 'wrap': [300, 'CREA'], 'pizza': [330, 'CREA'], 'margherita': [330, 'CREA'], 'pizza margherita': [330, 'CREA'],
+  'pizza rossa': [330, 'CREA'], 'pizza farcita': [350, 'CREA'], 'pizza salame': [350, 'CREA'], 'pizza diavola': [350, 'CREA'], 'pizza wurstel': [350, 'CREA'], 'pizza capricciosa': [350, 'CREA'],
+  'pizza prosciutto': [350, 'CREA'], 'pizza quattro formaggi': [350, 'CREA'], 'pizza tonno': [350, 'CREA'], 'pizza al taglio': [120, 'CREA'], 'trancio di pizza': [120, 'CREA'], 'pizzetta': [50, 'USDA'],
+  'calzone': [350, 'CREA'], 'panzerotto': [180, 'USDA'], 'arancino': [200, 'CREA'], 'arancina': [200, 'CREA'], 'suppli': [120, 'USDA'], 'cotoletta': [150, 'CREA'],
+  'milanese': [150, 'CREA'], 'pollo impanato': [150, 'CREA'], 'nuggets': [18, 'USDA'], 'crocchette di pollo': [30, 'USDA'], 'cordon bleu': [100, 'USDA'], 'hamburger di manzo': [120, 'CREA'],
+  'hamburger di carne': [120, 'CREA'], 'polpettone': [120, 'CREA'], 'polpette': [30, 'CREA'], 'polpetta': [30, 'CREA'], 'salsiccia': [100, 'CREA'], 'salsicce': [100, 'CREA'],
+  'wurstel': [50, 'USDA'], 'wurstel di pollo': [50, 'USDA'], 'prosciutto crudo': [10, 'CREA'], 'crudo': [10, 'CREA'], 'speck': [10, 'CREA'], 'prosciutto cotto': [15, 'CREA'],
+  'cotto': [15, 'CREA'], 'prosciutto': [15, 'CREA'], 'bresaola': [8, 'CREA'], 'fesa di tacchino': [15, 'CREA'], 'affettato di tacchino': [15, 'CREA'], 'affettato di pollo': [15, 'CREA'],
+  'salame': [8, 'CREA'], 'salamino': [8, 'CREA'], 'chorizo': [8, 'CREA'], 'mortadella': [15, 'USDA'], 'tonno': [60, 'CREA'], 'tonno sott olio': [60, 'CREA'],
+  'tonno in scatola': [60, 'CREA'], 'tonno al naturale': [56, 'CREA'], 'tonno naturale': [56, 'CREA'], 'uovo': [55, 'CREA'], 'uova': [55, 'CREA'], 'uovo sodo': [55, 'CREA'],
+  'uova sode': [55, 'CREA'], 'uova lesse': [55, 'CREA'], 'uovo lesso': [55, 'CREA'], 'uova strapazzate': [55, 'CREA'], 'uovo al tegamino': [55, 'CREA'], 'albume': [33, 'CREA'],
+  'albumi': [33, 'CREA'], 'chiare': [33, 'CREA'], 'mozzarella': [125, 'CREA'], 'bufala': [125, 'CREA'], 'fior di latte': [125, 'CREA'], 'burrata': [125, 'CREA'],
+  'proteine': [30, 'CREA'], 'whey': [30, 'CREA'], 'proteine in polvere': [30, 'CREA'], 'frullato proteico': [30, 'CREA'], 'shake proteico': [30, 'CREA'], 'barretta proteica': [50, 'CREA'],
+  'barretta': [50, 'CREA'], 'barrette proteiche': [50, 'CREA'], 'pomodori': [120, 'CREA'], 'pomodoro': [120, 'CREA'], 'pomodorini': [15, 'USDA'], 'pachino': [15, 'USDA'],
+  'carote': [80, 'CREA'], 'carota': [80, 'CREA'], 'patate': [150, 'CREA'], 'patata': [150, 'CREA'], 'patate lesse': [150, 'CREA'], 'patate bollite': [150, 'CREA'],
+  'avocado': [140, 'CREA'], 'mela': [180, 'CREA'], 'mele': [180, 'CREA'], 'banana': [120, 'CREA'], 'banane': [120, 'CREA'], 'arancia': [150, 'CREA'],
+  'arance': [150, 'CREA'], 'mandarino': [70, 'USDA'], 'mandarini': [70, 'USDA'], 'clementine': [70, 'USDA'], 'pera': [170, 'CREA'], 'pere': [170, 'CREA'],
+  'kiwi': [75, 'CREA'], 'datteri': [8, 'CREA'], 'dattero': [8, 'CREA'], 'fichi secchi': [20, 'USDA'], 'noci': [5, 'CREA'], 'noce': [5, 'CREA'],
+  'gelato': [100, 'CREA'], 'gelato alla crema': [100, 'CREA'], 'gelato cioccolato': [100, 'CREA'], 'gelato pistacchio': [100, 'CREA'], 'cono': [100, 'CREA'], 'coppetta': [100, 'CREA'],
+  'gelato stracciatella': [100, 'CREA'], 'gelato alla frutta': [100, 'CREA'], 'sorbetto': [100, 'CREA'], 'ghiacciolo': [60, 'USDA'], 'granita': [200, 'USDA'], 'torta': [80, 'CREA'],
+  'dolce': [80, 'CREA'], 'ciambella': [80, 'CREA'], 'plumcake': [35, 'USDA'], 'torta al cioccolato': [80, 'CREA'], 'cheesecake': [80, 'CREA'], 'crostata': [80, 'CREA'],
+  'strudel': [80, 'CREA'], 'panettone': [80, 'CREA'], 'pandoro': [80, 'CREA'], 'colomba': [80, 'CREA'], 'pasticcino': [25, 'USDA'], 'pasticcini': [25, 'USDA'],
+  'bigne': [25, 'USDA'], 'cannolo': [110, 'USDA'], 'cannoli': [110, 'USDA'], 'sfogliatella': [90, 'USDA'], 'maritozzo': [110, 'USDA'], 'bombolone': [75, 'USDA'],
+  'krapfen': [75, 'USDA'], 'ciambella fritta': [75, 'USDA'], 'donut': [65, 'USDA'], 'merendina': [35, 'CREA'], 'merendine': [35, 'CREA'], 'snack': [35, 'CREA'],
+  'crostatina': [35, 'CREA'], 'kinder': [30, 'etichetta'], 'tortina': [35, 'CREA'], 'cioccolato fondente': [5, 'CREA'], 'fondente': [5, 'CREA'], 'cioccolato': [5, 'CREA'],
+  'cioccolato al latte': [5, 'CREA'], 'cioccolato bianco': [5, 'CREA'], 'ovetto': [20, 'etichetta'], 'barretta di cioccolato': [50, 'USDA'], 'budino': [125, 'CREA'], 'panna cotta': [125, 'CREA'],
+  'creme caramel': [125, 'CREA'], 'burek': [200, 'CREA'], 'borek': [200, 'CREA'], 'burek al formaggio': [200, 'CREA'], 'burek alla carne': [200, 'CREA'], 'zeljanica': [200, 'CREA'],
+  'sirnica': [200, 'CREA'], 'krompirusa': [200, 'CREA'], 'pita agli spinaci': [200, 'CREA'], 'cevapcici': [30, 'CREA'], 'cevapi': [30, 'CREA'], 'pljeskavica': [200, 'CREA'],
+  'gyros': [300, 'CREA'], 'gyro': [300, 'CREA'], 'pita gyros': [300, 'CREA'], 'shawarma': [300, 'CREA'], 'shawerma': [300, 'CREA'], 'falafel': [17, 'CREA'],
+  'baklava': [30, 'CREA'], 'baclava': [30, 'CREA'], 'pierogi': [30, 'CREA'], 'tacos': [100, 'CREA'], 'taco': [100, 'CREA'], 'quesadilla': [200, 'CREA'],
+  'empanada': [125, 'CREA'], 'empanadas': [125, 'CREA'], 'involtini primavera': [60, 'CREA'], 'involtino primavera': [60, 'CREA'], 'spring roll': [60, 'CREA'], 'ravioli cinesi': [25, 'CREA'],
+  'gyoza': [25, 'CREA'], 'dim sum': [25, 'CREA'], 'ravioli al vapore': [25, 'CREA'], 'naan': [90, 'CREA'], 'pane naan': [90, 'CREA'], 'olive ascolane': [15, 'CREA'],
+  'olive fritte': [15, 'CREA'], 'olive': [4, 'CREA'], 'olive verdi': [4, 'CREA'], 'olive nere': [4, 'CREA'], 'oliva': [4, 'CREA'], 'crocchette di patate': [30, 'CREA'],
+  'crocche': [70, 'USDA'], 'crocchetta': [30, 'CREA'], 'tigelle': [40, 'CREA'], 'tigella': [40, 'CREA'], 'crescentine': [40, 'CREA'], 'crescentina': [40, 'CREA'],
+  'gnocco fritto': [20, 'USDA'], 'bruschetta': [50, 'CREA'], 'bruschette': [50, 'CREA'], 'crostini': [15, 'USDA'], 'avocado toast': [150, 'CREA'], 'toast avocado': [150, 'CREA'],
+  'toast con avocado': [150, 'CREA'], 'frittelle': [20, 'CREA'], 'frittella': [20, 'CREA'], 'zeppole': [90, 'USDA'], 'castagnole': [20, 'CREA'], 'chiacchiere': [10, 'USDA'],
+  'frappe': [10, 'USDA'], 'frappe di carnevale': [10, 'USDA'], 'bugie': [10, 'USDA'], 'crepe': [120, 'CREA'], 'crepes': [120, 'CREA'], 'crespella': [120, 'CREA'],
+  'pancake': [50, 'CREA'], 'pancakes': [50, 'CREA'], 'waffle': [100, 'CREA'], 'waffel': [100, 'CREA'], 'muffin': [90, 'CREA'], 'brownie': [60, 'CREA'],
+  'brownies': [60, 'CREA'], 'cookie': [40, 'CREA'], 'cookies': [40, 'CREA'], 'biscottone': [40, 'CREA'], 'burger vegetale': [110, 'CREA'], 'burger vegano': [110, 'CREA'],
+  'hamburger vegetariano': [110, 'CREA'], 'burger di soia': [110, 'CREA'], 'burger di legumi': [110, 'CREA'], 'pizza fritta': [200, 'CREA'], 'montanara': [100, 'USDA'], 'focaccia farcita': [200, 'CREA'],
+  'focaccia ripiena': [200, 'CREA'], 'club sandwich': [250, 'CREA'], 'bagel': [90, 'CREA'], 'trapizzino': [200, 'CREA'], 'rustico': [30, 'CREA'], 'rustici': [30, 'CREA'],
+  'salatini': [10, 'USDA'], 'cornetto salato': [90, 'CREA'], 'croissant salato': [90, 'CREA'], 'baba': [80, 'CREA'], 'baba al rum': [80, 'CREA'], 'pastiera': [120, 'CREA'],
+  'cioccolatino': [12, 'CREA'], 'cioccolatini': [12, 'CREA'], 'pralina': [12, 'CREA'], 'praline': [12, 'CREA'], 'bacio perugina': [12, 'etichetta'], 'ferrero rocher': [12, 'etichetta'],
+  'caramelle': [5, 'CREA'], 'caramella': [5, 'CREA'], 'gommose': [5, 'CREA'], 'orsetti gommosi': [5, 'CREA'], 'liquirizia': [5, 'CREA'], 'snickers': [50, 'etichetta'],
+  'twix': [50, 'etichetta'], 'mars': [50, 'etichetta'], 'kitkat': [50, 'etichetta'], 'kit kat': [50, 'etichetta'], 'bounty': [50, 'etichetta'], 'duplo': [18, 'etichetta'],
+  'kinder bueno': [43, 'etichetta'], 'pain chocolat': [70, 'CREA'], 'saccottino': [70, 'CREA'], 'fagottino al cioccolato': [70, 'CREA'], 'gallette': [8, 'CREA'], 'galletta': [8, 'CREA'],
+  'gallette di riso': [8, 'CREA'], 'gallette di mais': [8, 'CREA'], 'pancarre': [25, 'CREA'], 'pan carre': [25, 'CREA'], 'pane in cassetta': [25, 'CREA'], 'pan bauletto': [25, 'CREA'],
+  'pane arabo': [60, 'CREA'], 'pita': [60, 'CREA'], 'pane pita': [60, 'CREA'], 'castagne': [10, 'CREA'], 'caldarroste': [10, 'CREA'], 'castagna': [10, 'CREA'],
+  'samosa': [70, 'CREA'], 'samosas': [70, 'CREA'], 'onigiri': [110, 'CREA'], 'quiche': [150, 'CREA'], 'torta salata': [150, 'CREA'], 'erbazzone': [150, 'CREA'],
+  'torta pasqualina': [150, 'CREA'], 'torta rustica': [150, 'CREA'], 'panino con cotoletta': [250, 'CREA'], 'panino cotoletta': [250, 'CREA'], 'fico secco': [20, 'USDA'],
+  'clementina': [70, 'USDA'], 'pomodorino': [15, 'USDA'], 'ciliegini': [15, 'USDA'], 'bignè alla crema': [25, 'USDA'], 'cannolo siciliano': [110, 'USDA'], 'bomboloni': [75, 'USDA'],
+  'graffa': [75, 'USDA'], 'sfogliatelle': [90, 'USDA'], 'maritozzi': [110, 'USDA'], 'plum cake': [35, 'USDA'], 'ghiaccioli': [60, 'USDA'], 'kinder sorpresa': [20, 'etichetta'],
+  'ovetti': [20, 'etichetta'], 'michetta': [60, 'USDA'], 'cheese burger': [120, 'USDA'], 'panzerotti': [180, 'USDA'], 'crocchetta di pollo': [30, 'USDA'], 'nugget': [18, 'USDA'],
+  'gnocchi fritti': [20, 'USDA'], 'torta fritta': [20, 'USDA'], 'crostino': [15, 'USDA'], 'zeppola': [90, 'USDA'], 'zeppola di san giuseppe': [90, 'USDA'], 'chiacchiera': [10, 'USDA'],
+  'crostoli': [10, 'USDA'], 'montanarina': [50, 'USDA'], 'salatino': [10, 'USDA'], 'vol vent': [12, 'USDA'], 'supplì': [120, 'USDA'], 'mandarancio': [70, 'USDA'],
+  'rosette': [60, 'USDA'], 'michette': [60, 'USDA'], 'pizzette': [50, 'USDA'], 'panzerotto fritto': [180, 'USDA'], 'chicken nuggets': [18, 'USDA'], 'bocconcini di pollo impanati': [18, 'USDA'],
+  'wurstel di tacchino': [50, 'USDA'], 'frankfurter': [50, 'USDA'], 'datterini': [12, 'USDA'], 'mandaranci': [70, 'USDA'], 'granite': [200, 'USDA'], 'granita al limone': [200, 'USDA'],
+  'granita al caffè': [200, 'USDA'], 'plumcake confezionato': [35, 'etichetta'], 'pasticcini mignon': [25, 'USDA'], 'bigne alla crema': [25, 'USDA'], 'bigne al cioccolato': [25, 'USDA'], 'graffe': [80, 'USDA'],
+  'maritozzo con la panna': [110, 'USDA'], 'ovetto kinder': [20, 'etichetta'], 'crocche napoletano': [70, 'USDA'], 'crocche di patate': [70, 'USDA'], 'frappa': [10, 'USDA'], 'cenci': [10, 'USDA'],
+  'montanare': [100, 'USDA'], 'montanarine': [50, 'USDA'],
+};
+
+test('ogni nome con un pezzo ha il peso di riferimento', async p => {
+  const miss = await ev(p, R => FOODS.filter(f => f.pz && !f.mine && !f.prod).flatMap(f => f.kw.split('|')).filter(k => !(k in R)), PIECE_REF);
+  assertEq(miss, []);
+});
+test('un pezzo pesa come il riferimento (±30%)', async p => {
+  const bad = await ev(p, R => Object.entries(R).map(([k, [g]]) => { const it = analyzeFood('1 ' + k).items; return it.length === 1 && Math.abs(it[0].g - g) <= g * .3 ? null : `${k}: ${it.map(i => i.food.n + ' ' + Math.round(i.g) + 'g').join('+')} (rif ${g})`; }).filter(Boolean), PIECE_REF);
+  assertEq(bad, []);
+});
+test('5 nuggets non sono 5 cotolette', async p => {
+  assertEq(await ev(p, () => ['5 nuggets', '3 mandarini', '2 wurstel', '4 bignè', '2 supplì', '3 fichi secchi'].map(t => { const i = analyzeFood(t).items[0]; return [i.food.n, Math.round(i.g)]; })),
+    [['Nuggets di pollo', 90], ['Mandarino', 210], ['Wurstel', 100], ['Bignè', 100], ['Supplì', 240], ['Fichi secchi', 60]]);
+});
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 

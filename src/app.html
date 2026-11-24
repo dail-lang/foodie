@@ -290,6 +290,19 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 }
 
 /* ===== Ritocchi grafici ===== */
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.badge-card{display:grid;gap:3px;justify-items:center;text-align:center;padding:12px 6px;border-radius:14px;background:var(--sunk);color:var(--muted);font-size:.75rem;line-height:1.25}
+.badge-card b{font-size:.84rem;color:var(--muted)}
+.badge-card.on{background:var(--col-soft);color:#C27B12}
+.badge-card.on b{color:var(--ink)}
+.badge-card.on span{color:var(--muted)}
+#toast-root{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);z-index:60;display:grid;gap:8px;width:min(92vw,380px)}
+.toast{display:flex;gap:12px;align-items:center;background:var(--ink);color:var(--bg);border-radius:16px;padding:12px 16px;box-shadow:0 10px 30px rgb(0 0 0 / .3)}
+.toast svg{color:var(--accent);flex:none;width:34px;height:34px}
+.toast div{display:grid;line-height:1.3}
+.toast small{font-size:.72rem;opacity:.8;text-transform:uppercase;letter-spacing:.06em}
+.toast span{font-size:.85rem;opacity:.9}
+@media (prefers-reduced-motion:no-preference){.toast{animation:drop .35s ease-out}@keyframes drop{from{transform:translateY(-16px);opacity:0}to{transform:none;opacity:1}}}
 .score-top{display:flex;gap:14px;align-items:center}
 .score-t{display:grid;gap:6px;min-width:0}
 .streak{display:inline-flex;align-items:center;gap:5px;background:var(--col-soft);color:var(--ink);border-radius:999px;padding:4px 11px;font-size:.85rem}
@@ -1023,6 +1036,53 @@ function trainBlock(D){
     <div class="wdots">${[0,1,2].map(i=>`<i class="${i<n?'on':''}"></i>`).join('')}</div>
     <p class="muted" style="margin:0;font-size:.88rem">${isTrainDay(D)?'Oggi è giorno di allenamento.':'Oggi è giorno di riposo: se ti alleni comunque, segnalo.'}</p>
     <div class="row">${b('A','Scheda A')}${b('B','Scheda B')}${b('altro','Altro')}</div></div>`;
+}
+/* ---------- Medaglie ---------- */
+function badgeState(){
+  const c=calc(profile), keys=Object.keys(log).filter(k=>log[k].items&&log[k].items.length).sort();
+  const scores=keys.map(k=>{ const d=keyDate(k); return dayScore(log[k],c,isTrainDay(d)); });
+  const weeks={}; Object.keys(log).forEach(k=>{ if(log[k].train){ const d=keyDate(k); d.setDate(d.getDate()-((d.getDay()+6)%7)); const w=todayKey(d); weeks[w]=(weeks[w]||0)+1; } });
+  const vit=prog.filter(x=>x.vita).map(x=>x.vita);
+  const recipes=new Set(); keys.forEach(k=>log[k].items.forEach(i=>{ const r=recipeOfItem(i); if(r&&i.src!=='q') recipes.add(r.id); }));
+  let cov=null; try{ cov=plan?coverage(plan.days):null; }catch(e){}
+  return { meals:keys.length, maxScore:Math.max(0,...scores.map(x=>x?x.score:0)), streak:streaks(todayKey()).logged,
+    protDays:keys.filter(k=>log[k].items.reduce((s,i)=>s+(+i.p||0),0)>=c.prot*.9).length,
+    waterDays:Object.keys(log).filter(k=>(log[k].water||0)>=8).length,
+    weekMax:Math.max(0,...Object.values(weeks)), trainTotal:Object.keys(log).filter(k=>log[k].train).length,
+    cooked:store.get('cooked',0), recipes:recipes.size, waistDrop:vit.length>1?vit[0]-Math.min(...vit.slice(1)):0,
+    superfood:!!(profile.sf&&cov&&keys.length&&Object.keys(NUTR).every(m=>cov[m]>=NUTR[m].w)) };
+}
+const BADGES = [
+ {id:'primo',n:'Primo passo',d:'Segna il tuo primo pasto',test:S=>S.meals>=1},
+ {id:'top90',n:'Giornata top',d:'Raggiungi un voto di 90',test:S=>S.maxScore>=90},
+ {id:'serie3',n:'Serie da 3',d:'Registra 3 giorni di fila',test:S=>S.streak>=3},
+ {id:'serie7',n:'Una settimana',d:'Registra 7 giorni di fila',test:S=>S.streak>=7},
+ {id:'serie30',n:'Abitudine',d:'Registra 30 giorni di fila',test:S=>S.streak>=30},
+ {id:'proteine7',n:'Proteine ok',d:'7 giorni con le proteine raggiunte',test:S=>S.protDays>=7},
+ {id:'idratato',n:'Idratato',d:'5 giorni con 8 bicchieri d\'acqua',test:S=>S.waterDays>=5},
+ {id:'settimana3',n:'Settimana completa',d:'3 allenamenti nella stessa settimana',test:S=>S.weekMax>=3},
+ {id:'allen12',n:'12 allenamenti',d:'Completa 12 allenamenti',test:S=>S.trainTotal>=12},
+ {id:'chef10',n:'Chef',d:'Cucina 10 ricette in modalità cucina',test:S=>S.cooked>=10},
+ {id:'esploratore',n:'Esploratore',d:'Mangia 20 ricette diverse dell\'app',test:S=>S.recipes>=20},
+ {id:'vita1',n:'−1 cm',d:'Giro vita sotto di 1 cm dalla prima misura',test:S=>S.waistDrop>=1},
+ {id:'vita3',n:'−3 cm',d:'Giro vita sotto di 3 cm dalla prima misura',test:S=>S.waistDrop>=3},
+ {id:'superfood',n:'Superfood',d:'Piano con tutti i nutrienti coperti e almeno un giorno registrato',test:S=>S.superfood}
+];
+function checkBadges(){
+  if(profile.esempio) return [];
+  const got=store.get('badges',{}), S=badgeState(), fresh=BADGES.filter(b=>!got[b.id]&&b.test(S)).map(b=>b.id);
+  if(fresh.length){ fresh.forEach(id=>got[id]=todayKey()); store.set('badges',got); }
+  return fresh;
+}
+const MEDAL='<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5l2.5 6M16 2.5l-2.5 6"/><circle cx="12" cy="15" r="6"/><path d="M12 12l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z" fill="currentColor"/></svg>';
+function toast(html){ let root=$('toast-root'); if(!root){ root=document.createElement('div'); root.id='toast-root'; root.setAttribute('aria-live','polite'); document.body.appendChild(root); }
+  const el=document.createElement('div'); el.className='toast'; el.innerHTML=html; root.appendChild(el); setTimeout(()=>el.remove(),4500); }
+function celebrate(){ checkBadges().forEach(id=>{ const b=BADGES.find(x=>x.id===id); toast(`${MEDAL}<div><small>Nuova medaglia!</small><b>${esc(b.n)}</b><span>${esc(b.d)}</span></div>`); }); }
+function badgesBlock(){
+  const got=store.get('badges',{}), n=Object.keys(got).length;
+  return `<div class="panel"><div class="row"><h3 style="font-size:1.1rem;margin-right:auto">Medaglie</h3><span class="pill num">${n} su ${BADGES.length}</span></div>
+    ${profile.esempio?'<p class="muted" style="margin:0;font-size:.88rem">Inserisci i tuoi dati in Profilo per iniziare a sbloccare le medaglie.</p>':''}
+    <div class="badges">${BADGES.map(b=>`<div class="badge-card ${got[b.id]?'on':''}">${MEDAL}<b>${esc(b.n)}</b><span>${got[b.id]?'Sbloccata il '+got[b.id].split('-').reverse().slice(0,2).join('/'):esc(b.d)}</span></div>`).join('')}</div></div>`;
 }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
@@ -1769,6 +1829,7 @@ function viewOggi(){
     </div>
     ${trainBlock(D)}
     ${weekBlock(c)}
+    ${badgesBlock()}
     <div class="two">
       <div class="panel"><h3 style="font-size:1.1rem">Dal piano${off?' di '+DAYS[di].toLowerCase():' di oggi'}</h3>${meals}
         ${SLOTS_IDS.every(sl=>L.items.some(i=>i.src==='plan:'+sl))?'<p class="ck-ok" style="font-size:.9rem">Tutti i pasti del piano sono segnati.</p>':'<button class="btn primary" data-act="eatall">Ho mangiato tutto come da piano</button>'}</div>
@@ -1879,7 +1940,7 @@ function cook(id,px){
   function draw(){
     const n=r.s.length; let body;
     if(st.i<0) body=`<div class="eyebrow">Prima di iniziare: prendi tutto${px!==1?` · ${fmt(px)} porzioni`:''}</div><ul class="ck-ing">${r.ing.map((g,j)=>`<li><label><input type="checkbox" id="ck-${j}" data-j="${j}" ${st.chk.has(j)?'checked':''}><span>${esc(g[0])}</span><b class="num">${qty(g[1]*px,g[2])}</b></label></li>`).join('')}</ul>`;
-    else if(st.i>=n) body=`<div class="eyebrow">Fatto</div><p class="ck-step">Buon appetito!</p>${r.h?`<div class="hint"><b>Ricorda:</b> ${esc(r.h)}</div>`:''}`;
+    else if(st.i>=n){ if(!st.counted){ st.counted=true; store.set('cooked',store.get('cooked',0)+1); celebrate(); } body=`<div class="eyebrow">Fatto</div><p class="ck-step">Buon appetito!</p>${r.h?`<div class="hint"><b>Ricorda:</b> ${esc(r.h)}</div>`:''}`; }
     else { const s=r.s[st.i], sec=stepSecs(s), used=stepIngs(r,s);
       body=`<div class="eyebrow">Passo ${st.i+1} di ${n}</div><p class="ck-step">${esc(s)}</p>
         ${used.length?`<div class="ck-use"><div class="eyebrow">Ti serve in questo passaggio</div><ul>${used.map(ingRow).join('')}</ul></div>`:''}
@@ -2012,7 +2073,7 @@ const HANDLERS = {
 };
 document.addEventListener('click',e=>{
   const t = e.target.closest('button'); if(!t) return;
-  if(t.dataset.act && HANDLERS[t.dataset.act]){ HANDLERS[t.dataset.act](t); return; }
+  if(t.dataset.act && HANDLERS[t.dataset.act]){ HANDLERS[t.dataset.act](t); celebrate(); return; }
   if(t.dataset.open){openRecipe(t.dataset.open,parseFloat(t.dataset.x)||1);return}
   if(t.dataset.swap){const [d,sl]=t.dataset.swap.split('|');swap(+d,sl);return}
   if(t.id==='regen'){makePlan();render();return}

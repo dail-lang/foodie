@@ -130,6 +130,41 @@ test('Oggi mostra voto e serie', async p => {
   assert(await p.locator('.score-ring').count() === 1 && await p.locator('.streak').count() === 1);
 }, { seed: { 'pp.log': { [keyOf(0)]: it1 } } });
 
+/* ---------- Task 7: medaglie ---------- */
+test('14 medaglie definite', async p => { assertEq(await ev(p, () => BADGES.length), 14); });
+test('primo passo si sblocca una volta', async p => {
+  const r = await ev(p, () => { toggleEaten((new Date().getDay() + 6) % 7, 'pranzo', todayKey()); const a = checkBadges(); const b = checkBadges(); return [a.includes('primo'), b.length, !!store.get('badges', {}).primo]; });
+  assertEq(r, [true, 0, true]);
+}, { seed: { 'pp.profile': REAL } });
+test('[RF 5] profilo di esempio non sblocca medaglie', async p => {
+  const r = await ev(p, () => { toggleEaten((new Date().getDay() + 6) % 7, 'pranzo', todayKey()); return [checkBadges().length, Object.keys(store.get('badges', {})).length]; });
+  assertEq(r, [0, 0]);
+});
+test('−1 cm di giro vita', async p => {
+  const r = await ev(p, () => checkBadges());
+  assert(r.includes('vita1') && !r.includes('vita3'), JSON.stringify(r));
+}, { seed: { 'pp.profile': REAL, 'pp.prog': [{ d: keyOf(14), t: 1, peso: 72, vita: 90 }, { d: keyOf(0), t: 2, peso: 71, vita: 88.5 }] } });
+test('serie 3', async p => {
+  const r = await ev(p, () => checkBadges());
+  assert(r.includes('serie3') && !r.includes('serie7'), JSON.stringify(r));
+}, { seed: { 'pp.profile': REAL, 'pp.log': { [keyOf(0)]: it1, [keyOf(1)]: it1, [keyOf(2)]: it1 } } });
+test('chef 10 dopo 10 cotture', async p => {
+  const r = await ev(p, () => { store.set('cooked', 9); const a = checkBadges().includes('chef10'); store.set('cooked', 10); return [a, checkBadges().includes('chef10')]; });
+  assertEq(r, [false, true]);
+}, { seed: { 'pp.profile': REAL } });
+test('toast quando si sblocca una medaglia', async p => {
+  await ev(p, () => { location.hash = 'oggi'; });
+  await p.waitForTimeout(150);
+  await p.locator('.meal [data-act="eat"]').first().click();
+  await p.waitForTimeout(200);
+  assert(await p.locator('.toast').count() === 1, 'nessun toast');
+}, { seed: { 'pp.profile': REAL } });
+test('griglia medaglie in Oggi', async p => {
+  await ev(p, () => { location.hash = 'oggi'; });
+  await p.waitForTimeout(150);
+  assertEq(await p.locator('.badge-card').count(), 14);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

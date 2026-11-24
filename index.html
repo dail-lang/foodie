@@ -28,6 +28,11 @@ img{max-width:100%}
 
 
 
+
+
+
+
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -318,6 +323,20 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 }
 
 /* ===== Ritocchi grafici ===== */
+.qres{display:grid;gap:10px}
+.qres:empty{display:none}
+table.qt{width:100%;border-collapse:collapse;font-size:.88rem}
+.qt th,.qt td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.qt th{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.qt .n{text-align:right;white-space:nowrap}
+.qt td small{display:block;color:var(--muted);font-size:.78rem}
+.qt tfoot td{border-bottom:0;background:var(--sunk)}
+.qres .tbl{padding:0 6px;box-shadow:none;border:1px solid var(--line)}
+.qmeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem}
+.qmeta>span:not(.tag){color:var(--muted)}
+.qmeta b{color:var(--ink)}
+.manual summary{cursor:pointer;color:var(--basil-text);font-weight:600;font-size:.9rem}
+#q-txt{min-height:64px}
 main a:not(.btn){color:var(--basil-text);font-weight:600;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:2px}
 .sheet-h h2{font-size:1.3rem}
 @media (max-width:560px){ .inline .field.wide{flex-basis:100%} }
@@ -728,7 +747,7 @@ function dayLog(){ const k=todayKey(selDate()); if(!log[k]) log[k]={items:[],wat
 function peekLog(d){ return log[todayKey(d)]||{items:[],water:0}; }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
-const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0};
+const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:''};
 
 /* ---------- Calcoli ---------- */
 const ACT = {sed:[1.2,'Sedentario'],leggero:[1.375,'Leggero (1–3 allenamenti/sett.)'],moderato:[1.55,'Moderato (3–5/sett.)'],intenso:[1.725,'Intenso (6–7/sett.)']};
@@ -1129,6 +1148,250 @@ function viewAllenamento(){
     <p class="note">Se hai dolori, problemi articolari o non ti alleni da tempo, fatti seguire da un istruttore per la tecnica. Il dolore muscolare dei giorni dopo è normale, il dolore alle articolazioni no.</p>`;
 }
 
+/* ---------- Calcolatore cibi fuori piano ----------
+   Valori per 100 g (o 100 ml), stime da tabelle CREA e USDA. por = porzione tipica, pz = un pezzo. */
+const F=(n,kw,k,p,c,f,fib,por,porl,pz,pzl,u,mi)=>({n,kw,k,p,c,f,fib,por,porl,pz,pzl,u:u||{},mi:mi?mi.split(' '):[]});
+const FOODS=[
+ F('Caffè espresso','caffe|espresso|caffe espresso',2,.1,0,.2,0,30,'tazzina'),
+ F('Cappuccino','cappuccino|caffe latte|caffelatte|latte macchiato',50,2.8,4,2.5,0,150,'tazza',0,0,0,'calcio'),
+ F('Latte intero','latte|latte intero',64,3.3,4.9,3.6,0,200,'bicchiere',0,0,0,'calcio B12'),
+ F('Latte parz. scremato','latte parzialmente scremato|latte scremato|latte parz',46,3.5,5,1.5,0,200,'bicchiere',0,0,0,'calcio B12'),
+ F('Bevanda di soia','latte di soia|bevanda di soia|latte vegetale|latte di avena|latte di mandorla',40,3.3,2,1.8,.5,200,'bicchiere',0,0,0,'calcio'),
+ F('Kefir','kefir',60,3.3,4,3,0,200,'bicchiere',0,0,0,'calcio probiotici'),
+ F('Zucchero','zucchero',392,0,100,0,0,5,'cucchiaino',5,'bustina'),
+ F('Succo di frutta','succo|succo di frutta',50,.3,12,0,.2,200,'bicchiere'),
+ F('Spremuta d\'arancia','spremuta|spremuta di arancia',33,.5,8,0,.2,200,'bicchiere',0,0,0,'vitC'),
+ F('Bibita zuccherata','coca|cola|coca cola|aranciata|bibita|fanta|sprite|the freddo|te freddo',42,0,10.6,0,0,330,'lattina'),
+ F('Bibita zero','coca zero|cola zero|bibita zero|light',1,0,0,0,0,330,'lattina'),
+ F('Birra','birra',43,.4,3.5,0,0,400,'birra media',330,'bottiglia'),
+ F('Vino','vino|vino rosso|vino bianco|prosecco',80,.1,2.6,0,0,125,'bicchiere'),
+ F('Spritz','spritz|aperol',65,0,7,0,0,250,'bicchiere'),
+ F('Acqua','acqua',0,0,0,0,0,250,'bicchiere'),
+ F('Tè o tisana','te|tisana|camomilla|infuso',1,0,.2,0,0,250,'tazza'),
+ F('Cornetto','cornetto|brioche|croissant|cornetto crema|cornetto cioccolato|cornetto marmellata',410,8,50,20,2,60,'cornetto',60,'cornetto'),
+ F('Biscotti secchi','biscotti|biscotti secchi|biscotto',416,7,76,9,3,30,'porzione',8,'biscotto'),
+ F('Biscotti frollini','frollini|biscotti frollini|biscotti al cioccolato|gocciole|pan di stelle',470,6.5,68,20,2.5,30,'porzione',10,'biscotto'),
+ F('Fette biscottate','fette biscottate|fetta biscottata|fette',410,11,73,6,4,27,'3 fette',9,'fetta',{fetta:9}),
+ F('Marmellata','marmellata|confettura',250,.5,60,0,1,20,'cucchiaio'),
+ F('Crema spalmabile al cacao','nutella|crema spalmabile|crema alle nocciole',539,6,57,31,3,15,'cucchiaio'),
+ F('Miele','miele',304,.3,80,0,0,10,'cucchiaino'),
+ F('Corn flakes','corn flakes|cornflakes|cereali',370,7,84,1,3,30,'porzione'),
+ F('Muesli','muesli',370,10,60,8,8,40,'porzione',0,0,0,'fibre magnesio'),
+ F('Granola','granola',470,10,60,20,7,40,'porzione',0,0,0,'fibre'),
+ F('Fiocchi d\'avena','avena|fiocchi di avena|porridge',380,13,60,7,10,40,'porzione',0,0,0,'fibre magnesio'),
+ F('Yogurt bianco','yogurt|yogurt bianco|yogurt intero',66,3.8,4.3,3.9,0,125,'vasetto',125,'vasetto',0,'calcio probiotici'),
+ F('Yogurt greco 0%','yogurt greco|greco|skyr',57,10,4,.2,0,170,'vasetto',170,'vasetto',0,'calcio probiotici'),
+ F('Yogurt alla frutta','yogurt alla frutta|yogurt frutta',95,3.5,15,2.5,.3,125,'vasetto',125,'vasetto',0,'calcio'),
+ F('Pane bianco','pane|pane bianco|rosetta|baguette',270,8,55,1,3,50,'porzione',35,'fetta',{fetta:35}),
+ F('Pane integrale','pane integrale|pane di segale|pane ai cereali',240,9,45,2.5,7,50,'porzione',35,'fetta',{fetta:35},'fibre'),
+ F('Piadina','piadina',320,8,50,10,2,100,'piadina',100,'piadina'),
+ F('Piadina farcita','piadina farcita|piadina crudo|piadina prosciutto',280,13,30,12,1.5,250,'piadina',250,'piadina'),
+ F('Crackers','crackers|cracker',430,10,70,12,3,25,'pacchetto',25,'pacchetto'),
+ F('Grissini','grissini|grissino',410,12,70,8,3,20,'porzione',6,'grissino'),
+ F('Focaccia','focaccia|schiacciata',300,7,45,10,2,100,'trancio',100,'trancio'),
+ F('Toast','toast|toast prosciutto formaggio',280,14,28,12,1.5,120,'toast',120,'toast'),
+ F('Tramezzino','tramezzino',260,9,25,14,1.5,100,'tramezzino',100,'tramezzino'),
+ F('Panino imbottito','panino|panino imbottito|panino al prosciutto|panino crudo|panino cotto|sandwich',265,12,32,9,2,150,'panino',150,'panino'),
+ F('Pane del panino','pane del panino',270,8,55,1,3,80,'panino vuoto',80,'panino vuoto'),
+ F('Hamburger (panino)','hamburger|burger|cheeseburger|big mac|panino hamburger',255,13,26,11,1.5,210,'panino',210,'panino'),
+ F('Hot dog','hot dog|hotdog',290,10,25,17,1,150,'hot dog',150,'hot dog'),
+ F('Patatine fritte','patatine fritte|patate fritte|fritte|patatine',312,3.4,41,15,3.8,120,'porzione media'),
+ F('Patatine in busta','patatine in busta|chips|patatine busta',536,7,53,34,4.5,25,'busta piccola',25,'busta'),
+ F('Kebab','kebab|kebap|doner|piadina kebab',215,13,20,9,1.5,350,'kebab',350,'kebab'),
+ F('Sushi','sushi|nigiri|uramaki|maki|hosomaki|california',150,6,28,1.5,.8,240,'8 pezzi',30,'pezzo',{pezzo:30}),
+ F('Sashimi','sashimi',130,21,0,5,0,120,'porzione',15,'fetta',0,'omega3 B12'),
+ F('Poke bowl','poke|poke bowl|bowl',140,8,18,4,2,450,'bowl',450,'bowl'),
+ F('Ramen','ramen',90,5,11,3,.8,550,'ciotola',550,'ciotola'),
+ F('Burrito','burrito|wrap',200,9,25,7,3,300,'burrito',300,'burrito'),
+ F('Pizza margherita','pizza|margherita|pizza margherita|pizza rossa',250,11,31,9,2,330,'pizza intera',330,'pizza',{fetta:55,trancio:120}),
+ F('Pizza farcita','pizza farcita|pizza salame|pizza diavola|pizza wurstel|pizza capricciosa|pizza prosciutto|pizza quattro formaggi|pizza tonno',270,12,29,12,2,350,'pizza intera',350,'pizza',{fetta:58,trancio:130}),
+ F('Pizza al taglio','pizza al taglio|trancio di pizza|pizzetta',270,10,36,10,2,120,'trancio',120,'trancio'),
+ F('Calzone','calzone|panzerotto',260,12,28,11,2,350,'calzone',350,'calzone'),
+ F('Arancino','arancino|arancina|suppli',250,7,32,10,1.5,200,'arancino',200,'arancino'),
+ F('Lasagne','lasagne|lasagna|lasagne alla bolognese',160,8,14,8,1,300,'piatto'),
+ F('Pasta al pomodoro','pasta al pomodoro|pasta al sugo|spaghetti al pomodoro|pasta pomodoro|penne al pomodoro|sugo',130,4.5,23,2.5,1.5,280,'piatto'),
+ F('Pasta al ragù','pasta al ragu|ragu|bolognese|tagliatelle al ragu',160,7,22,5,1.5,300,'piatto'),
+ F('Pasta al pesto','pasta al pesto|trofie al pesto|pesto genovese',200,6,26,8,1.5,280,'piatto'),
+ F('Carbonara','carbonara|pasta alla carbonara',230,10,25,10,1,300,'piatto',0,0,0,'B12'),
+ F('Amatriciana','amatriciana|gricia|cacio e pepe',190,7,24,7,1,300,'piatto'),
+ F('Pasta in bianco','pasta in bianco|pasta burro e parmigiano|pasta olio e parmigiano',190,6.5,26,6.5,1.2,250,'piatto'),
+ F('Spaghetti alle vongole','vongole|spaghetti alle vongole|pasta allo scoglio|scoglio|pasta ai frutti di mare|frutti di mare',150,8,20,4,1,300,'piatto',0,0,0,'iodio B12'),
+ F('Pasta (peso da cruda)','pasta|spaghetti|penne|fusilli|maccheroni|rigatoni|pasta secca',355,12.5,72,1.5,3,80,'porzione'),
+ F('Pasta integrale (cruda)','pasta integrale|spaghetti integrali',340,13,64,2.5,7,80,'porzione',0,0,0,'fibre'),
+ F('Riso (peso da crudo)','riso|riso basmati|riso integrale|riso crudo',360,7,80,.6,1,80,'porzione'),
+ F('Riso cotto','riso cotto|riso bollito|riso lesso|riso in bianco',130,2.7,28,.3,.4,200,'piatto'),
+ F('Risotto','risotto|risotto alla milanese|risotto ai funghi',150,4,24,4,1,300,'piatto'),
+ F('Insalata di riso','insalata di riso',180,6,24,7,1.5,250,'piatto'),
+ F('Gnocchi di patate','gnocchi',150,4,33,.4,2,200,'porzione'),
+ F('Minestrone','minestrone|minestra di verdure|passato di verdure|vellutata',50,2.5,7,1.5,2.5,300,'piatto',0,0,0,'fibre potassio vitC'),
+ F('Zuppa di legumi','zuppa|zuppa di legumi|pasta e fagioli|pasta e ceci|pasta e lenticchie|zuppa di lenticchie',90,5,13,2,5,300,'piatto',0,0,0,'fibre ferro'),
+ F('Petto di pollo','pollo|petto di pollo|pollo alla piastra|pollo grigliato|tacchino|petto di tacchino',165,31,0,3.6,0,150,'porzione',0,0,0,'B12'),
+ F('Pollo arrosto','pollo arrosto|coscia di pollo|cosce di pollo|ali di pollo|alette',220,25,0,13,0,180,'porzione',0,0,0,'B12'),
+ F('Cotoletta impanata','cotoletta|milanese|pollo impanato|nuggets|crocchette di pollo|cordon bleu',260,17,14,15,.8,150,'cotoletta',150,'cotoletta'),
+ F('Bistecca di manzo','bistecca|manzo|carne|tagliata|filetto|vitello|fettina',200,27,0,10,0,200,'porzione',0,0,0,'ferro zinco B12'),
+ F('Hamburger di carne','hamburger di manzo|hamburger di carne|polpettone',250,20,2,18,0,120,'hamburger',120,'hamburger',0,'ferro zinco B12'),
+ F('Polpette al sugo','polpette|polpetta',190,13,8,12,.8,180,'porzione',30,'polpetta',0,'ferro'),
+ F('Salsiccia','salsiccia|salsicce|wurstel|wurstel di pollo',290,14,2,25,0,100,'salsiccia',100,'salsiccia'),
+ F('Prosciutto crudo','prosciutto crudo|crudo|speck',270,26,0,18,0,50,'porzione',10,'fetta',{fetta:10}),
+ F('Prosciutto cotto','prosciutto cotto|cotto|prosciutto',140,20,1,6,0,50,'porzione',15,'fetta',{fetta:15}),
+ F('Bresaola','bresaola',151,32,0,2,0,60,'porzione',8,'fetta',{fetta:8},'ferro zinco'),
+ F('Fesa di tacchino affettata','fesa di tacchino|affettato di tacchino|affettato di pollo',107,24,0,1,0,60,'porzione',15,'fetta',{fetta:15}),
+ F('Salame','salame|salamino|chorizo|mortadella',380,22,1,32,0,40,'porzione',8,'fetta',{fetta:8}),
+ F('Tonno sott\'olio','tonno|tonno sott olio|tonno in scatola',190,25,0,10,0,60,'scatoletta',60,'scatoletta',0,'B12 omega3'),
+ F('Tonno al naturale','tonno al naturale|tonno naturale',103,24,0,1,0,56,'scatoletta',56,'scatoletta',0,'B12'),
+ F('Salmone','salmone|trota',206,22,0,13,0,150,'porzione',0,0,0,'omega3 vitD B12'),
+ F('Salmone affumicato','salmone affumicato',117,18,0,4.5,0,50,'porzione',0,0,0,'omega3 vitD'),
+ F('Pesce bianco','pesce|merluzzo|nasello|orata|branzino|spigola|platessa|sogliola|pesce spada|baccala',95,19,0,2,0,200,'porzione',0,0,0,'iodio B12'),
+ F('Pesce azzurro','sgombro|sardine|alici|acciughe|pesce azzurro',180,20,0,11,0,150,'porzione',0,0,0,'omega3 vitD B12'),
+ F('Gamberi','gamberi|gamberetti|mazzancolle|scampi|calamari|seppie|polpo',95,19,1,1.5,0,150,'porzione',0,0,0,'iodio zinco B12'),
+ F('Frittura di pesce','frittura|fritto misto|calamari fritti|frittura di pesce',230,15,12,13,.5,200,'porzione'),
+ F('Uova','uovo|uova|uovo sodo|uova strapazzate|uovo al tegamino',143,12.6,.7,9.5,0,110,'2 uova',55,'uovo',0,'B12 vitD'),
+ F('Albume','albume|albumi|chiare',52,11,.7,.2,0,100,'porzione',33,'albume'),
+ F('Frittata','frittata|omelette',180,12,1.5,14,.3,150,'porzione',0,0,0,'B12'),
+ F('Mozzarella','mozzarella|bufala|fior di latte|burrata',250,18,2,19,0,125,'mozzarella',125,'mozzarella',0,'calcio'),
+ F('Parmigiano','parmigiano|grana|grana padano|parmigiano reggiano',392,33,0,28,0,10,'cucchiaio grattugiato',0,0,{cucchiaio:6},'calcio'),
+ F('Formaggio stagionato','formaggio|pecorino|provolone|emmental|fontina|asiago|scamorza|gorgonzola|brie',380,25,1,30,0,50,'porzione',0,0,0,'calcio'),
+ F('Ricotta','ricotta',146,9,3.5,11,0,100,'porzione',0,0,0,'calcio'),
+ F('Fiocchi di latte','fiocchi di latte|cottage',100,12,3,4.5,0,150,'vaschetta',0,0,0,'calcio'),
+ F('Caprese','caprese',180,11,3,14,1,250,'piatto',0,0,0,'calcio vitC'),
+ F('Tofu','tofu|tempeh',145,15,3,8.7,1,100,'porzione',0,0,0,'calcio ferro'),
+ F('Proteine in polvere','proteine|whey|proteine in polvere|frullato proteico|shake proteico',380,75,8,6,1,30,'misurino',30,'misurino'),
+ F('Barretta proteica','barretta proteica|barretta|barrette proteiche',350,30,35,10,5,50,'barretta',50,'barretta'),
+ F('Burro','burro',717,.9,.1,81,0,10,'porzione'),
+ F('Olio d\'oliva','olio|olio di oliva|olio extravergine|olio evo',899,0,0,100,0,10,'cucchiaio',0,0,{cucchiaio:10,cucchiaino:4},'antiox'),
+ F('Maionese','maionese|salsa rosa|salsa tartara',680,1,1,75,0,15,'cucchiaio'),
+ F('Ketchup','ketchup|salsa barbecue|bbq',110,1.2,25,.2,.3,15,'cucchiaio'),
+ F('Pesto','pesto',450,5,4,45,1.5,30,'porzione'),
+ F('Hummus','hummus',170,8,14,10,6,60,'porzione',0,0,0,'fibre ferro'),
+ F('Ceci','ceci',164,8.9,27,2.6,7.6,150,'porzione',0,0,0,'fibre ferro folati magnesio'),
+ F('Lenticchie','lenticchie',116,9,20,.4,8,150,'porzione',0,0,0,'fibre ferro folati magnesio'),
+ F('Fagioli','fagioli|borlotti|cannellini|fagioli neri',127,8.7,22.8,.5,6.4,150,'porzione',0,0,0,'fibre ferro folati potassio'),
+ F('Piselli','piselli',81,5.4,14,.4,5,150,'porzione',0,0,0,'fibre folati'),
+ F('Edamame','edamame|soia',121,11,9,5,5,100,'porzione',0,0,0,'folati fibre magnesio'),
+ F('Insalata','insalata|lattuga|rucola|valeriana|songino|insalata verde|insalata mista',17,1.4,2.9,.2,1.5,80,'porzione',0,0,0,'folati vitC'),
+ F('Insalatona','insalatona|insalata caesar|caesar|insalata di pollo|insalata con tonno',140,11,6,8,2,300,'piatto',0,0,0,'folati vitC'),
+ F('Pomodori','pomodori|pomodoro|pomodorini|pachino',18,.9,3.9,.2,1.2,150,'porzione',120,'pomodoro',0,'antiox vitC potassio'),
+ F('Zucchine','zucchine|zucchina',17,1.2,3.1,.3,1,200,'porzione',0,0,0,'potassio'),
+ F('Verdure grigliate','verdure grigliate|grigliata di verdure|melanzane grigliate|peperoni grigliati',70,2,6,4,3,200,'porzione',0,0,0,'fibre antiox'),
+ F('Verdure miste','verdure|verdura|contorno|verdure miste|verdure cotte|verdure al vapore|fagiolini|cavolfiore|cavolo|bietola|cicoria|finocchi|asparagi|carciofi',30,1.8,5,.3,2.6,200,'porzione',0,0,0,'fibre vitC folati potassio'),
+ F('Broccoli','broccoli|broccolo|cime di rapa',34,2.8,7,.4,2.6,200,'porzione',0,0,0,'vitC folati fibre'),
+ F('Spinaci','spinaci',23,2.9,3.6,.4,2.2,200,'porzione',0,0,0,'ferro folati vitC'),
+ F('Carote','carote|carota',41,.9,10,.2,2.8,100,'porzione',80,'carota',0,'antiox'),
+ F('Peperoni','peperoni|peperone',26,1,6,.3,2,150,'porzione',0,0,0,'vitC antiox'),
+ F('Funghi','funghi|champignon',22,3,3.3,.3,1,150,'porzione'),
+ F('Patate lesse','patate|patata|patate lesse|patate bollite|pure|purè',87,1.9,20,.1,1.8,200,'porzione',150,'patata',0,'potassio'),
+ F('Patate al forno','patate al forno|patate arrosto',150,2.5,22,6,2,200,'porzione',0,0,0,'potassio'),
+ F('Parmigiana di melanzane','parmigiana|parmigiana di melanzane|melanzane alla parmigiana',170,7,8,12,2.5,250,'porzione',0,0,0,'calcio'),
+ F('Avocado','avocado',160,2,8.5,15,6.7,140,'avocado',140,'avocado',0,'potassio fibre'),
+ F('Mela','mela|mele',52,.3,14,.2,2.4,180,'mela',180,'mela',0,'fibre'),
+ F('Banana','banana|banane',89,1.1,23,.3,2.6,120,'banana',120,'banana',0,'potassio'),
+ F('Arancia','arancia|arance|mandarino|mandarini|clementine',47,.9,12,.1,2.4,180,'arancia',150,'frutto',0,'vitC'),
+ F('Pera','pera|pere',57,.4,15,.1,3.1,170,'pera',170,'pera',0,'fibre'),
+ F('Kiwi','kiwi',61,1.1,15,.5,3,75,'kiwi',75,'kiwi',0,'vitC fibre'),
+ F('Fragole','fragole|fragola',32,.7,7.7,.3,2,150,'porzione',0,0,0,'vitC antiox'),
+ F('Frutti di bosco','frutti di bosco|mirtilli|lamponi|more',50,1,12,.5,5,100,'porzione',0,0,0,'antiox vitC fibre'),
+ F('Uva','uva',69,.7,18,.2,.9,150,'porzione'),
+ F('Frutta fresca','frutta|frutta fresca|pesca|pesche|albicocche|prugne|ciliegie|ananas|melone|anguria|cocomero|mango|fichi',50,.7,12,.2,1.8,150,'porzione',0,0,0,'vitC'),
+ F('Datteri','datteri|dattero|frutta secca disidratata|uvetta|fichi secchi',280,2.5,75,.4,8,30,'porzione',8,'dattero'),
+ F('Mandorle','mandorle|nocciole|anacardi|pistacchi|frutta secca|frutta a guscio',590,21,20,51,10,30,'manciata',0,0,0,'magnesio antiox'),
+ F('Noci','noci|noce',654,15,14,65,7,30,'manciata',5,'noce',0,'omega3 magnesio'),
+ F('Arachidi','arachidi|noccioline',567,26,16,49,8.5,30,'manciata'),
+ F('Burro d\'arachidi','burro di arachidi|burro d arachidi|peanut butter',590,25,20,50,6,15,'cucchiaio',0,0,{cucchiaio:15}),
+ F('Semi misti','semi|semi di chia|semi di lino|semi di zucca|semi di girasole',520,20,20,42,20,15,'cucchiaio',0,0,{cucchiaio:10},'omega3 magnesio fibre'),
+ F('Gelato alla crema','gelato|gelato alla crema|gelato cioccolato|gelato pistacchio|cono|coppetta|gelato stracciatella',210,3.5,25,11,.5,100,'coppetta',100,'gelato'),
+ F('Gelato alla frutta','gelato alla frutta|sorbetto|ghiacciolo|granita',130,.5,30,1,.5,100,'coppetta',100,'gelato'),
+ F('Tiramisù','tiramisu',300,6,30,18,.5,120,'porzione'),
+ F('Torta','torta|dolce|ciambella|plumcake|torta al cioccolato|cheesecake|crostata|strudel',380,5,52,17,1.5,80,'fetta',80,'fetta',{fetta:80}),
+ F('Panettone o pandoro','panettone|pandoro|colomba',390,7,55,16,1.5,80,'fetta',80,'fetta',{fetta:80}),
+ F('Pasticcini','pasticcino|pasticcini|bigne|cannolo|cannoli|sfogliatella|maritozzo|bombolone|krapfen|ciambella fritta|donut',400,6,45,22,1,70,'pezzo',70,'pezzo'),
+ F('Merendina','merendina|merendine|snack|crostatina|kinder|tortina',430,6,58,19,1.5,35,'merendina',35,'merendina'),
+ F('Cioccolato fondente','cioccolato fondente|fondente|cioccolato',550,8,40,40,10,20,'porzione',5,'quadratino',0,'magnesio antiox'),
+ F('Cioccolato al latte','cioccolato al latte|cioccolato bianco|ovetto|barretta di cioccolato',535,7.6,59,30,2,25,'porzione',5,'quadratino'),
+ F('Budino','budino|panna cotta|creme caramel',120,3,20,3,.2,125,'vasetto',125,'vasetto'),
+ F('Popcorn','popcorn|pop corn',380,11,74,4,13,30,'porzione'),
+ F('Quinoa cotta','quinoa|cous cous|couscous|bulgur|farro|orzo',120,4.4,21,1.9,2.8,180,'porzione',0,0,0,'fibre magnesio')
+];
+function fw(t){ return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[’']/g,' ').split(/[^a-z]+/).filter(w=>w.length>=2&&!FSTOP.has(w)); }
+const FSTOP=new Set('di del della dello dei degli delle al alla allo ai agli alle in con e ed il lo la le gli un uno una po ho mangiato bevuto preso poi anche ancora circa tipo per da piu senza mia mio'.split(' '));
+FOODS.forEach(x=>{ x.kws=x.kw.split('|').map(k=>fw(k)).filter(a=>a.length); });
+const DRY={'Pasta al pomodoro':3.1,'Pasta al ragù':3.3,'Pasta al pesto':3.1,'Carbonara':3.3,'Amatriciana':3.3,'Pasta in bianco':2.8,'Spaghetti alle vongole':3.3,'Risotto':3.6,'Insalata di riso':3.1};
+const SIZES={'Birra':{piccol:200,medi:400,grand:500}};
+const LIQ=new Set(['Caffè espresso','Cappuccino','Latte intero','Latte parz. scremato','Bevanda di soia','Kefir','Succo di frutta','Spremuta d\'arancia','Bibita zuccherata','Bibita zero','Birra','Vino','Spritz','Acqua','Tè o tisana']);
+FOODS.forEach(x=>{ x.dry=DRY[x.n]; x.sz=SIZES[x.n]; x.liq=LIQ.has(x.n); });
+const NUMW={un:1,uno:1,una:1,mezzo:.5,mezza:.5,mezzi:.5,due:2,tre:3,quattro:4,cinque:5,sei:6,sette:7,otto:8,nove:9,dieci:10,paio:2,doppio:2,doppia:2};
+const NOUNS=[['cucchiain','cucchiaino',5],['cucchiai','cucchiaio',10],['fett','fetta',30],['bicchier','bicchiere',200],['tazzin','tazzina',30],['tazz','tazza',200],['lattin','lattina',330],['bottigli','bottiglia',500],['porzion','porzione',0],['piatt','piatto',0],['pezz','pezzo',0],['manciat','manciata',30],['scatolett','scatoletta',0],['vasett','vasetto',125],['coppett','coppetta',100],['quadratin','quadratino',5],['misurin','misurino',30],['bustin','bustina',5],['tranci','trancio',0],['ciotol','ciotola',0],['vaschett','vaschetta',0]];
+const fstem=w=>w.length<=3?w:w.slice(0,Math.max(3,w.length-1));
+function fmatch(a,b){ const x=fstem(a),y=fstem(b); if(x===y) return 2; if(x==='fagiol'&&y==='fagiolin'||y==='fagiol'&&x==='fagiolin') return 0;
+  return ((x.length>=4&&y.startsWith(x)&&y.length-x.length<=2)||(y.length>=4&&x.startsWith(y)&&x.length-y.length<=2))?1:0; }
+function bestFood(ws){
+  let best=null, bs=0;
+  for(const f of FOODS) for(const kw of f.kws){
+    let sc=0, ok=true;
+    for(const k of kw){ const m=Math.max(0,...ws.map(w=>fmatch(k,w))); if(!m){ ok=false; break; } sc+=m; }
+    if(!ok) continue; sc = kw.length*10 + sc*2 + kw.join('').length/100;
+    if(sc>bs){ bs=sc; best=f; }
+  }
+  return best;
+}
+const INV=new Set(['kiwi','sushi','toast','burrito','kebab','hot','dog','bowl','ramen','avocado','cono','cornetto?','sashimi','poke']);
+function plur(lbl,c){ if(c<=1) return lbl; return lbl.split(' ').map(w=>{ if(INV.has(w)||!/[aeo]$/.test(w)) return w;
+  if(w==='uovo') return 'uova'; if(/io$/.test(w)) return w.slice(0,-1); if(/ca$|ga$/.test(w)) return w.slice(0,-1)+'he';
+  return w.slice(0,-1)+(w.endsWith('a')?'e':'i'); }).join(' '); }
+function parseFoodChunk(ch,ctx){
+  const low=ch.toLowerCase(), ws=fw(ch);
+  let food=bestFood(ws.filter(w=>w.length>=3||w==='te')); if(!food) return null;
+  if(ctx&&ctx.bread&&food.n==='Panino imbottito') food=FOODS.find(x=>x.n==='Pane del panino');
+  let grams=null, count=null, noun=null, mult=1;
+  const mu=low.match(/(\d+(?:[.,]\d+)?)\s*(kg|grammi|grammo|gr|g|ml|cl|litri|litro|lt|l|etti|etto)(?![a-z])/);
+  if(mu){ const n=parseFloat(mu[1].replace(',','.')); grams=n*({kg:1000,cl:10,litri:1000,litro:1000,lt:1000,l:1000,etti:100,etto:100}[mu[2]]||1); }
+  else { const mn=low.match(/(\d+(?:[.,]\d+)?)/); if(mn) count=parseFloat(mn[1].replace(',','.')); }
+  const raw=low.normalize('NFD').replace(/[̀-ͯ]/g,'').split(/[^a-z]+/);
+  if(count==null) for(const w of raw) if(NUMW[w]!==undefined){ count=NUMW[w]; break; }
+  for(const w of raw){ const n=NOUNS.find(([st])=>w.startsWith(st)); if(n&&!food.kws.some(kw=>kw.includes(w))){ noun=n; break; } }
+  const medium=raw.some(w=>/^medi[oa]$/.test(w));
+  if(raw.some(w=>w.startsWith('piccol'))) mult=.7; else if(raw.some(w=>w.startsWith('grand')||w.startsWith('abbondant'))) mult=1.4;
+  let label;
+  if(grams==null){
+    let unitG, unitL;
+    if(noun){ unitG = food.u[noun[1]] || (food.porl&&food.porl.startsWith(noun[1])?food.por:0) || (food.pzl&&food.pzl.startsWith(noun[1])?food.pz:0) || noun[2] || (noun[1]==='pezzo'||noun[1]==='trancio' ? (food.pz||food.por) : food.por); unitL=noun[1]; }
+    else if(count!=null && food.pz && !(medium&&/medi/.test(food.porl))){ unitG=food.pz; unitL=food.pzl; }
+    else { unitG=food.por; unitL=food.porl; }
+    let szw='';
+    if(food.sz){ const k=Object.keys(food.sz).find(k=>raw.some(w=>w.startsWith(k))); if(k){ unitG=food.sz[k]; unitL=food.n.toLowerCase()+' '+({piccol:'piccola',medi:'media',grand:'grande'}[k]); mult=1; } }
+    const c=count==null?1:count; grams=c*unitG*mult;
+    if(mult!==1){ const fem=/a$/.test(unitL.split(' ')[0]); szw = mult<1 ? (c>1?(fem?' piccole':' piccoli'):(fem?' piccola':' piccolo')) : (c>1?' grandi':' grande'); }
+    label=`${fmt(c)} ${plur(unitL,c)}${szw} · ${Math.round(grams)} ${food.liq?'ml':'g'}`;
+  } else if(food.dry && grams<=160){ const dryG=grams; grams=dryG*food.dry; label=`${Math.round(dryG)} g di ${food.n.startsWith('Risotto')||food.n.includes('riso')?'riso':'pasta'} da crudo · piatto circa ${Math.round(grams/10)*10} g`; }
+  else label=`${Math.round(grams)} ${food.liq||/ml|cl|l/.test(mu[2])?'ml':'g'}`;
+  const r=grams/100;
+  return {food, g:grams, label, k:food.k*r, p:food.p*r, c:food.c*r, f:food.f*r, fib:food.fib*r};
+}
+function analyzeFood(text){
+  const parts=text.split(/(,|;|\n|\+|\s(?:e|ed|con|poi|più|piu)\s)/i);
+  const items=[], unknown=[];
+  for(let i=0;i<parts.length;i+=2){ const ch=(parts[i]||'').trim(); if(ch.length<2) continue;
+    const sep=(parts[i+1]||'').trim().toLowerCase();
+    const bread = sep==='con' && /panin|piadin|tramezzin|wrap|toast/i.test(ch) && (parts[i+2]||'').trim().length>1;
+    const r=parseFoodChunk(ch,{bread}); r?items.push(r):unknown.push(ch); }
+  return {items,unknown};
+}
+function foodResHTML(){
+  const t=(ui.qtxt||'').trim(); if(!t) return '';
+  const {items,unknown}=analyzeFood(t);
+  const tot=items.reduce((s,i)=>({k:s.k+i.k,p:s.p+i.p,c:s.c+i.c,f:s.f+i.f,fib:s.fib+i.fib}),{k:0,p:0,c:0,f:0,fib:0});
+  const mi=[...new Set(items.flatMap(i=>i.food.mi))];
+  const R1=v=>Math.round(v), R2=v=>fmt(Math.round(v*10)/10);
+  return `<div class="qres">
+    ${items.length?`<div class="tbl"><table class="qt"><thead><tr><th>Cibo</th><th class="n">kcal</th><th class="n">Prot.</th><th class="n">Carb.</th><th class="n">Grassi</th></tr></thead><tbody>
+      ${items.map(i=>`<tr><td><b>${esc(i.food.n)}</b><small class="num">${esc(i.label)}</small></td><td class="n num">${R1(i.k)}</td><td class="n num">${R2(i.p)}</td><td class="n num">${R2(i.c)}</td><td class="n num">${R2(i.f)}</td></tr>`).join('')}
+      </tbody>${items.length>1?`<tfoot><tr><td><b>Totale</b></td><td class="n num"><b>${R1(tot.k)}</b></td><td class="n num"><b>${R2(tot.p)}</b></td><td class="n num"><b>${R2(tot.c)}</b></td><td class="n num"><b>${R2(tot.f)}</b></td></tr></tfoot>`:''}</table></div>
+      <div class="qmeta"><span class="num">Fibre <b>${R2(tot.fib)} g</b></span>${mi.length?`<span>Fonte di:</span>${mi.map(m=>`<span class="tag sfm">${NUTR[m]?NUTR[m].n:m}</span>`).join('')}`:''}</div>`:''}
+    ${unknown.length?`<p class="note" style="margin:0">Non riconosco: <b>${unknown.map(esc).join(', ')}</b>. Prova con un nome più semplice (es. "pasta", "pollo", "dolce") o inserisci le calorie a mano qui sotto.</p>`:''}
+    ${items.length?`<button class="btn primary" data-act="addtxt">Aggiungi al diario · ${R1(tot.k)} kcal</button>
+      <p class="muted" style="margin:0;font-size:.8rem">Stime per porzioni medie da tabelle CREA e USDA. Se sai i grammi scrivili, per esempio "pasta 90 g": il calcolo è più preciso.</p>`:''}
+  </div>`;
+}
+
 /* ---------- Oggi: diario, acqua, progressi ---------- */
 function spark(vals,col,unit){
   if(vals.length<2) return '<p class="muted" style="font-size:.85rem;margin:0">Servono almeno 2 misurazioni per vedere l\'andamento.</p>';
@@ -1186,13 +1449,18 @@ function viewOggi(){
     <div class="two">
       <div class="panel"><h3 style="font-size:1.1rem">Dal piano${off?' di '+DAYS[di].toLowerCase():' di oggi'}</h3>${meals}</div>
       <div class="panel"><h3 style="font-size:1.1rem">Fuori piano</h3>
-        <div class="inline"><div class="field wide"><label for="add-r">Una ricetta dell'app</label><select id="add-r">${opts}</select></div>
-          <div class="field"><label for="add-x">Porzioni</label><select id="add-x">${[.5,.75,1,1.25,1.5,2].map(x=>`<option value="${x}" ${x===1?'selected':''}>${fmt(x)}</option>`).join('')}</select></div>
-          <button class="btn" data-act="addr">Aggiungi</button></div>
-        <div class="inline"><div class="field wide"><label for="q-n">Altro cibo</label><input id="q-n" type="text" placeholder="es. cappuccino"></div>
+        
+        <div class="field"><label for="q-txt"><b>Calcola un piatto:</b> scrivi cosa hai mangiato e ti dico i nutrienti</label>
+          <textarea id="q-txt" rows="2" placeholder="es. 2 fette di pizza margherita e una birra media">${esc(ui.qtxt||'')}</textarea></div>
+        <div id="q-res">${foodResHTML()}</div>
+        <details class="manual"><summary>Conosci già le calorie? Inseriscile a mano</summary>
+        <div class="inline" style="margin-top:10px"><div class="field wide"><label for="q-n">Nome</label><input id="q-n" type="text" placeholder="es. cappuccino"></div>
           <div class="field"><label for="q-k">kcal</label><input id="q-k" type="number" min="0" inputmode="numeric"></div>
           <div class="field"><label for="q-p">Proteine g</label><input id="q-p" type="number" min="0" inputmode="numeric"></div>
-          <button class="btn" data-act="addq">Aggiungi</button></div>
+          <button class="btn" data-act="addq">Aggiungi</button></div></details>
+        <div class="inline"><div class="field wide"><label for="add-r">Oppure una ricetta dell'app</label><select id="add-r">${opts}</select></div>
+          <div class="field"><label for="add-x">Porzioni</label><select id="add-x">${[.5,.75,1,1.25,1.5,2].map(x=>`<option value="${x}" ${x===1?'selected':''}>${fmt(x)}</option>`).join('')}</select></div>
+          <button class="btn" data-act="addr">Aggiungi</button></div>
         ${extra?`<ul class="items">${extra}</ul>`:'<p class="muted" style="margin:0;font-size:.88rem">Niente fuori piano, per ora.</p>'}
       </div>
     </div>
@@ -1389,6 +1657,10 @@ const HANDLERS = {
     saveLog(); viewOggi(); },
   addr:()=>{ const r=byId[$('add-r').value], x=+$('add-x').value||1; if(!r) return;
     dayLog().items.push({n:r.n+(x!==1?` (${fmt(x)} porz.)`:''),k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); saveLog(); viewOggi(); },
+  addtxt:()=>{ const {items}=analyzeFood(ui.qtxt||''); if(!items.length) return;
+    const t=items.reduce((s,i)=>({k:s.k+i.k,p:s.p+i.p,c:s.c+i.c,f:s.f+i.f}),{k:0,p:0,c:0,f:0});
+    const name=(ui.qtxt||'').trim().replace(/\s+/g,' '); dayLog().items.push({n:name.length>70?name.slice(0,68)+'…':name,...t,src:'q'});
+    ui.qtxt=''; saveLog(); viewOggi(); },
   addq:()=>{ const k=+$('q-k').value||0, p=+$('q-p').value||0; if(k<=0&&p<=0){ $('q-k').focus(); return; }
     dayLog().items.push({n:$('q-n').value.trim()||'Altro',k,p,c:0,f:0,src:'q'}); saveLog(); viewOggi(); },
   rmitem:t=>{ dayLog().items.splice(+t.dataset.j,1); saveLog(); viewOggi(); },
@@ -1420,6 +1692,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='search'){ ui.q=e.target.value; $('cards').innerHTML=cardsHTML(); }
+  if(e.target.id==='q-txt'){ ui.qtxt=e.target.value; $('q-res').innerHTML=foodResHTML(); }
   if(e.target.id==='pantry'){ ui.pantry=e.target.value; $('cards').innerHTML=cardsHTML(); }
 });
 document.addEventListener('change',e=>{

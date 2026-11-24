@@ -95,6 +95,41 @@ test('riquadro backup in Profilo', async p => {
   assert(await p.locator('[data-act="backup-copy"]').count() === 1 && await p.locator('#bk-in').count() === 1);
 });
 
+/* ---------- Task 6: voto, serie, allenamenti ---------- */
+const fibItems = (k, p) => [{ n: 'a', k: k - 2, p, c: 0, f: 0, fib: 5, src: 'q' }, { n: 'b', k: 1, p: 0, c: 0, f: 0, fib: 4, src: 'q' }, { n: 'c', k: 1, p: 0, c: 0, f: 0, fib: 3, src: 'q' }];
+test('voto: giorno perfetto = 100', async p => {
+  const r = await ev(p, its => dayScore({ items: its, water: 8, train: 'A' }, { target: 2000, prot: 140 }, true), fibItems(2000, 150));
+  assertEq(r.score, 100);
+});
+test('voto: calorie +25% → 15 punti kcal', async p => {
+  const r = await ev(p, its => dayScore({ items: its, water: 8, train: 'A' }, { target: 2000, prot: 140 }, true), fibItems(2500, 150));
+  assertEq(Math.round(r.parts.kcal), 15);
+});
+test('voto: riposo conta pieno, allenamento saltato conta 0', async p => {
+  const r = await ev(p, its => [dayScore({ items: its, water: 8 }, { target: 2000, prot: 140 }, false).parts.train, dayScore({ items: its, water: 8 }, { target: 2000, prot: 140 }, true).parts.train], fibItems(2000, 150));
+  assertEq(r, [15, 0]);
+});
+test('voto: giorno vuoto = null', async p => { assertEq(await ev(p, () => dayScore({ items: [], water: 5 }, { target: 2000, prot: 140 }, false)), null); });
+test('voto: fibre dalle ricette del piano', async p => {
+  const r = await ev(p, () => { const ids = R.filter(r => r.mi.includes('fibre')).slice(0, 3); const its = ids.map(r => ({ n: r.n, rid: r.id, k: 600, p: 40, c: 0, f: 0, src: 'r' })); return dayScore({ items: its, water: 0 }, { target: 1800, prot: 120 }, false).parts.fibre; });
+  assertEq(r, 15);
+});
+const it1 = { items: [{ n: 'x', k: 500, p: 30, c: 0, f: 0, src: 'q' }], water: 0 };
+test('[RF 3] serie con un buco', async p => { assertEq((await ev(p, () => streaks(todayKey()))).logged, 2); }, { seed: { 'pp.log': { [keyOf(0)]: it1, [keyOf(1)]: it1, [keyOf(3)]: it1 } } });
+test('serie da ieri se oggi è vuoto', async p => { assertEq((await ev(p, () => streaks(todayKey()))).logged, 2); }, { seed: { 'pp.log': { [keyOf(1)]: it1, [keyOf(2)]: it1, [keyOf(4)]: it1 } } });
+test('allenamenti della settimana', async p => {
+  const r = await ev(p, () => { const d = new Date(); d.setHours(12); const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const wed = new Date(mon); wed.setDate(mon.getDate() + 2); setTrain(todayKey(mon), 'A'); setTrain(todayKey(wed), 'B'); return weekTrainCount(d); });
+  assertEq(r, 2);
+});
+test('isTrainDay: lun, mer, ven', async p => {
+  assertEq(await ev(p, () => [1, 2, 3, 4, 5, 6, 0].map(g => { const d = new Date(2026, 10, 23); d.setDate(23 + ((g + 6) % 7)); return isTrainDay(d); })), [true, false, true, false, true, false, false]);
+});
+test('Oggi mostra voto e serie', async p => {
+  await ev(p, () => { location.hash = 'oggi'; });
+  await p.waitForTimeout(150);
+  assert(await p.locator('.score-ring').count() === 1 && await p.locator('.streak').count() === 1);
+}, { seed: { 'pp.log': { [keyOf(0)]: it1 } } });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

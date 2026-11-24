@@ -290,6 +290,18 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 }
 
 /* ===== Ritocchi grafici ===== */
+.score-top{display:flex;gap:14px;align-items:center}
+.score-t{display:grid;gap:6px;min-width:0}
+.streak{display:inline-flex;align-items:center;gap:5px;background:var(--col-soft);color:var(--ink);border-radius:999px;padding:4px 11px;font-size:.85rem}
+.streak svg{color:#E8742A}
+.sparts{display:grid;gap:6px}
+.sparts>div{display:grid;grid-template-columns:90px 1fr 44px;gap:8px;align-items:center;font-size:.82rem}
+.sparts .bar{margin:0}
+.sparts .num{text-align:right;color:var(--muted)}
+.wdots{display:flex;gap:6px}
+.wdots i{flex:1;height:8px;border-radius:4px;background:var(--sunk)}
+.wdots i.on{background:var(--basil)}
+.wsc{font-size:.72rem;font-weight:700;color:var(--ink)}
 .note.warn{background:var(--col-soft)}
 label.btn{cursor:pointer}
 .aisle{margin-top:14px}
@@ -946,7 +958,7 @@ function selDate(off=ui.dayOff){ const d=new Date(); d.setHours(12,0,0,0); d.set
 function dayLog(){ const k=todayKey(selDate()); if(!log[k]) log[k]={items:[],water:0}; return log[k]; }
 function peekLog(d){ return log[todayKey(d)]||{items:[],water:0}; }
 function keyDate(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d,12); }
-function planItem(di,sl){ const e=plan.days[di][sl], r=byId[e.id]; return {n:r.n,k:r.k*e.x,p:r.p*e.x,c:r.c*e.x,f:r.f*e.x,src:'plan:'+sl}; }
+function planItem(di,sl){ const e=plan.days[di][sl], r=byId[e.id]; return {n:r.n,rid:r.id,k:r.k*e.x,p:r.p*e.x,c:r.c*e.x,f:r.f*e.x,src:'plan:'+sl}; }
 function toggleEaten(di,sl,k){ if(!log[k]) log[k]={items:[],water:0}; const L=log[k], j=L.items.findIndex(i=>i.src==='plan:'+sl);
   if(j>=0) L.items.splice(j,1); else L.items.push(planItem(di,sl)); saveLog(); }
 function eatAllPlanned(k){ if(!log[k]) log[k]={items:[],water:0}; const L=log[k], di=(keyDate(k).getDay()+6)%7;
@@ -958,7 +970,61 @@ function textItem(text){ const {items}=analyzeFood(text||''); if(!items.length) 
   const name=text.trim().replace(/\s+/g,' '); return {n:name.length>70?name.slice(0,68)+'…':name,...t,src:'q'}; }
 function recentChips(){ const list=store.get('recent',[]); if(!list.length) return '';
   return `<div class="recent"><span class="muted" style="font-size:.85rem">Recenti, tocca per aggiungere:</span><div class="chips">${list.map((e,i)=>`<button class="chip rchip" data-act="recent" data-i="${i}">+ ${esc((e.t||e.n).length>32?(e.t||e.n).slice(0,30)+'…':(e.t||e.n))}</button>`).join('')}</div></div>`; }
-function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water) delete log[k]; });
+/* ---------- Voto del giorno, serie, allenamenti ---------- */
+function recipeOfItem(i){ return (i.rid&&byId[i.rid]) || R.find(r=>r.n===String(i.n).replace(/ \(.*porz\.\)$/,'')) || null; }
+function dayScore(L,c,trainDay){
+  if(!L||!L.items||!L.items.length) return null;
+  const k=L.items.reduce((s,i)=>s+(+i.k||0),0), p=L.items.reduce((s,i)=>s+(+i.p||0),0);
+  const dev=Math.abs(k-c.target)/c.target;
+  const fibN=L.items.filter(i=>(i.fib||0)>=3||((r=>r&&r.mi.includes('fibre'))(recipeOfItem(i)))).length;
+  const parts={ kcal: dev<=.1?30:dev>=.4?0:30*(.4-dev)/.3, prot:25*Math.min(1,p/c.prot), water:15*Math.min(1,(L.water||0)/8), fibre:Math.min(15,5*fibN), train:(L.train||!trainDay)?15:0 };
+  return {score:Math.round(Object.values(parts).reduce((a,b)=>a+b,0)), parts};
+}
+function isTrainDay(d){ return [1,3,5].includes(d.getDay()); }
+function scoreOf(d){ return dayScore(log[todayKey(d)], calc(profile), isTrainDay(d)); }
+function streaks(k){
+  const has=d=>{ const L=log[todayKey(d)]; return !!(L&&L.items.length); };
+  let d=keyDate(k); if(!has(d)) d.setDate(d.getDate()-1);
+  let logged=0, good=0, goodOn=true;
+  for(let i=0;i<400&&has(d);i++){ logged++; if(goodOn){ const sc=scoreOf(d); if(sc&&sc.score>=70) good++; else goodOn=false; } d.setDate(d.getDate()-1); }
+  return {logged,good};
+}
+function setTrain(k,kind){ if(!log[k]) log[k]={items:[],water:0}; if(kind) log[k].train=kind; else delete log[k].train; saveLog(); }
+function weekTrainCount(d){ const mon=new Date(d); mon.setHours(12,0,0,0); mon.setDate(mon.getDate()-((mon.getDay()+6)%7)); let n=0;
+  for(let i=0;i<7;i++){ const x=new Date(mon); x.setDate(mon.getDate()+i); const L=log[todayKey(x)]; if(L&&L.train) n++; } return n; }
+const FLAME='<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3.5-1.6 5.2-1.6 8 0 1.5 1 2.6 2.3 2.6 1.6 0 2.4-1.4 2-3.2 2.4 1.7 3.8 4.2 3.8 6.6A6.5 6.5 0 0 1 12 22.5 6.5 6.5 0 0 1 5.5 16c0-5 6.5-7.5 6.5-14z"/></svg>';
+function scoreTip(sc,c,L){
+  if(!sc) return 'Segna il primo pasto per vedere il voto di oggi.';
+  const t=sc.parts, out=[];
+  if(t.water<15) out.push(`bevi ancora ${8-Math.min(8,L.water||0)} bicchieri d'acqua`);
+  if(t.prot<25){ const miss=Math.round(c.prot-L.items.reduce((s,i)=>s+(+i.p||0),0)); if(miss>0) out.push(`ti mancano ${miss} g di proteine (uno yogurt greco ne ha 17)`); }
+  if(t.fibre<15) out.push('aggiungi verdura, frutta o legumi');
+  if(t.train<15) out.push('oggi è giorno di allenamento');
+  const head = sc.score>=90?'Giornata top!':sc.score>=70?'Ottimo lavoro.':sc.score>=40?'Stai andando bene.':'Ogni pasto segnato conta.';
+  return out.length? `${head} Per salire: ${out.slice(0,2).join(' e ')}.` : `${head} Hai fatto tutto quello che serviva oggi.`;
+}
+function scoreBlock(D,c){
+  const L=peekLog(D), sc=dayScore(L,c,isTrainDay(D)), st=streaks(todayKey()), v=sc?sc.score:null;
+  const R0=34, C=2*Math.PI*R0, col=v==null?'var(--line)':v>=70?'var(--basil)':v>=40?'var(--saffron)':'var(--tomato)';
+  const lab={kcal:['Calorie',30],prot:['Proteine',25],water:['Acqua',15],fibre:['Fibre',15],train:['Allenamento',15]};
+  return `<div class="panel score"><div class="score-top">
+      <svg class="score-ring" viewBox="0 0 80 80" width="92" height="92" role="img" aria-label="Voto ${v==null?'non disponibile':v+' su 100'}"><circle cx="40" cy="40" r="${R0}" fill="none" stroke="var(--sunk)" stroke-width="8"/>
+        <circle cx="40" cy="40" r="${R0}" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-(v||0)/100)}" transform="rotate(-90 40 40)"/>
+        <text x="40" y="44" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)" font-family="Bricolage Grotesque, sans-serif">${v==null?'–':v}</text></svg>
+      <div class="score-t"><div class="eyebrow">Voto del giorno</div><p style="margin:0">${scoreTip(sc,c,L)}</p>
+        <div class="row" style="gap:6px"><span class="streak">${FLAME} Serie: <b class="num">${st.logged}</b> ${st.logged===1?'giorno':'giorni'}</span><span class="pill">${st.good} di fila nell'obiettivo</span></div></div></div>
+    ${sc?`<div class="sparts">${Object.entries(lab).map(([k,[n,m]])=>`<div><span>${n}</span><div class="bar"><i style="width:${Math.round(sc.parts[k]/m*100)}%;background:var(--basil)"></i></div><span class="num">${Math.round(sc.parts[k])}/${m}</span></div>`).join('')}</div>`:''}
+  </div>`;
+}
+function trainBlock(D){
+  const k=todayKey(D), cur=(log[k]&&log[k].train)||null, n=weekTrainCount(D);
+  const b=(v,l)=>`<button class="btn ${cur===v?'primary':''}" data-act="train" data-k="${k}" data-v="${v}" aria-pressed="${cur===v}">${cur===v?CHECK:''}${l}</button>`;
+  return `<div class="panel"><div class="row"><h3 style="font-size:1.1rem;margin-right:auto">Allenamento</h3><span class="pill num">${n} su 3 questa settimana</span></div>
+    <div class="wdots">${[0,1,2].map(i=>`<i class="${i<n?'on':''}"></i>`).join('')}</div>
+    <p class="muted" style="margin:0;font-size:.88rem">${isTrainDay(D)?'Oggi è giorno di allenamento.':'Oggi è giorno di riposo: se ti alleni comunque, segnalo.'}</p>
+    <div class="row">${b('A','Scheda A')}${b('B','Scheda B')}${b('altro','Altro')}</div></div>`;
+}
+function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
 const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:''};
 
@@ -1391,6 +1457,7 @@ function viewAllenamento(){
   const w = WK[ui.wk];
   el.innerHTML = `
     <div><div class="eyebrow">Allenamento di forza</div><h2 style="font-size:1.6rem">Schede</h2></div>
+    ${trainBlock(new Date())}
     ${profile.obj==='ricomp'?'<p class="note"><b>Skinny fat:</b> l\'allenamento di forza è la parte più importante. La dieta toglie il grasso, ma solo i pesi (o il corpo libero) costruiscono il muscolo che cambia la forma del corpo.</p>':''}
     <div class="seg" role="group" aria-label="Dove ti alleni"><button data-wk="casa" aria-pressed="${ui.wk==='casa'}">A casa</button><button data-wk="palestra" aria-pressed="${ui.wk==='palestra'}">In palestra</button></div>
     <div><h3 style="font-size:1.2rem">${w.t}</h3><p class="muted" style="margin:.25rem 0 0">${w.sub}</p></div>
@@ -1664,7 +1731,7 @@ function weekBlock(c){
   const cols=days.map(x=>{ const h=Math.min(100,Math.round(x.k/top*100)), col=!x.has?'var(--line)':x.k>c.target*1.1?'var(--tomato)':x.k<c.target*.9?'var(--saffron)':'var(--basil)';
     return `<button class="wcol ${x.o===ui.dayOff?'sel':''}" data-act="goday" data-off="${x.o}" aria-label="${x.d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric'})}: ${Math.round(x.k)} kcal">
       <span class="wbar"><i style="height:${x.has?Math.max(h,4):4}%;background:${col}"></i><em style="bottom:${Math.round(c.target/top*100)}%"></em></span>
-      <span class="wl">${x.d.toLocaleDateString('it-IT',{weekday:'narrow'})}<br><small class="num">${x.d.getDate()}</small></span></button>`; }).join('');
+      <span class="wl">${x.d.toLocaleDateString('it-IT',{weekday:'narrow'})}<br><small class="num">${x.d.getDate()}</small></span>${(sc=>`<span class="wsc num">${sc?sc.score:'–'}</span>`)(scoreOf(x.d))}</button>`; }).join('');
   return `<div class="panel"><div class="row"><h3 style="font-size:1.1rem;margin-right:auto">Ultimi 7 giorni</h3><span class="muted" style="font-size:.82rem">la linea è il tuo obiettivo · tocca un giorno per aprirlo</span></div>
     <div class="wchart">${cols}</div>
     <div class="results">
@@ -1694,11 +1761,13 @@ function viewOggi(){
       <div class="dnav-t"><div class="eyebrow">${off===0?'Diario · oggi':off===1?'Diario · ieri':'Diario · '+off+' giorni fa'}</div><h2 style="font-size:1.5rem;text-transform:capitalize">${D.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</h2></div>
       <button class="icon-btn" data-act="daynext" aria-label="Giorno successivo" ${off===0?'disabled':''}>›</button>
       ${off?'<button class="btn small" data-act="daytoday">Oggi</button>':''}</div>
+    ${scoreBlock(D,c)}
     <div class="panel">
       ${bar('Calorie',tot.k,c.target,'kcal','var(--basil)')}
       <div class="macros">${bar('Proteine',tot.p,c.prot,'g','var(--c-cen)')}${bar('Carboidrati',tot.c,c.carb,'g','var(--c-col)')}${bar('Grassi',tot.f,c.fat,'g','var(--c-pra)')}</div>
       <p style="margin:0">${msg}</p>
     </div>
+    ${trainBlock(D)}
     ${weekBlock(c)}
     <div class="two">
       <div class="panel"><h3 style="font-size:1.1rem">Dal piano${off?' di '+DAYS[di].toLowerCase():' di oggi'}</h3>${meals}
@@ -1913,7 +1982,7 @@ const HANDLERS = {
   recent:t=>{ const e=store.get('recent',[])[+t.dataset.i]; if(!e) return; const it=e.t?textItem(e.t):{n:e.n,k:e.k,p:e.p,c:0,f:0,src:'q'};
     if(!it) return; dayLog().items.push(it); pushRecent(e); saveLog(); viewOggi(); },
   addr:()=>{ const r=byId[$('add-r').value], x=+$('add-x').value||1; if(!r) return;
-    dayLog().items.push({n:r.n+(x!==1?` (${fmt(x)} porz.)`:''),k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); saveLog(); viewOggi(); },
+    dayLog().items.push({n:r.n+(x!==1?` (${fmt(x)} porz.)`:''),rid:r.id,k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); saveLog(); viewOggi(); },
   addtxt:()=>{ const it=textItem(ui.qtxt); if(!it) return; dayLog().items.push(it); pushRecent({t:(ui.qtxt||'').trim()});
     ui.qtxt=''; saveLog(); viewOggi(); },
   addq:()=>{ const k=+$('q-k').value||0, p=+$('q-p').value||0; if(k<=0&&p<=0){ $('q-k').focus(); return; }
@@ -1938,6 +2007,7 @@ const HANDLERS = {
     $('bk-msg').innerHTML='<div class="note warn" style="display:grid;gap:8px"><b>I dati attuali verranno sostituiti da quelli del backup.</b><div class="row"><button class="btn primary" data-act="backup-confirm">Sì, ripristina</button><button class="btn" data-act="backup-cancel">Annulla</button></div></div>'; },
   'backup-cancel':()=>{ $('bk-msg').innerHTML=''; },
   'backup-confirm':()=>{ const r=importData($('bk-in').value.trim()); $('bk-msg').innerHTML=`<p class="${r.ok?'ck-ok':'note'}" style="margin:0">${esc(r.msg)}${r.ok?' Ricarico l\'app…':''}</p>`; if(r.ok) setTimeout(()=>location.reload(),900); },
+  train:t=>{ const k=t.dataset.k, cur=log[k]&&log[k].train; setTrain(k, cur===t.dataset.v?null:t.dataset.v); render(); },
   rmprog:t=>{ prog=prog.filter(x=>String(x.t)!==t.dataset.d); store.set('prog',prog); viewOggi(); }
 };
 document.addEventListener('click',e=>{

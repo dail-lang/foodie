@@ -71,7 +71,7 @@ test('reparti', async p => {
   assertEq(r, ['Carne e pesce', 'Latticini e uova', 'Latticini e uova', 'Frutta e verdura', 'Pane, pasta e cereali', 'Legumi e conserve', 'Frutta secca e semi', 'Dispensa e condimenti', 'Carne e pesce']);
 });
 test('in Dispensa finiscono solo condimenti', async p => {
-  const odd = await ev(p, () => [...new Set(R.flatMap(r => r.ing).filter(i => i[2] !== 'q.b.').map(i => i[0]))].filter(n => aisleOf(n) === 'Dispensa e condimenti' && !/olio|miele|cacao|lievito|salsa|tahina|agar|brodo|aceto|curry|cannella|zucchero|granola|cioccolato|burro d|burro di|cocco|caff/i.test(n)));
+  const odd = await ev(p, () => [...new Set(R.flatMap(r => r.ing).filter(i => i[2] !== 'q.b.').map(i => i[0]))].filter(n => aisleOf(n) === 'Dispensa e condimenti' && !/olio|miele|cacao|lievito|salsa|tahina|agar|brodo|aceto|curry|cannella|zucchero|granola|cioccolato|burro d|burro di|cocco|caff|curcuma|tè verde/i.test(n)));
   assertEq(odd, []);
 });
 test('lista spesa raggruppata', async p => {
@@ -217,6 +217,12 @@ test('[RF 2] ricetta senza grammi', async p => {
   assert(Number.isFinite(s) && s >= 0 && s <= 10, String(s));
 });
 test('livelli validi', async p => { assertEq(await ev(p, () => ANTI.filter(a => !['solide', 'promettenti', 'tradizionale', 'limitare'].includes(a.lv)).length), 0); });
+
+/* ---------- Antinfiammatorio, Task 2: 20 ricette ---------- */
+test('20 ricette ai- valide e antinfiammatorie', async p => {
+  const r = await ev(p, () => { const a = R.filter(r => r.id.startsWith('ai-')); return { n: a.length, notAI: a.filter(r => !isAI(r)).map(r => r.id + ':' + aiScore(r)), slow: a.filter(r => r.t > 30).map(r => r.id), vegan: a.filter(r => r.tags.includes('vegan')).length, prot30: a.filter(r => r.p >= 30).length, noMicro: a.filter(r => !MICRO[r.id]).map(r => r.id) }; });
+  assert(r.n === 20 && !r.notAI.length && !r.slow.length && r.vegan >= 4 && r.prot30 >= 6 && !r.noMicro.length, JSON.stringify(r));
+});
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 

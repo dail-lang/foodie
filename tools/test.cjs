@@ -397,6 +397,41 @@ test('finire senza serie non conta come allenamento', async p => {
 }, { seed: { 'pp.profile': REAL } });
 test('backup con registro pesi rovinato rifiutato', async p => { assertEq(await ev(p, () => BK_SHAPE.wlog({ a: [{ d: 'x' }] })), false); });
 
+/* ---------- Cibi più intelligenti ---------- */
+test('burek e altri cibi da strada riconosciuti', async p => {
+  const r = await ev(p, () => ['2 burek', 'un gyros', 'falafel', 'baklava', 'cevapcici', 'tortellini al ragù', 'mojito', 'frullato di frutta'].map(t => { const a = analyzeFood(t); return a.items.length ? a.items[0].food.n : null; }));
+  assert(r.every(Boolean) && r[0] === 'Burek', JSON.stringify(r));
+});
+test('errori di battitura: bureq, margerita, cornettto', async p => {
+  const r = await ev(p, () => ['2 bureq', 'pizza margerita', 'cornettto', 'cappucino'].map(t => { const it = analyzeFood(t).items[0]; return it ? [it.food.n, !!it.guess] : null; }));
+  assertEq(r, [['Burek', true], ['Pizza margherita', false], ['Cornetto', true], ['Cappuccino', true]]);
+});
+test('niente indovinelli a caso', async p => {
+  const r = await ev(p, () => ['xyz abc', 'qwerty', 'pasta'].map(t => { const it = analyzeFood(t).items[0]; return it ? it.food.n + (it.guess ? '?' : '') : null; }));
+  assertEq(r, [null, null, 'Pasta (peso da cruda)']);
+});
+test('inserimento a mano: stima carboidrati e grassi', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await ev(p, () => { document.querySelector('details.manual').open = true; });
+  await p.fill('#q-n', 'Bureq della nonna'); await p.fill('#q-k', '600'); await p.fill('#q-p', '20'); await p.click('[data-act="addq"]'); await p.waitForTimeout(80);
+  const a = await ev(p, () => dayLog().items.slice(-1)[0]);
+  await ev(p, () => { document.querySelector('details.manual').open = true; });
+  await p.fill('#q-n', 'Altro'); await p.fill('#q-p', '10'); await p.fill('#q-c', '30'); await p.fill('#q-f', '5'); await p.click('[data-act="addq"]'); await p.waitForTimeout(80);
+  const b = await ev(p, () => dayLog().items.slice(-1)[0]);
+  assert(a.c > 30 && a.f > 10 && Math.abs(a.k - 600) < 1 && a.est === true && b.k === 205 && !b.est, JSON.stringify([a, b]));
+});
+test('insegna un cibo: poi viene riconosciuto e va nel backup', async p => {
+  const r = await ev(p, () => { teachFood({ n: 'Torta della nonna Pina', g: 120, k: 380, p: 6, c: 50, f: 17 }); const it = analyzeFood('una torta della nonna pina').items[0]; return [it && it.food.n, it && Math.round(it.k), BK_KEYS.includes('myfoods'), (store.get('myfoods', [])).length]; });
+  assertEq(r, ['Torta della nonna Pina', 380, true, 1]);
+});
+test('cibo sconosciuto offre di insegnarlo', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', 'bibimbap'); await p.waitForTimeout(80);
+  assert(await p.locator('[data-act="teach"]').count() === 1);
+});
+
+test('olive riconosciute', async p => { assertEq(await ev(p, () => analyzeFood('spritz e olive').items.map(i => i.food.n)), ['Spritz', 'Olive']); });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

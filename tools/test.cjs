@@ -477,6 +477,29 @@ test('piatti specifici vincono sull\'ingrediente', async p => {
 
 test('petto di pollo con patate: due cibi', async p => { assertEq(await ev(p, () => analyzeFood('150 g petto di pollo con patate al forno').items.map(i => i.food.n)), ['Petto di pollo', 'Patate al forno']); });
 
+/* ---------- Revisione piatti comuni ---------- */
+const PIN = [
+  ['pollo e patate al forno', ['Pollo al forno con patate']], ['petto di pollo e patate lesse', ['Petto di pollo', 'Patate lesse']], ['pollo e patate fritte', ['Petto di pollo', 'Patatine fritte']],
+  ['insalata con tonno sott\'olio', ['Insalata', 'Tonno sott\'olio']], ['spinaci aglio e olio', ['Spinaci', 'Olio d\'oliva']], ['zucchine aglio olio', ['Zucchine']], ['spaghetti aglio e olio', ['Pasta aglio, olio e peperoncino']],
+  ['spaghetti aglio olio e peperoncino', ['Pasta aglio, olio e peperoncino']], ['paccheri al ragù', ['Pasta al ragù']], ['tagliatelle alla carbonara', ['Carbonara']], ['linguine alle vongole', ['Spaghetti alle vongole']],
+  ['mezze maniche cacio e pepe', ['Amatriciana']], ['orecchiette al ragù', ['Pasta al ragù']], ['orecchiette con le cime di rapa', ['Pasta con broccoli o cime di rapa']], ['orecchiette', ['Pasta (peso da cruda)']],
+  ['spiedini di verdure', ['Verdure miste']], ['spiedini di carne', ['Souvlaki o spiedini']], ['uova lesse', ['Uova']], ['lasagne gratinate', ['Lasagne']], ['verdure gratinate', ['Verdure gratinate']],
+  ['il secondo caffè', ['Caffè espresso']], ['secondo di pesce', ['Pesce bianco']], ['mousse di tonno', ['Tonno sott\'olio']], ['frappe di carnevale', ['Frittelle']], ['cipolline in agrodolce', ['Cipolla e porro'.replace('Cipolla e porro', 'Verdure miste')]],
+  ['pollo al forno', ['Pollo arrosto']], ['mezze maniche alla carbonara', ['Carbonara']], ['fusilli al pomodoro', ['Pasta al pomodoro']], ['penne al pesto', ['Pasta al pesto']],
+  ['insalata con tonno', ['Insalata', 'Tonno sott\'olio']], ['pasta in brodo', ['Pastina in brodo']], ['orecchiette con salsiccia', ['Pasta (peso da cruda)', 'Salsiccia']], ['pasta 90 g', ['Pasta (peso da cruda)']], ['chili con carne e riso', ['Chili con carne', 'Riso (peso da crudo)']], ['pasta e fagioli', ['Zuppa di legumi']], ['150 g petto di pollo con patate al forno', ['Petto di pollo', 'Patate al forno']]
+];
+test('frasi comuni danno il piatto giusto', async p => {
+  const bad = await ev(p, L => L.filter(([t, exp]) => JSON.stringify(analyzeFood(t).items.map(i => i.food.n)) !== JSON.stringify(exp)).map(([t]) => t + ' → ' + analyzeFood(t).items.map(i => i.food.n).join(' + ')), PIN);
+  assertEq(bad, []);
+});
+test('nome insegnato con simboli non rompe il calcolatore', async p => {
+  const r = await ev(p, () => { ['Yogurt + miele e noci', 'Riso con (pollo', 'Toast con *salsa*', 'Insalata e [mix', 'Caffè con panna $&'].forEach((n, i) => teachFood({ n, g: 100, k: 100 + i, p: 5, c: 10, f: 3 })); return [analyzeFood('pasta al pomodoro').items.length, analyzeFood('caffè con panna $&').items.map(i => i.food.n)]; });
+  assertEq(r, [1, ['Caffè con panna $&']]);
+});
+test('cibo sconosciuto mantiene maiuscole e accenti', async p => { assertEq(await ev(p, () => analyzeFood('Zighinì della mamma').unknown), ['Zighinì della mamma']); });
+
+test('fagottino di mele non è pain au chocolat', async p => { assert(await ev(p, () => !analyzeFood('fagottino di mele').items.some(i => i.food.n === 'Pain au chocolat'))); });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

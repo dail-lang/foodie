@@ -2517,6 +2517,8 @@ function saveProduct(pr,typed){
   return addProductFood(rec);
 }
 cleanProducts().forEach(pr=>{ try{ addProductFood(pr); }catch(e){} });
+// dentro un riquadro (versione artifact) fotocamera e siti esterni non sono permessi: lì marche e codice a barre si nascondono
+const ONLINE_OK=(()=>{ try{ return window.top===window.self; }catch(e){ return false; } })();
 const OFF='https://world.openfoodfacts.org', OFF_S='https://search.openfoodfacts.org', OFF_FIELDS='code,product_name,product_name_it,generic_name_it,brands,nutriments,serving_quantity,serving_size,quantity,countries_tags';
 // GET a Open Food Facts: solo il nome cercato o il codice escono dal telefono
 async function offGet(url){
@@ -2619,7 +2621,7 @@ async function onBarcode(code){
   scanMsg(`<div class="note" style="margin:0;display:grid;gap:8px"><span>${why}</span><button class="btn small" data-act="scanmanual">Inseriscilo a mano</button></div>`);
 }
 let offTimer=null;
-function scheduleOff(){ clearTimeout(offTimer); offTimer=setTimeout(()=>{ if(!$('q-res')) return;
+function scheduleOff(){ if(!ONLINE_OK) return; clearTimeout(offTimer); offTimer=setTimeout(()=>{ if(!$('q-res')) return;
   analyzeFood(ui.qtxt||'').unknown.forEach(u=>offQuery('u|'+u.toLowerCase().replace(/\s+/g,' '),u)); },500); }
 const NUMW={un:1,uno:1,una:1,mezzo:.5,mezza:.5,mezzi:.5,due:2,tre:3,quattro:4,cinque:5,sei:6,sette:7,otto:8,nove:9,dieci:10,paio:2,doppio:2,doppia:2};
 const NOUNS=[['cucchiain','cucchiaino',5],['cucchiai','cucchiaio',10],['fett','fetta',30],['bicchier','bicchiere',200],['tazzin','tazzina',30],['tazz','tazza',200],['lattin','lattina',330],['bottigli','bottiglia',500],['porzion','porzione',0],['piatt','piatto',0],['pezz','pezzo',0],['manciat','manciata',30],['scatolett','scatoletta',0],['vasett','vasetto',125],['coppett','coppetta',100],['quadratin','quadratino',5],['misurin','misurino',30],['bustin','bustina',5],['tranci','trancio',0],['ciotol','ciotola',0],['vaschett','vaschetta',0]];
@@ -2770,7 +2772,7 @@ function foodResHTML(){
   const altHTML=r=>{ if(ui.qalt!==r.key||r.src!=='txt') return '';
     const alts=rankFoods(r.ws||[],true).filter(x=>x.food!==r.food).slice(0,3);
     return `<div class="qalts"><span class="muted">Intendevi:</span>${alts.map(a=>`<button class="chip" data-act="qpick" data-key="${esc(r.key)}" data-food="${esc(foodId(a.food))}">${esc(a.food.n)}</button>`).join('')}
-      <button class="chip" data-act="qoff" data-key="${esc(r.key)}">Cerca tra i prodotti di marca</button>
+      ${ONLINE_OK?`<button class="chip" data-act="qoff" data-key="${esc(r.key)}">Cerca tra i prodotti di marca</button>`:''}
       <button class="chip" data-act="teach" data-n="${esc(r.text)}">Insegnami «${esc(r.text.length>24?r.text.slice(0,22)+'…':r.text)}»</button></div>${offHTML(r.key)}`; };
   const rowHTML=r=>`<div class="qrow" data-key="${esc(r.key)}">
       <div class="qrow-h"><b>${esc(r.food.n)}</b><span class="num"><b>${R1(r.k)}</b> kcal</span></div>
@@ -2858,7 +2860,8 @@ function viewOggi(){
         
         <div class="field"><label for="q-txt"><b>Calcola un piatto:</b> scrivi cosa hai mangiato e ti dico i nutrienti</label>
           <textarea id="q-txt" rows="2" placeholder="es. 2 fette di pizza margherita e una birra media">${esc(ui.qtxt||'')}</textarea></div>
-        <button class="btn small scanbtn" data-act="scan"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>Scansiona un codice a barre</button>
+        ${ONLINE_OK?'':'<p class="muted" style="margin:0;font-size:.82rem">Prodotti di marca e codice a barre sono disponibili nell\'app installata (Foodie sul telefono).</p>'}
+        ${ONLINE_OK?`<button class="btn small scanbtn" data-act="scan"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>Scansiona un codice a barre</button>`:''}
         <div id="q-res">${foodResHTML()}</div>
         ${recentChips()}
         <details class="manual"><summary>Inserisci a mano o insegnami un cibo</summary>
@@ -3084,7 +3087,7 @@ const HANDLERS = {
   qminus:t=>qStep(t.dataset.key,-1),
   qalt:t=>{ ui.qalt = ui.qalt===t.dataset.key ? null : t.dataset.key; refreshQ(); },
   qpick:t=>{ setEdit(t.dataset.key,{food:t.dataset.food}); ui.qalt=null; refreshQ(); },
-  qoff:t=>{ const r=curRows().find(x=>x.key===t.dataset.key); if(r) offQuery(r.key,r.text); },
+  qoff:t=>{ if(!ONLINE_OK) return; const r=curRows().find(x=>x.key===t.dataset.key); if(r) offQuery(r.key,r.text); },
   offpick:t=>{ const key=t.dataset.key, o=ui.qoff[key], pr=o&&o.list.find(x=>x.code===t.dataset.code); if(!pr) return;
     const unk=key.startsWith('u|'), f=saveProduct(pr, unk?o.text:null); delete ui.qoff[key];
     if(f&&!unk) setEdit(key,{food:foodId(f)}); ui.qalt=null; refreshQ(); },

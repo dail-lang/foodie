@@ -853,6 +853,14 @@ test('[RF 8] svuotare il testo dimentica le correzioni', async p => {
   assertEq(await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].n), 5);
 });
 
+test('dentro un riquadro (artifact): niente fotocamera né richieste esterne, con spiegazione', async p => {
+  let n = 0; await p.route(/openfoodfacts\.org/, r => { n++; r.abort(); });
+  await p.goto('file://' + path.resolve(__dirname, 'embed.html')); await p.waitForTimeout(400);
+  const f = p.frame({ url: /index\.html/ });
+  await f.fill('#q-txt', 'bueno bianco'); await f.waitForTimeout(900);
+  assertEq([await f.locator('[data-act="scan"]').count(), /app installata/.test(await f.textContent('body')), n], [0, true, 0]);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

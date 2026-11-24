@@ -290,6 +290,13 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 }
 
 /* ===== Ritocchi grafici ===== */
+.mbtns{display:flex;gap:6px;align-items:center}
+.tick{width:34px;height:34px;border-radius:999px;border:2px solid var(--basil);background:var(--surface);color:var(--basil);display:grid;place-items:center;padding:0}
+.tick svg{opacity:.35}
+.tick.on{background:var(--basil);color:var(--basil-ink)}
+.tick.on svg{opacity:1}
+.recent{display:grid;gap:6px}
+.rchip{background:var(--pra-soft);color:var(--basil-text);border-color:transparent}
 .qres{display:grid;gap:10px}
 .qres:empty{display:none}
 table.qt{width:100%;border-collapse:collapse;font-size:.88rem}
@@ -933,6 +940,19 @@ function todayKey(d=new Date()){ return d.getFullYear()+'-'+String(d.getMonth()+
 function selDate(off=ui.dayOff){ const d=new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()-off); return d; }
 function dayLog(){ const k=todayKey(selDate()); if(!log[k]) log[k]={items:[],water:0}; return log[k]; }
 function peekLog(d){ return log[todayKey(d)]||{items:[],water:0}; }
+function keyDate(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d,12); }
+function planItem(di,sl){ const e=plan.days[di][sl], r=byId[e.id]; return {n:r.n,k:r.k*e.x,p:r.p*e.x,c:r.c*e.x,f:r.f*e.x,src:'plan:'+sl}; }
+function toggleEaten(di,sl,k){ if(!log[k]) log[k]={items:[],water:0}; const L=log[k], j=L.items.findIndex(i=>i.src==='plan:'+sl);
+  if(j>=0) L.items.splice(j,1); else L.items.push(planItem(di,sl)); saveLog(); }
+function eatAllPlanned(k){ if(!log[k]) log[k]={items:[],water:0}; const L=log[k], di=(keyDate(k).getDay()+6)%7;
+  SLOTS_IDS.forEach(sl=>{ if(!L.items.some(i=>i.src==='plan:'+sl)) L.items.push(planItem(di,sl)); }); saveLog(); }
+function isEaten(k,sl){ return !!(log[k]&&log[k].items.some(i=>i.src==='plan:'+sl)); }
+function pushRecent(e){ const key=e.t||e.n; let list=store.get('recent',[]).filter(x=>(x.t||x.n)!==key); list.unshift(e); store.set('recent',list.slice(0,8)); }
+function textItem(text){ const {items}=analyzeFood(text||''); if(!items.length) return null;
+  const t=items.reduce((s,i)=>({k:s.k+i.k,p:s.p+i.p,c:s.c+i.c,f:s.f+i.f,fib:s.fib+i.fib}),{k:0,p:0,c:0,f:0,fib:0});
+  const name=text.trim().replace(/\s+/g,' '); return {n:name.length>70?name.slice(0,68)+'…':name,...t,src:'q'}; }
+function recentChips(){ const list=store.get('recent',[]); if(!list.length) return '';
+  return `<div class="recent"><span class="muted" style="font-size:.85rem">Recenti, tocca per aggiungere:</span><div class="chips">${list.map((e,i)=>`<button class="chip rchip" data-act="recent" data-i="${i}">+ ${esc((e.t||e.n).length>32?(e.t||e.n).slice(0,30)+'…':(e.t||e.n))}</button>`).join('')}</div></div>`; }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
 const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:''};
@@ -1040,6 +1060,7 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const SC = {colazione:'col',pranzo:'pra',cena:'cen',spuntino:'spu'};
 const SLOT_LBL = Object.fromEntries(SLOTS.map(s=>[s[0],s[2]]));
 const TAG_LBL = {veg:'Vegetariana',vegan:'Vegana',pesce:'Pesce',legumi:'Legumi',carne:'Carne',gf:'Senza glutine',sgarro:'Sgarro sano',mia:'La mia ricetta'};
+const CHECK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const svgSwap = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>';
 const svgHeart = f => `<svg width="18" height="18" viewBox="0 0 24 24" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>`;
 
@@ -1051,7 +1072,7 @@ function helloBlock(){
   const greet = h<6?'Buonanotte':h<13?'Buongiorno':h<18?'Buon pomeriggio':'Buonasera';
   return `<div class="hello"><div class="hello-h"><div><div class="eyebrow">${greet}</div><h2>${DAYS[TI]}, il prossimo pasto</h2></div></div>
     <button class="next" data-open="${r.id}" data-x="${e.x}">${thumb(r,sl,'lg')}<span class="next-t"><small>${SLOT_LBL[sl]}</small><b>${esc(r.n)}</b><span class="num">${Math.round(r.k*e.x)} kcal · ${Math.round(r.p*e.x)} g proteine · ${r.t} min</span></span></button>
-    <div class="row"><button class="btn primary" data-act="cook" data-id="${r.id}" data-x="${e.x}">Cucina adesso</button><a class="btn" href="#oggi">Apri il diario</a></div></div>`;
+    <div class="row">${isEaten(todayKey(),sl)?`<button class="btn primary" data-act="eatplan" data-sl="${sl}" aria-pressed="true">${CHECK} Mangiato</button>`:`<button class="btn primary" data-act="eatplan" data-sl="${sl}">${CHECK} Segna come mangiato</button>`}<button class="btn" data-act="cook" data-id="${r.id}" data-x="${e.x}">Cucina adesso</button></div></div>`;
 }
 function goalBlock(){
   const c = calc(profile);
@@ -1074,7 +1095,7 @@ function viewPiano(){
         <div class="info"><div class="slot">${SLOT_LBL[sl]}</div>
           <button class="name" data-open="${r.id}" data-x="${e.x}">${esc(r.n)}</button>
           <div class="meta num">${e.x!==1?fmt(e.x)+' porz. · ':''}${Math.round(r.k*e.x)} kcal · ${r.t} min</div></div>
-        <button class="swap" data-swap="${d}|${sl}" aria-label="Cambia ${SLOT_LBL[sl].toLowerCase()} di ${DAYS[d]}" title="Cambia pasto">${svgSwap}</button></div>`;
+        <div class="mbtns">${d===TI?`<button class="tick ${isEaten(todayKey(),sl)?'on':''}" data-act="eatplan" data-sl="${sl}" aria-pressed="${isEaten(todayKey(),sl)}" aria-label="${isEaten(todayKey(),sl)?'Togli':'Segna'} ${SLOT_LBL[sl].toLowerCase()} come mangiato">${CHECK}</button>`:''}<button class="swap" data-swap="${d}|${sl}" aria-label="Cambia ${SLOT_LBL[sl].toLowerCase()} di ${DAYS[d]}" title="Cambia pasto">${svgSwap}</button></div></div>`;
     }).join('');
     return `<article class="day ${d===TI?'today':''}"><div class="day-h"><h3>${DAYS[d]}${d===TI?' <span class="badge">Oggi</span>':''}</h3><span class="tot num">${Math.round(tot).toLocaleString('it-IT')} kcal</span></div>${rows}${profile.sf?`<div class="boost"><b>Extra superfood:</b> ${esc(BOOST[d])}</div>`:''}</article>`;
   }).join('');
@@ -1635,12 +1656,14 @@ function viewOggi(){
     </div>
     ${weekBlock(c)}
     <div class="two">
-      <div class="panel"><h3 style="font-size:1.1rem">Dal piano${off?' di '+DAYS[di].toLowerCase():' di oggi'}</h3>${meals}</div>
+      <div class="panel"><h3 style="font-size:1.1rem">Dal piano${off?' di '+DAYS[di].toLowerCase():' di oggi'}</h3>${meals}
+        ${SLOTS_IDS.every(sl=>L.items.some(i=>i.src==='plan:'+sl))?'<p class="ck-ok" style="font-size:.9rem">Tutti i pasti del piano sono segnati.</p>':'<button class="btn primary" data-act="eatall">Ho mangiato tutto come da piano</button>'}</div>
       <div class="panel"><h3 style="font-size:1.1rem">Fuori piano</h3>
         
         <div class="field"><label for="q-txt"><b>Calcola un piatto:</b> scrivi cosa hai mangiato e ti dico i nutrienti</label>
           <textarea id="q-txt" rows="2" placeholder="es. 2 fette di pizza margherita e una birra media">${esc(ui.qtxt||'')}</textarea></div>
         <div id="q-res">${foodResHTML()}</div>
+        ${recentChips()}
         <details class="manual"><summary>Conosci già le calorie? Inseriscile a mano</summary>
         <div class="inline" style="margin-top:10px"><div class="field wide"><label for="q-n">Nome</label><input id="q-n" type="text" placeholder="es. cappuccino"></div>
           <div class="field"><label for="q-k">kcal</label><input id="q-k" type="number" min="0" inputmode="numeric"></div>
@@ -1839,18 +1862,17 @@ const HANDLERS = {
   addform:()=>addForm(),
   cook:t=>cook(t.dataset.id,parseFloat(t.dataset.x)||1),
   delmine:t=>delMine(t.dataset.id),
-  eat:t=>{ const L=dayLog(), sl=t.dataset.sl, k=L.items.findIndex(i=>i.src==='plan:'+sl);
-    if(k>=0) L.items.splice(k,1); else { const e=plan.days[(selDate().getDay()+6)%7][sl], r=byId[e.id];
-      L.items.push({n:r.n,k:r.k*e.x,p:r.p*e.x,c:r.c*e.x,f:r.f*e.x,src:'plan:'+sl}); }
-    saveLog(); viewOggi(); },
+  eat:t=>{ toggleEaten((selDate().getDay()+6)%7, t.dataset.sl, todayKey(selDate())); viewOggi(); },
+  eatall:()=>{ eatAllPlanned(todayKey(selDate())); viewOggi(); },
+  eatplan:t=>{ toggleEaten((new Date().getDay()+6)%7, t.dataset.sl, todayKey()); viewPiano(); },
+  recent:t=>{ const e=store.get('recent',[])[+t.dataset.i]; if(!e) return; const it=e.t?textItem(e.t):{n:e.n,k:e.k,p:e.p,c:0,f:0,src:'q'};
+    if(!it) return; dayLog().items.push(it); pushRecent(e); saveLog(); viewOggi(); },
   addr:()=>{ const r=byId[$('add-r').value], x=+$('add-x').value||1; if(!r) return;
     dayLog().items.push({n:r.n+(x!==1?` (${fmt(x)} porz.)`:''),k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); saveLog(); viewOggi(); },
-  addtxt:()=>{ const {items}=analyzeFood(ui.qtxt||''); if(!items.length) return;
-    const t=items.reduce((s,i)=>({k:s.k+i.k,p:s.p+i.p,c:s.c+i.c,f:s.f+i.f}),{k:0,p:0,c:0,f:0});
-    const name=(ui.qtxt||'').trim().replace(/\s+/g,' '); dayLog().items.push({n:name.length>70?name.slice(0,68)+'…':name,...t,src:'q'});
+  addtxt:()=>{ const it=textItem(ui.qtxt); if(!it) return; dayLog().items.push(it); pushRecent({t:(ui.qtxt||'').trim()});
     ui.qtxt=''; saveLog(); viewOggi(); },
   addq:()=>{ const k=+$('q-k').value||0, p=+$('q-p').value||0; if(k<=0&&p<=0){ $('q-k').focus(); return; }
-    dayLog().items.push({n:$('q-n').value.trim()||'Altro',k,p,c:0,f:0,src:'q'}); saveLog(); viewOggi(); },
+    const n=$('q-n').value.trim()||'Altro'; dayLog().items.push({n,k,p,c:0,f:0,src:'q'}); pushRecent({n,k,p}); saveLog(); viewOggi(); },
   rmitem:t=>{ dayLog().items.splice(+t.dataset.j,1); saveLog(); viewOggi(); },
   water:t=>{ const L=dayLog(), w=+t.dataset.w; L.water = L.water===w ? w-1 : w; saveLog(); viewOggi(); },
   addprog:()=>{ const pe=parseFloat(($('pr-peso').value||'').replace(',','.')), vi=parseFloat(($('pr-vita').value||'').replace(',','.'));

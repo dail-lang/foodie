@@ -44,6 +44,27 @@ test('[RF 4] vegano e vegetariano hanno ≥ 6 ricette per pasto', async p => {
   assert(!low.length, JSON.stringify(low));
 });
 
+/* ---------- Task 3: diario rapido ---------- */
+test('segna dal piano e annulla', async p => {
+  const r = await ev(p, () => { const k = todayKey(), ti = (new Date().getDay() + 6) % 7; toggleEaten(ti, 'pranzo', k); const a = (log[k] || { items: [] }).items.filter(i => i.src === 'plan:pranzo').length; toggleEaten(ti, 'pranzo', k); const b = (log[k] || { items: [] }).items.length; return [a, b]; });
+  assertEq(r, [1, 0]);
+});
+test('tutto come da piano', async p => {
+  const r = await ev(p, () => { const k = todayKey(), ti = (new Date().getDay() + 6) % 7; toggleEaten(ti, 'colazione', k); eatAllPlanned(k); eatAllPlanned(k); return log[k].items.map(i => i.src).sort(); });
+  assertEq(r, ['plan:cena', 'plan:colazione', 'plan:pranzo', 'plan:spuntino']);
+});
+test('recenti: max 8, niente doppioni', async p => {
+  const r = await ev(p, () => { for (let i = 0; i < 9; i++) pushRecent({ t: 'cibo ' + i }); pushRecent({ t: 'cibo 3' }); const x = store.get('recent', []); return [x.length, x[0].t, x.filter(e => e.t === 'cibo 3').length]; });
+  assertEq(r, [8, 'cibo 3', 1]);
+});
+test('recente con un tocco aggiunge al diario', async p => {
+  await ev(p, () => { pushRecent({ t: 'cappuccino e cornetto' }); location.hash = 'oggi'; });
+  await p.waitForTimeout(150);
+  await p.locator('[data-act="recent"]').first().click();
+  const n = await ev(p, () => dayLog().items.length);
+  assertEq(n, 1);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

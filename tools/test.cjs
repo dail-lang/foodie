@@ -689,6 +689,10 @@ test('prodotto salvato: riconosciuto offline, nel backup, non ruba "spaghetti"',
     return [a.food.n, Math.round(a.g), s.food.prod || false, b.food.n, store.get('products', []).length, BK_KEYS.includes('products'), importData(exportData()).ok]; }, OFF_BUENO),
     ['Kinder Bueno', 43, false, 'Spaghetti n.5', 2, true, true]);
 });
+test('prodotto a 0 kcal (bibita zero) è valido, senza calorie no', async p => {
+  assertEq(await ev(p, () => { const z = offNorm({ code: '5449000133328', product_name: 'Cola zero', nutriments: { 'energy-kcal_100g': 0 } }); saveProduct(z);
+    return [!!z, z && z.k, offNorm({ code: '1', product_name: 'X', nutriments: { 'energy-kcal_100g': '' } }), store.get('products', []).length]; }), [true, 0, null, 1]);
+});
 test('prodotto con parole scritte solo se il pezzo era sconosciuto', async p => {
   assertEq(await ev(p, B => { const f = saveProduct(offNorm(B), 'bueno bianco'); return f.kw.split('|').includes('bueno bianco'); }, OFF_BUENO), true);
 });
@@ -697,6 +701,54 @@ test('prodotti salvati vecchi o rotti non rompono l’avvio', async p => {
 }, { seed: { 'pp.products': [{ code: '1', n: 'Ottimo snack', b: '', k: 100, p: 1, c: 1, f: 1, fib: 0, sv: 0, ml: false }, 'rotto', { code: 2 }] } });
 test('prodotto salvato due volte: una sola voce', async p => {
   assertEq(await ev(p, B => { saveProduct(offNorm(B)); saveProduct(offNorm(B)); return [store.get('products', []).length, FOODS.filter(f => f.prod).length]; }, OFF_BUENO), [1, 1]);
+});
+
+/* ---------- Open Food Facts nel calcolatore ---------- */
+// simula Open Food Facts: ricerca nuova (solo codici), prodotto per codice, ricerca vecchia
+const offRoute = (p, body, delay = 0) => p.route(/openfoodfacts\.org/, async r => {
+  if (delay) await new Promise(s => setTimeout(s, delay));
+  const u = r.request().url(), list = body.products || (body.product ? [body.product] : []);
+  let out = body;
+  if (/search\.openfoodfacts\.org/.test(u)) out = { hits: list.map(x => ({ code: x.code, product_name: x.product_name || x.product_name_it })) };
+  else if (/api\/v2\/product\//.test(u)) { const c = u.match(/product\/(\w+)\.json/)[1], x = list.find(y => y.code === c); out = body.status !== undefined && !body.product ? body : x ? { status: 1, code: c, product: x } : { status: 0 }; }
+  r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(out) });
+});
+test('pezzo sconosciuto: propone prodotti di marca e li usa', async p => {
+  await offRoute(p, { products: [OFF_BUENO, { ...OFF_BUENO, code: '8000500290484', product_name_it: 'Bueno White', countries_tags: ['en:italy'] }, { code: '80000008', product_name: 'Senza kcal', nutriments: {} }] });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', '2 bueno bianco'); await p.waitForTimeout(900);
+  const names = await p.locator('[data-act="offpick"]').allTextContents();
+  const attrib = /Open Food Facts/.test(await p.textContent('#q-res'));
+  await p.locator('[data-act="offpick"]').first().click(); await p.waitForTimeout(80);
+  assertEq([names.length, /Bueno White/.test(names[0]), attrib, await ev(p, () => { const r = calcRows(ui.qtxt, ui.qedit, ui.qscan)[0]; return [r.food.n, Math.round(r.g)]; })],
+    [2, true, true, ['Bueno White', 43]]);
+});
+test('offline: messaggio e il resto funziona', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.context().setOffline(true);
+  await p.fill('#q-txt', 'mela e bueno bianco'); await p.waitForTimeout(900);
+  assert(/Sei offline/.test(await p.textContent('#q-res')) && await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan).length === 1));
+});
+test('ricerca non riuscita: messaggio', async p => {
+  await p.route(/openfoodfacts\.org/, r => r.fulfill({ status: 503, body: 'no' }));
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', 'bueno bianco'); await p.waitForTimeout(900);
+  assert(/non riuscita/.test(await p.textContent('#q-res')));
+});
+test('risposta tardiva dopo aver cambiato testo: ignorata', async p => {
+  await offRoute(p, { products: [OFF_BUENO] }, 1200);
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', 'bueno bianco'); await p.waitForTimeout(700);
+  await p.fill('#q-txt', 'mela'); await p.waitForTimeout(1000);
+  assertEq(await p.locator('[data-act="offpick"]').count(), 0);
+});
+test('Non è questo? cerca anche tra le marche', async p => {
+  await offRoute(p, { products: [OFF_BUENO] });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', 'barretta'); await p.waitForTimeout(80);
+  await p.click('[data-act="qalt"]'); await p.click('[data-act="qoff"]'); await p.waitForTimeout(300);
+  await p.locator('[data-act="offpick"]').first().click(); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].food.n), 'Kinder Bueno');
 });
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };

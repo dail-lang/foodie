@@ -362,6 +362,12 @@ label.btn{cursor:pointer}
 .linkbtn{background:none;border:0;color:var(--basil-text);text-decoration:underline;text-underline-offset:3px;font-weight:600;padding:8px 2px;min-height:40px;margin-left:auto;font-size:.9rem}
 .qwarn{margin:0;color:var(--tomato);font-weight:600;font-size:.85rem}
 .qalts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem}
+.qoff{margin:0;font-size:.85rem}
+.qoffb{display:grid;gap:6px;font-size:.88rem}
+.qoffl{display:grid;gap:6px}
+.offpick{display:grid;gap:2px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;min-height:44px}
+.offpick:hover{border-color:var(--basil)}
+.offpick span{font-size:.8rem}
 .qtot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:8px 12px;border-radius:12px;background:var(--sunk);font-size:.9rem}
 .qres:empty{display:none}
 table.qt{width:100%;border-collapse:collapse;font-size:.88rem}
@@ -1454,7 +1460,7 @@ function badgesBlock(){
 }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
-const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:'',qedit:{},qscan:[],qalt:null};
+const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
 
 /* ---------- Calcoli ---------- */
 const ACT = {sed:[1.2,'Sedentario'],leggero:[1.375,'Leggero (1–3 allenamenti/sett.)'],moderato:[1.55,'Moderato (3–5/sett.)'],intenso:[1.725,'Intenso (6–7/sett.)']};
@@ -2447,7 +2453,7 @@ function offNorm(x){
   if(!x||typeof x!=='object') return null;
   const nu=x.nutriments&&typeof x.nutriments==='object'?x.nutriments:{}, num=v=>{ if(v==null||v==='') return null; const n=parseFloat(String(v).replace(',','.')); return isFinite(n)?n:null; };
   let k=num(nu['energy-kcal_100g']); if(k==null){ const kj=num(nu['energy-kj_100g'])!=null?num(nu['energy-kj_100g']):num(nu['energy_100g']); if(kj!=null) k=kj/4.184; }
-  if(!(k>0)||k>900) return null;
+  if(k==null||k<0||k>900) return null;
   const code=String(x.code||'').trim(), b=String(x.brands||'').split(',')[0].trim();
   const n=[x.product_name_it,x.product_name,x.generic_name_it].map(v=>String(v||'').trim()).find(Boolean)||b||`Prodotto ${code}`;
   const P=num(nu.proteins_100g), C=num(nu.carbohydrates_100g), Fa=num(nu.fat_100g), sv0=num(x.serving_quantity);
@@ -2461,7 +2467,7 @@ function prodKeywords(pr){
   (pr.t||[]).forEach(t=>{ const x=prodClean(t); if(x) out.push(x); });
   return [...new Set(out)].filter(k=>fw(k).length);
 }
-function cleanProducts(){ const raw=store.get('products',[]); const list=(Array.isArray(raw)?raw:[]).filter(x=>x&&typeof x.code==='string'&&x.code&&typeof x.n==='string'&&x.n.trim()&&+x.k>0&&+x.k<=900)
+function cleanProducts(){ const raw=store.get('products',[]); const list=(Array.isArray(raw)?raw:[]).filter(x=>x&&typeof x.code==='string'&&x.code&&typeof x.n==='string'&&x.n.trim()&&x.k!==''&&x.k!=null&&+x.k>=0&&+x.k<=900)
     .map(x=>({code:x.code,n:x.n.trim(),b:typeof x.b==='string'?x.b:'',k:+x.k,p:Math.max(0,+x.p||0),c:Math.max(0,+x.c||0),f:Math.max(0,+x.f||0),fib:Math.max(0,+x.fib||0),
       sv:+x.sv>0&&+x.sv<=1000?+x.sv:0,ml:!!x.ml,partial:!!x.partial,t:Array.isArray(x.t)?x.t.filter(t=>typeof t==='string'):[]}));
   if(JSON.stringify(list)!==JSON.stringify(raw)) store.set('products',list); return list; }
@@ -2482,6 +2488,48 @@ function saveProduct(pr,typed){
   return addProductFood(rec);
 }
 cleanProducts().forEach(pr=>{ try{ addProductFood(pr); }catch(e){} });
+const OFF='https://world.openfoodfacts.org', OFF_S='https://search.openfoodfacts.org', OFF_FIELDS='code,product_name,product_name_it,generic_name_it,brands,nutriments,serving_quantity,serving_size,quantity,countries_tags';
+// GET a Open Food Facts: solo il nome cercato o il codice escono dal telefono
+async function offGet(url){
+  if(navigator.onLine===false) return {ok:false,why:'offline'};
+  const ac=typeof AbortController!=='undefined'?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),8000);
+  try{ const r=await fetch(url,{signal:ac&&ac.signal,headers:{Accept:'application/json'}}); if(!r.ok) return {ok:false,why:r.status===404?'notfound':'error'};
+    return {ok:true,data:await r.json()}; }
+  catch(e){ return {ok:false,why:navigator.onLine===false?'offline':'error'}; }
+  finally{ if(tm) clearTimeout(tm); }
+}
+const OFFC=new Map();
+async function offSearch(q){
+  q=String(q||'').trim().toLowerCase(); if(!q) return {ok:true,list:[]};
+  if(OFFC.has(q)) return OFFC.get(q);
+  // motore di ricerca nuovo (solo nomi e codici, i più scansionati prima), poi i valori di ogni prodotto per codice;
+  // se non risponde, la ricerca vecchia che dà già i valori
+  let prods=null, why='error';
+  const s1=await offGet(`${OFF_S}/search?q=${encodeURIComponent(q)}&page_size=10&sort_by=-unique_scans_n&fields=code,product_name,product_name_it,lang`);
+  if(s1.ok&&Array.isArray(s1.data&&s1.data.hits)){
+    const codes=s1.data.hits.map(h=>String(h&&h.code||'')).filter(c=>/^\d{4,14}$/.test(c)).slice(0,8);
+    const det=await Promise.all(codes.map(c=>offGet(`${OFF}/api/v2/product/${c}.json?fields=${OFF_FIELDS}`)));
+    prods=det.filter(d=>d.ok&&d.data&&d.data.status===1&&d.data.product).map(d=>({code:d.data.code,...d.data.product}));
+    if(!prods.length&&codes.length&&det.every(d=>!d.ok)){ why=det[0].why; prods=null; }
+  } else why=s1.why;
+  if(!prods){ const r=await offGet(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=24&sort_by=unique_scans_n&fields=${OFF_FIELDS}`);
+    if(!r.ok) return {ok:false,why:why==='offline'||r.why==='offline'?'offline':'error'};
+    prods=Array.isArray(r.data&&r.data.products)?r.data.products:[]; }
+  const list=prods.map(x=>({x,pr:offNorm(x)})).filter(o=>o.pr&&o.pr.code)
+    .map((o,i)=>({pr:o.pr,it:Array.isArray(o.x.countries_tags)&&o.x.countries_tags.includes('en:italy')?0:1,i}))
+    .sort((a,b)=>a.it-b.it||a.i-b.i).slice(0,5).map(o=>o.pr);
+  const out={ok:true,list}; OFFC.set(q,out); return out;
+}
+// ricerca di marca per un pezzo di frase: key = chiave della riga o 'u|<testo>' per i pezzi sconosciuti
+function offQuery(key,text){
+  const q=teachName(text).toLowerCase(), cur=ui.qoff[key]; if(!q||(cur&&cur.q===q&&(cur.st==='wait'||cur.st==='ok'))) return;
+  ui.qoff[key]={q,text,st:'wait',list:[]}; refreshQ();
+  offSearch(q).then(r=>{ const o=ui.qoff[key]; if(!o||o.q!==q) return;
+    o.st=r.ok?'ok':r.why==='offline'?'offline':'error'; o.list=r.ok?r.list:[]; refreshQ(); });
+}
+let offTimer=null;
+function scheduleOff(){ clearTimeout(offTimer); offTimer=setTimeout(()=>{ if(!$('q-res')) return;
+  analyzeFood(ui.qtxt||'').unknown.forEach(u=>offQuery('u|'+u.toLowerCase().replace(/\s+/g,' '),u)); },500); }
 const NUMW={un:1,uno:1,una:1,mezzo:.5,mezza:.5,mezzi:.5,due:2,tre:3,quattro:4,cinque:5,sei:6,sette:7,otto:8,nove:9,dieci:10,paio:2,doppio:2,doppia:2};
 const NOUNS=[['cucchiain','cucchiaino',5],['cucchiai','cucchiaio',10],['fett','fetta',30],['bicchier','bicchiere',200],['tazzin','tazzina',30],['tazz','tazza',200],['lattin','lattina',330],['bottigli','bottiglia',500],['porzion','porzione',0],['piatt','piatto',0],['pezz','pezzo',0],['manciat','manciata',30],['scatolett','scatoletta',0],['vasett','vasetto',125],['coppett','coppetta',100],['quadratin','quadratino',5],['misurin','misurino',30],['bustin','bustina',5],['tranci','trancio',0],['ciotol','ciotola',0],['vaschett','vaschetta',0]];
 const fstem=w=>w.length<=3?w:w.slice(0,Math.max(3,w.length-1));
@@ -2618,10 +2666,18 @@ function foodResHTML(){
   const tot=rows.reduce((s,i)=>({k:s.k+i.k,p:s.p+i.p,c:s.c+i.c,f:s.f+i.f,fib:s.fib+i.fib}),{k:0,p:0,c:0,f:0,fib:0});
   const mi=[...new Set(rows.flatMap(i=>i.food.mi))];
   const R1=v=>Math.round(v), R2=v=>fmt(Math.round(v*10)/10);
+  const offHTML=key=>{ const o=ui.qoff[key]; if(!o) return '';
+    if(o.st==='wait') return '<p class="muted qoff">Cerco tra i prodotti di marca…</p>';
+    if(o.st==='offline') return '<p class="muted qoff">Sei offline: i prodotti di marca non sono disponibili.</p>';
+    if(o.st==='error') return '<p class="muted qoff">Ricerca dei prodotti di marca non riuscita, riprova più tardi.</p>';
+    if(!o.list.length) return '<p class="muted qoff">Nessun prodotto di marca trovato.</p>';
+    return `<div class="qoffl">${o.list.map(pr=>`<button class="offpick" data-act="offpick" data-key="${esc(key)}" data-code="${esc(pr.code)}"><b>${esc(pr.n)}</b><span class="muted">${esc(pr.b||'')}${pr.b?' · ':''}${Math.round(pr.k)} kcal/100 ${pr.ml?'ml':'g'}${pr.partial?' · dati incompleti':''}</span></button>`).join('')}
+      <small class="muted">Dati: Open Food Facts</small></div>`; };
   const altHTML=r=>{ if(ui.qalt!==r.key||r.src!=='txt') return '';
     const alts=rankFoods(r.ws||[],true).filter(x=>x.food!==r.food).slice(0,3);
     return `<div class="qalts"><span class="muted">Intendevi:</span>${alts.map(a=>`<button class="chip" data-act="qpick" data-key="${esc(r.key)}" data-food="${esc(a.food.n)}">${esc(a.food.n)}</button>`).join('')}
-      <button class="chip" data-act="teach" data-n="${esc(r.text)}">Insegnami «${esc(r.text.length>24?r.text.slice(0,22)+'…':r.text)}»</button></div>`; };
+      <button class="chip" data-act="qoff" data-key="${esc(r.key)}">Cerca tra i prodotti di marca</button>
+      <button class="chip" data-act="teach" data-n="${esc(r.text)}">Insegnami «${esc(r.text.length>24?r.text.slice(0,22)+'…':r.text)}»</button></div>${offHTML(r.key)}`; };
   const rowHTML=r=>`<div class="qrow" data-key="${esc(r.key)}">
       <div class="qrow-h"><b>${esc(r.food.n)}</b><span class="num"><b>${R1(r.k)}</b> kcal</span></div>
       ${r.guess?`<small class="guess">ho capito «${esc(r.guess)}» come ${esc(r.food.n)}</small>`:''}
@@ -2640,7 +2696,8 @@ function foodResHTML(){
     ${rows.map(rowHTML).join('')}
     ${rows.length>1?`<div class="qtot num"><b>Totale</b><span><b>${R1(tot.k)} kcal</b> · P ${R2(tot.p)} · C ${R2(tot.c)} · G ${R2(tot.f)}</span></div>`:''}
     ${rows.length?`<div class="qmeta"><span class="num">Fibre <b>${R2(tot.fib)} g</b></span>${mi.length?`<span>Fonte di:</span>${mi.map(m=>`<span class="tag sfm">${NUTR[m]?NUTR[m].n:m}</span>`).join('')}`:''}</div>`:''}
-    ${unknown.length?`<div class="note" style="margin:0;display:grid;gap:8px"><span>Non riconosco: <b>${unknown.map(esc).join(', ')}</b>. Prova con un nome più semplice (es. "pasta", "pollo", "dolce") oppure insegnamelo: lo ricorderò la prossima volta.</span><div class="row">${unknown.map(u=>`<button class="btn small" data-act="teach" data-n="${esc(u)}">Insegnami «${esc(u.length>24?u.slice(0,22)+'…':u)}»</button>`).join('')}</div></div>`:''}
+    ${unknown.length?`<div class="note" style="margin:0;display:grid;gap:8px"><span>Non riconosco: <b>${unknown.map(esc).join(', ')}</b>. Prova con un nome più semplice (es. "pasta", "pollo", "dolce") oppure insegnamelo: lo ricorderò la prossima volta.</span><div class="row">${unknown.map(u=>`<button class="btn small" data-act="teach" data-n="${esc(u)}">Insegnami «${esc(u.length>24?u.slice(0,22)+'…':u)}»</button>`).join('')}</div>
+      ${unknown.map(u=>{ const h=offHTML('u|'+u.toLowerCase().replace(/\s+/g,' ')); return h?`<div class="qoffb"><span>Prodotti di marca per «${esc(u)}»:</span>${h}</div>`:''; }).join('')}</div>`:''}
     ${rows.length?`<button class="btn primary" data-act="addtxt">Aggiungi al diario · ${R1(tot.k)} kcal</button>
       <p class="muted" style="margin:0;font-size:.8rem">Controlla le quantità e correggile con − e + o scrivendo i grammi. Stime da tabelle CREA e USDA.</p>`:''}
   </div>`;
@@ -2927,11 +2984,15 @@ const HANDLERS = {
   addtxt:()=>{ const rows=curRows(); if(!rows.length) return; const items=rowsToItems(rows); dayLog().items.push(...items);
     const t=(ui.qtxt||'').trim().replace(/\s+/g,' ')||rows.map(r=>r.food.n).join(', ');
     pushRecent({t:t.length>70?t.slice(0,68)+'…':t, items:items.map(({src,...x})=>x)});
-    ui.qtxt=''; ui.qedit={}; ui.qscan=[]; ui.qalt=null; saveLog(); viewOggi(); },
+    ui.qtxt=''; ui.qedit={}; ui.qscan=[]; ui.qalt=null; ui.qoff={}; saveLog(); viewOggi(); },
   qplus:t=>qStep(t.dataset.key,1),
   qminus:t=>qStep(t.dataset.key,-1),
   qalt:t=>{ ui.qalt = ui.qalt===t.dataset.key ? null : t.dataset.key; refreshQ(); },
   qpick:t=>{ setEdit(t.dataset.key,{food:t.dataset.food}); ui.qalt=null; refreshQ(); },
+  qoff:t=>{ const r=curRows().find(x=>x.key===t.dataset.key); if(r) offQuery(r.key,r.text); },
+  offpick:t=>{ const key=t.dataset.key, o=ui.qoff[key], pr=o&&o.list.find(x=>x.code===t.dataset.code); if(!pr) return;
+    const unk=key.startsWith('u|'), f=saveProduct(pr, unk?o.text:null); delete ui.qoff[key];
+    if(f&&!unk) setEdit(key,{food:f.n}); ui.qalt=null; refreshQ(); },
   qdel:t=>{ ui.qscan=ui.qscan.filter(x=>x.key!==t.dataset.key); refreshQ(); },
   addq:()=>{ const v=id=>{ const x=$(id).value.trim(); return x===''?null:Math.max(0,parseFloat(x.replace(',','.'))||0); };
     const it=manualItem($('q-n').value.trim()||'Altro', v('q-k'), v('q-p'), v('q-c'), v('q-f')); if(!it){ $('q-k').focus(); return; }
@@ -2978,7 +3039,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='search'){ ui.q=e.target.value; $('cards').innerHTML=cardsHTML(); }
-  if(e.target.id==='q-txt'){ ui.qtxt=e.target.value; $('q-res').innerHTML=foodResHTML(); }
+  if(e.target.id==='q-txt'){ ui.qtxt=e.target.value; $('q-res').innerHTML=foodResHTML(); scheduleOff(); }
   if(e.target.id==='pantry'){ ui.pantry=e.target.value; $('cards').innerHTML=cardsHTML(); }
 });
 document.addEventListener('change',e=>{

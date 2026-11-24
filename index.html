@@ -1345,9 +1345,9 @@ function eatAllPlanned(k){ if(!log[k]) log[k]={items:[],water:0}; const L=log[k]
 function isEaten(k,sl){ return !!(log[k]&&log[k].items.some(i=>i.src==='plan:'+sl)); }
 function pushRecent(e){ const key=e.t||e.n; let list=store.get('recent',[]).filter(x=>(x.t||x.n)!==key); list.unshift(e); store.set('recent',list.slice(0,8)); }
 function manualItem(n,k,p,c,f){
-  p=p||0; if(k==null&&p===0&&!c&&!f) return null;
+  p=p||0; if(!(k>0)&&p===0&&!c&&!f) return null;
   let est=false;
-  if(k==null) k=4*p+4*(c||0)+9*(f||0);
+  if(k==null){ c=c||0; f=f||0; k=4*p+4*c+9*f; }
   else if(c==null||f==null){ const rem=Math.max(0,k-4*p-4*(c||0)-9*(f||0)); est=true;
     if(c==null&&f==null){ c=rem*.5/4; f=rem*.5/9; } else if(c==null) c=rem/4; else f=rem/9; }
   return {n,k,p,c,f,src:'q',...(est?{est:true}:{})};
@@ -1794,7 +1794,7 @@ const BK_SHAPE={
   mine:v=>Array.isArray(v)&&v.every(r=>isObj(r)&&r.id&&Array.isArray(r.ing)&&Array.isArray(r.s)&&Array.isArray(r.m)&&Array.isArray(r.tags)),
   log:v=>isObj(v)&&Object.values(v).every(d=>isObj(d)&&Array.isArray(d.items)),
   badges:isObj, cooked:v=>typeof v==='number'&&v>=0,
-  myfoods:v=>Array.isArray(v)&&v.every(m=>isObj(m)&&typeof m.n==='string'&&m.g>0&&['k','p','c','f'].every(k=>typeof m[k]==='number')),
+  myfoods:v=>Array.isArray(v),
   wlog:v=>isObj(v)&&Object.values(v).every(a=>Array.isArray(a)&&a.every(e=>isObj(e)&&Array.isArray(e.sets)))
 };
 function exportData(){
@@ -2233,7 +2233,7 @@ const FOODS=[
  F('Insalata greca','insalata greca|horiatiki',130,4,5,11,1.5,250,'piatto',0,0,0,'calcio vitC'),
  F('Pierogi','pierogi',220,7,33,6,2,250,'porzione',30,'raviolo'),
  F('Tacos','tacos|taco',220,11,20,10,3,200,'2 tacos',100,'taco'),
- F('Nachos con formaggio','nachos',480,9,50,27,4,150,'porzione'),
+ F('Nachos con formaggio','nachos',306,8,32,17,3,150,'porzione'),
  F('Quesadilla','quesadilla',290,13,28,14,2,200,'quesadilla',200,'quesadilla'),
  F('Empanada','empanada|empanadas',290,9,30,15,2,250,'2 empanadas',125,'empanada'),
  F('Involtini primavera','involtini primavera|involtino primavera|spring roll',230,5,25,12,2,120,'2 involtini',60,'involtino'),
@@ -2268,8 +2268,10 @@ const FOODS=[
  F('Frullato di frutta','frullato|frullato di frutta|smoothie|centrifuga|estratto',55,1,12,.5,1.5,300,'bicchiere',0,0,0,'vitC potassio'),
  F('Bubble tea','bubble tea',70,.5,15,1,0,500,'bicchiere'),
  F('Frappuccino','frappuccino|iced latte|caffe shakerato',80,2,14,2,0,350,'bicchiere'),
- F('Cocktail','cocktail|mojito|gin tonic|negroni|caipirinha|daiquiri|sangria|cocktail margarita|pina colada',110,0,10,0,0,200,'bicchiere'),
- F('Superalcolico','vodka|rum|whisky|grappa|amaro|limoncello|liquore|tequila',240,0,5,0,0,40,'bicchierino'),
+ F('Cocktail','cocktail|mojito|gin tonic|negroni|caipirinha|daiquiri|sangria|cocktail margarita',110,0,10,0,0,200,'bicchiere'),
+ F('Superalcolico','vodka|rum|whisky|grappa|tequila|gin liscio',240,0,0,0,0,40,'bicchierino'),
+ F('Liquore dolce','amaro|limoncello|liquore|amaretto|sambuca|baileys',300,0,30,0,0,40,'bicchierino'),
+ F('Piña colada','pina colada',190,.5,25,5,0,250,'bicchiere'),
  F('Energy drink','energy drink|red bull',45,0,11,0,0,250,'lattina'),
  F('Bevanda proteica pronta','yopro|shake pronto|bevanda proteica|latte proteico',60,8,5,.5,0,300,'bottiglia'),
  F('Panino con cotoletta','panino con cotoletta|panino cotoletta',260,13,28,11,2,250,'panino',250,'panino')
@@ -2279,13 +2281,19 @@ const FSTOP=new Set('di del della dello dei degli delle al alla allo ai agli all
 FOODS.forEach(x=>{ x.kws=x.kw.split('|').map(k=>fw(k)).filter(a=>a.length); });
 function addMyFood(m){ const r=100/m.g, f=F(m.n,m.n.toLowerCase(),m.k*r,m.p*r,m.c*r,m.f*r,0,m.g,'porzione',m.g,'porzione');
   f.kws=f.kw.split('|').map(k=>fw(k)).filter(a=>a.length); f.mine=true; FOODS.push(f); return f; }
-function teachFood(m){ const list=store.get('myfoods',[]).filter(x=>x.n.toLowerCase()!==m.n.toLowerCase()); list.push(m); store.set('myfoods',list);
+function cleanMyFoods(){ const raw=store.get('myfoods',[]); const list=(Array.isArray(raw)?raw:[]).filter(m=>m&&typeof m.n==='string'&&m.n.trim()&&+m.g>0)
+    .map(m=>({n:m.n.trim(),g:+m.g,k:Math.max(0,+m.k||0),p:Math.max(0,+m.p||0),c:Math.max(0,+m.c||0),f:Math.max(0,+m.f||0)}));
+  if(JSON.stringify(list)!==JSON.stringify(raw)) store.set('myfoods',list); return list; }
+function teachName(chunk){ const ws=String(chunk).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’']/g,' ').split(/[^a-z0-9]+/)
+    .filter(w=>w&&!/^\d/.test(w)&&NUMW[w]===undefined&&!FSTOP.has(w)&&!NOUNS.some(([st])=>w.startsWith(st))&&!/^(piccol|grand|medi|abbondant)/.test(w));
+  const n=ws.join(' ')||String(chunk).trim(); return n.charAt(0).toUpperCase()+n.slice(1); }
+function teachFood(m){ const list=cleanMyFoods().filter(x=>x.n.toLowerCase()!==m.n.toLowerCase()); list.push(m); store.set('myfoods',list);
   const i=FOODS.findIndex(f=>f.mine&&f.n.toLowerCase()===m.n.toLowerCase()); if(i>=0) FOODS.splice(i,1); return addMyFood(m); }
 const DRY={'Pasta al pomodoro':3.1,'Pasta al ragù':3.3,'Pasta al pesto':3.1,'Carbonara':3.3,'Amatriciana':3.3,'Pasta in bianco':2.8,'Spaghetti alle vongole':3.3,'Risotto':3.6,'Insalata di riso':3.1};
 const SIZES={'Birra':{piccol:200,medi:400,grand:500}};
 const LIQ=new Set(['Caffè espresso','Cappuccino','Latte intero','Latte parz. scremato','Bevanda di soia','Kefir','Succo di frutta','Spremuta d\'arancia','Bibita zuccherata','Bibita zero','Birra','Vino','Spritz','Acqua','Tè o tisana']);
 FOODS.forEach(x=>{ x.dry=DRY[x.n]; x.sz=SIZES[x.n]; x.liq=LIQ.has(x.n); });
-try{ store.get('myfoods',[]).forEach(m=>{ if(m&&m.n&&m.g>0) addMyFood(m); }); }catch(e){}
+cleanMyFoods().forEach(m=>{ try{ addMyFood(m); }catch(e){} });
 const NUMW={un:1,uno:1,una:1,mezzo:.5,mezza:.5,mezzi:.5,due:2,tre:3,quattro:4,cinque:5,sei:6,sette:7,otto:8,nove:9,dieci:10,paio:2,doppio:2,doppia:2};
 const NOUNS=[['cucchiain','cucchiaino',5],['cucchiai','cucchiaio',10],['fett','fetta',30],['bicchier','bicchiere',200],['tazzin','tazzina',30],['tazz','tazza',200],['lattin','lattina',330],['bottigli','bottiglia',500],['porzion','porzione',0],['piatt','piatto',0],['pezz','pezzo',0],['manciat','manciata',30],['scatolett','scatoletta',0],['vasett','vasetto',125],['coppett','coppetta',100],['quadratin','quadratino',5],['misurin','misurino',30],['bustin','bustina',5],['tranci','trancio',0],['ciotol','ciotola',0],['vaschett','vaschetta',0]];
 const fstem=w=>w.length<=3?w:w.slice(0,Math.max(3,w.length-1));
@@ -2296,7 +2304,8 @@ function lev(a,b){ const m=a.length,n=b.length; if(Math.abs(m-n)>2) return 9; le
 function fuzzyFood(ws){
   let best=null, bs=0, word='';
   for(const f of FOODS) for(const kw of f.kws){ if(kw.length!==1||kw[0].length<4) continue; const k=kw[0];
-    for(const w of ws){ if(w.length<4) continue; const d=lev(w,k), allow=k.length>=7?2:1; if(d===0||d>allow) continue;
+    if(k.length<5) continue;
+    for(const w of ws){ if(w.length<5||w[0]!==k[0]) continue; const d=lev(w,k), allow=Math.min(w.length,k.length)>=7?2:1; if(d===0||d>allow) continue;
       const sc=10-d*3+k.length/100; if(sc>bs){ bs=sc; best=f; word=w; } } }
   return best?{food:best,guess:true,word}:null;
 }
@@ -2306,7 +2315,7 @@ function bestFood(ws){
   for(const f of FOODS) for(const kw of f.kws){
     let sc=0, ok=true, g=null;
     for(const k of kw){ let m=0, mw=null; ws.forEach(w=>{ const x=fmatch(k,w); if(x>m){ m=x; mw=w; } }); if(!m){ ok=false; break; } sc+=m; if(!plainWord(k,mw)&&!g) g=mw; }
-    if(!ok) continue; sc = kw.length*10 + sc*2 + kw.join('').length/100 - (g?.5:0);
+    if(!ok) continue; sc = kw.length*10 + sc*2 + kw.join('').length/100 - (g?.5:0) + (f.mine?1:0);
     if(sc>bs){ bs=sc; best=f; guess=g; }
   }
   return best?{food:best,guess}:null;
@@ -2436,11 +2445,11 @@ function viewOggi(){
         ${recentChips()}
         <details class="manual"><summary>Inserisci a mano o insegnami un cibo</summary>
         <div class="inline" style="margin-top:10px"><div class="field wide"><label for="q-n">Nome</label><input id="q-n" type="text" placeholder="es. burek della pasticceria"></div>
-          <div class="field"><label for="q-g">Porzione g</label><input id="q-g" type="number" min="0" inputmode="numeric" placeholder="es. 200"></div></div>
-        <div class="inline"><div class="field"><label for="q-k">kcal</label><input id="q-k" type="number" min="0" inputmode="numeric"></div>
-          <div class="field"><label for="q-p">Proteine g</label><input id="q-p" type="number" min="0" step="0.5" inputmode="decimal"></div>
-          <div class="field"><label for="q-c">Carboidrati g</label><input id="q-c" type="number" min="0" step="0.5" inputmode="decimal"></div>
-          <div class="field"><label for="q-f">Grassi g</label><input id="q-f" type="number" min="0" step="0.5" inputmode="decimal"></div></div>
+          <div class="field"><label for="q-g">Porzione g</label><input id="q-g" type="text" inputmode="decimal" autocomplete="off" placeholder="es. 200"></div></div>
+        <div class="inline"><div class="field"><label for="q-k">kcal</label><input id="q-k" type="text" inputmode="decimal" autocomplete="off"></div>
+          <div class="field"><label for="q-p">Proteine g</label><input id="q-p" type="text" inputmode="decimal" autocomplete="off"></div>
+          <div class="field"><label for="q-c">Carboidrati g</label><input id="q-c" type="text" inputmode="decimal" autocomplete="off"></div>
+          <div class="field"><label for="q-f">Grassi g</label><input id="q-f" type="text" inputmode="decimal" autocomplete="off"></div></div>
         <label class="check" for="q-save" style="margin-top:8px"><input id="q-save" type="checkbox"> <span>Ricordalo: la prossima volta lo riconosco quando lo scrivi</span></label>
         <p class="muted" style="margin:.4rem 0;font-size:.8rem">Puoi lasciare vuoto quello che non sai: se manca qualcosa lo stimo dalle calorie e lo segno come "stima".</p>
         <button class="btn primary" data-act="addq">Aggiungi al diario</button></details>
@@ -2652,9 +2661,9 @@ const HANDLERS = {
     ui.qtxt=''; saveLog(); viewOggi(); },
   addq:()=>{ const v=id=>{ const x=$(id).value.trim(); return x===''?null:Math.max(0,parseFloat(x.replace(',','.'))||0); };
     const it=manualItem($('q-n').value.trim()||'Altro', v('q-k'), v('q-p'), v('q-c'), v('q-f')); if(!it){ $('q-k').focus(); return; }
-    if($('q-save').checked){ const g=v('q-g')||100; teachFood({n:it.n,g,k:it.k,p:it.p,c:it.c,f:it.f}); }
+    if($('q-save').checked){ const g=v('q-g')||100; teachFood({n:it.n,g,k:it.k,p:it.p,c:it.c,f:it.f}); ui.qtxt=''; }
     dayLog().items.push(it); pushRecent({n:it.n,k:it.k,p:it.p,c:it.c,f:it.f}); saveLog(); viewOggi(); },
-  teach:t=>{ const d=document.querySelector('details.manual'); d.open=true; $('q-n').value=t.dataset.n; $('q-save').checked=true; $('q-g').focus(); d.scrollIntoView({block:'center'}); },
+  teach:t=>{ const d=document.querySelector('details.manual'); d.open=true; $('q-n').value=teachName(t.dataset.n); $('q-save').checked=true; $('q-g').focus(); d.scrollIntoView({block:'center'}); },
   rmitem:t=>{ dayLog().items.splice(+t.dataset.j,1); saveLog(); viewOggi(); },
   water:t=>{ const L=dayLog(), w=+t.dataset.w; L.water = L.water===w ? w-1 : w; saveLog(); viewOggi(); },
   addprog:()=>{ const pe=parseFloat(($('pr-peso').value||'').replace(',','.')), vi=parseFloat(($('pr-vita').value||'').replace(',','.'));

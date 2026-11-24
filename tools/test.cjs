@@ -432,6 +432,38 @@ test('cibo sconosciuto offre di insegnarlo', async p => {
 
 test('olive riconosciute', async p => { assertEq(await ev(p, () => analyzeFood('spritz e olive').items.map(i => i.food.n)), ['Spritz', 'Olive']); });
 
+/* ---------- Revisione cibi intelligenti ---------- */
+test('cibo insegnato senza kcal: backup ancora ripristinabile', async p => {
+  const r = await ev(p, () => { const it = manualItem('Bibimbap', null, 10, 30, null); teachFood({ n: it.n, g: 200, k: it.k, p: it.p, c: it.c, f: it.f }); return [it.f, importData(exportData()).ok]; });
+  assertEq(r, [0, true]);
+});
+test('cibi insegnati vecchi con valori vuoti vengono sistemati', async p => {
+  assertEq(await ev(p, () => [store.get('myfoods', [])[0].f, importData(exportData()).ok]), [0, true]);
+}, { seed: { 'pp.myfoods': [{ n: 'Bibimbap', g: 200, k: 250, p: 10, c: 30, f: null }, 'rotto', { n: 5 }] } });
+test('insegnami: nome pulito da quantità e unità', async p => { assertEq(await ev(p, () => ['2 bibimbop', 'una fetta di bibimbap', 'mezza porzione di bibimbap grande'].map(teachName)), ['Bibimbop', 'Bibimbap', 'Bibimbap']); });
+test('dopo aver aggiunto a mano il testo si svuota', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', 'bibimbap'); await p.waitForTimeout(60);
+  await p.click('[data-act="teach"]'); await p.fill('#q-k', '500'); await p.click('[data-act="addq"]'); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => [ui.qtxt, $('q-txt').value, dayLog().items.length]), ['', '', 1]);
+});
+test('niente parole comuni scambiate per cibi', async p => {
+  const r = await ev(p, () => ['basta', 'sera', 'nonno', 'porta', 'sono stato bravo', 'cosa', 'resto', 'cane', 'sotto casa', 'misto', 'giro', 'pepe', 'nulla', 'zampone'].filter(t => analyzeFood(t).items.some(i => i.guess)));
+  assertEq(r, []);
+});
+test('errori di battitura veri ancora capiti', async p => { assertEq(await ev(p, () => ['2 bureq', 'cappucino', 'cornettto', 'falafell'].map(t => (analyzeFood(t).items[0] || {}).food ? analyzeFood(t).items[0].food.n : null)), ['Burek', 'Cappuccino', 'Cornetto', 'Falafel']); });
+test('un cibo insegnato con nome già noto ha la precedenza', async p => {
+  assertEq(await ev(p, () => { teachFood({ n: 'Burek', g: 250, k: 700, p: 20, c: 70, f: 38 }); const it = analyzeFood('un burek').items[0]; return [it.food.mine, Math.round(it.k)]; }), [true, 700]);
+});
+test('numeri con la virgola nel modulo a mano', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120); await ev(p, () => { document.querySelector('details.manual').open = true; });
+  await p.fill('#q-n', 'Prova'); await p.fill('#q-k', '300'); await p.fill('#q-p', '12,5'); await p.fill('#q-c', '30'); await p.fill('#q-f', '10,5'); await p.click('[data-act="addq"]'); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => { const i = dayLog().items.slice(-1)[0]; return [i.p, i.f]; }), [12.5, 10.5]);
+});
+test('valori corretti: nachos, liquori, piña colada', async p => {
+  assertEq(await ev(p, () => [analyzeFood('nachos').items[0].food.k, analyzeFood('limoncello').items[0].food.c >= 20, analyzeFood('pina colada').items[0].food.k >= 170]), [306, true, true]);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

@@ -317,6 +317,8 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 .setrow input{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:1.05rem}
 .setrow .tick{width:42px;height:42px}
 .wo-run .ex li{grid-template-columns:1fr auto}
+.wo-run .ck-body{padding-bottom:84px}
+.setrow .sn{min-width:58px}
 .wo-run .ex .btn{grid-column:1 / -1;justify-self:start;margin-top:4px}
 .ex .last{grid-column:1 / -1;font-size:.8rem;color:var(--basil-text);font-weight:600}
 .aib{display:inline-flex;align-items:center;gap:4px;background:var(--pra-soft);color:var(--basil-text);border-radius:999px;padding:1px 8px;font-weight:700;font-size:.78rem}
@@ -1783,7 +1785,7 @@ const BK_SHAPE={
   mine:v=>Array.isArray(v)&&v.every(r=>isObj(r)&&r.id&&Array.isArray(r.ing)&&Array.isArray(r.s)&&Array.isArray(r.m)&&Array.isArray(r.tags)),
   log:v=>isObj(v)&&Object.values(v).every(d=>isObj(d)&&Array.isArray(d.items)),
   badges:isObj, cooked:v=>typeof v==='number'&&v>=0,
-  wlog:v=>isObj(v)&&Object.values(v).every(a=>Array.isArray(a))
+  wlog:v=>isObj(v)&&Object.values(v).every(a=>Array.isArray(a)&&a.every(e=>isObj(e)&&Array.isArray(e.sets)))
 };
 function exportData(){
   const data={}; BK_KEYS.forEach(k=>{ const v=store.get(k,undefined); if(v!==undefined) data[k]=v; });
@@ -1933,7 +1935,7 @@ const exId=(where,name)=>where+'-'+String(name).toLowerCase().normalize('NFD').r
 function lastOf(id){ const a=store.get('wlog',{})[id]; return a&&a.length?a[a.length-1]:null; }
 function logExercise(id,sets){ const w=store.get('wlog',{}), a=w[id]||(w[id]=[]), d=todayKey();
   if(a.length&&a[a.length-1].d===d) a[a.length-1]={d,sets}; else a.push({d,sets}); w[id]=a.slice(-30); store.set('wlog',w); }
-function fmtSets(l){ const r=x=>x.reps==null?'–':x.reps, kgs=[...new Set(l.sets.map(x=>x.kg||0))];
+function fmtSets(l,unit){ const r=x=>x.reps==null?'–':x.reps+(unit==='s'?' s':''), kgs=[...new Set(l.sets.map(x=>x.kg||0))];
   if(kgs.length===1) return (kgs[0]?fmt(kgs[0])+' kg × ':'')+l.sets.map(r).join(' · ');
   return l.sets.map(x=>(x.kg?fmt(x.kg)+' kg × ':'')+r(x)).join(' · '); }
 function suggest(id,sr,gym){
@@ -1941,7 +1943,9 @@ function suggest(id,sr,gym){
   if(!last) return {kg:null,text:'Prima volta: '+(gym?'scegli un peso con cui completi le ripetizioni lasciandone 1–2 di riserva.':'fai le ripetizioni indicate lasciandone 1–2 di riserva.')};
   const kg=gym?(Math.max(0,...last.sets.map(x=>+x.kg||0))||null):null;
   const all=P.max!=null&&last.sets.length>=P.sets&&last.sets.every(x=>(+x.reps||0)>=P.max);
-  if(all) return gym&&kg?{kg:kg+2.5,text:`Ottimo: la volta scorsa hai completato tutte le serie. Oggi prova ${fmt(kg+2.5)} kg.`}:{kg,text:'Hai completato tutte le serie: passa alla versione più difficile o scendi in 3 secondi.'};
+  if(P.unit==='s') return {kg,text: all?'Hai tenuto il tempo massimo in tutte le serie: aggiungi 5 secondi o passa a una variante più difficile.':'Prova a tenere 5 secondi in più in almeno una serie.'};
+  if(all) return gym&&kg?{kg:kg+2.5,text:`Ottimo: la volta scorsa hai completato tutte le serie. Oggi prova ${fmt(kg+2.5)} kg.`}
+    : gym?{kg,text:'Hai completato tutte le serie: segna il peso usato, così posso suggerirti il prossimo.'}:{kg,text:'Hai completato tutte le serie: passa alla versione più difficile o scendi in 3 secondi.'};
   return {kg,text:gym&&kg?`Stesso peso (${fmt(kg)} kg): prova a fare 1 ripetizione in più in almeno una serie.`:'Prova a fare 1 ripetizione in più in almeno una serie.'};
 }
 const STRETCH = {
@@ -1967,42 +1971,59 @@ function stretchHTML(ph, withTimer){
   return `<div><div class="eyebrow">${ph==='pre'?'Prima dell\'allenamento':'Dopo l\'allenamento'}</div><h3 style="font-size:1.15rem">${t[0]}</h3><p class="muted" style="margin:.2rem 0 0;font-size:.88rem">${t[1]}</p></div>
     <ul class="ex">${STRETCH[ph].map((x,i)=>`<li><span class="en">${esc(x.n)}</span><span class="sr num">${esc(x.d)}</span><span class="cue">${esc(x.c)}</span>${withTimer?`<button class="btn small" data-st="${ph}-${i}">Avvia ${x.s} s</button>`:''}</li>`).join('')}</ul>`;
 }
-function workout(where,si){
+let WO=null;
+function woClose(force){
+  if(!WO) return;
+  if(!force&&Object.values(WO.st.done).some(a=>a.some(d=>d.ok))){ WO.ask(); return; }
+  try{ WO.st.wl&&WO.st.wl.release(); }catch(e){}
+  document.removeEventListener('keydown',WO.onKey); document.body.classList.remove('cooking');
+  $('overlay-root').innerHTML=''; clearRest(); store.set('wodraft',null); WO=null;
+}
+function workout(where,si,draft){
   const W=WK[where], S=W.s[si], gym=where==='palestra', letter=si===0?'A':'B', n=S.ex.length;
   const st={step:-1,wl:null,done:{}}, root=$('overlay-root');
   S.ex.forEach(([nm,sr])=>{ const id=exId(where,nm), P=parseSR(sr), sg=suggest(id,sr,gym); st.done[id]=Array.from({length:P.sets},()=>({kg:sg.kg,reps:null,ok:false})); });
+  if(draft&&draft.done){ st.step=draft.step; Object.keys(st.done).forEach(id=>{ if(Array.isArray(draft.done[id])) st.done[id]=draft.done[id]; }); }
+  const saveDraft=()=>store.set('wodraft',{where,si,step:st.step,done:st.done,d:todayKey()});
   document.body.classList.add('cooking'); audio();
-  try{ navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>st.wl=w).catch(()=>{}); }catch(e){}
-  const close=()=>{ try{ st.wl&&st.wl.release(); }catch(e){} root.innerHTML=''; document.body.classList.remove('cooking'); document.removeEventListener('keydown',onKey); };
-  const onKey=e=>{ if(e.key==='Escape') close(); };
+  try{ navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>{ if(WO&&WO.st===st) st.wl=w; else w.release(); }).catch(()=>{}); }catch(e){}
+  const onKey=e=>{ if(e.key==='Escape'&&!/INPUT|TEXTAREA/.test((e.target&&e.target.tagName)||'')) woClose(false); };
   document.addEventListener('keydown',onKey);
-  const finish=()=>{ S.ex.forEach(([nm])=>{ const id=exId(where,nm), ok=st.done[id].filter(d=>d.ok).map(d=>({kg:d.kg,reps:d.reps})); if(ok.length) logExercise(id,ok); });
-    setTrain(todayKey(),letter); close(); render(); toast(`${MEDAL}<div><small>Allenamento salvato</small><b>${esc(S.n)} · ${esc(W.t)}</b><span>Trovi i carichi nella scheda la prossima volta.</span></div>`); celebrate(); };
+  const finish=()=>{ let any=false;
+    S.ex.forEach(([nm])=>{ const id=exId(where,nm), ok=st.done[id].filter(d=>d.ok).map(d=>({kg:d.kg,reps:d.reps})); if(ok.length){ any=true; logExercise(id,ok); } });
+    woClose(true);
+    if(!any){ render(); toast(`${MEDAL}<div><small>Nessuna serie segnata</small><b>Allenamento non salvato</b><span>Spunta le serie che fai, così le registro.</span></div>`); return; }
+    setTrain(todayKey(),letter); render(); toast(`${MEDAL}<div><small>Allenamento salvato</small><b>${esc(S.n)} · ${esc(W.t)}</b><span>Trovi i carichi nella scheda la prossima volta.</span></div>`); celebrate(); };
+  const ask=()=>{ if($('wo-confirm')) return; const b=root.querySelector('.ck-body'); b.insertAdjacentHTML('afterbegin',`<div id="wo-confirm" class="note warn" style="display:grid;gap:8px"><b>Hai serie segnate. Cosa vuoi fare?</b><div class="row"><button class="btn primary" id="wo-save">Salva ed esci</button><button class="btn" id="wo-quit">Esci senza salvare</button><button class="btn" id="wo-stay">Continua</button></div></div>`); b.scrollTop=0;
+    $('wo-save').onclick=finish; $('wo-quit').onclick=()=>woClose(true); $('wo-stay').onclick=()=>$('wo-confirm').remove(); };
+  WO={st,onKey,ask};
   function draw(){
     let body;
     if(st.step<0) body=stretchHTML('pre',true);
     else if(st.step>=n) body=stretchHTML('post',true);
     else { const [nm,sr,cue]=S.ex[st.step], id=exId(where,nm), P=parseSR(sr), sg=suggest(id,sr,gym), last=lastOf(id), rows=st.done[id];
       body=`<div class="eyebrow">Esercizio ${st.step+1} di ${n} · ${esc(sr)}</div><p class="ck-step">${esc(nm)}</p><p class="muted" style="margin:0">${esc(cue)}</p>
-        <div class="hint">${esc(sg.text)}</div>${last?`<p class="muted" style="margin:0;font-size:.88rem">Ultima volta: ${fmtSets(last)}</p>`:''}
-        <div class="sets">${rows.map((d,i)=>`<div class="setrow ${d.ok?'ok':''}"><span class="sn">Serie ${i+1}</span>${gym?`<label>kg<input id="set-${i}-kg" type="number" step="0.5" min="0" inputmode="decimal" value="${d.kg??''}"></label>`:''}<label>${P.unit==='s'?'sec':'rip.'}<input id="set-${i}-reps" type="number" min="0" inputmode="numeric" value="${d.reps??''}" placeholder="${P.max??''}"></label><button class="tick ${d.ok?'on':''}" data-set="${i}" aria-pressed="${d.ok}" aria-label="Serie ${i+1} fatta">${CHECK}</button></div>`).join('')}</div>`; }
+        <div class="hint">${esc(sg.text)}</div>${last?`<p class="muted" style="margin:0;font-size:.88rem">Ultima volta: ${fmtSets(last,P.unit)}</p>`:''}
+        <div class="sets">${rows.map((d,i)=>`<div class="setrow ${d.ok?'ok':''}" id="row-${i}"><span class="sn">Serie ${i+1}</span>${gym?`<label>kg<input id="set-${i}-kg" type="number" step="0.5" min="0" inputmode="decimal" value="${d.kg??''}"></label>`:''}<label>${P.unit==='s'?'sec':'rip.'}<input id="set-${i}-reps" type="number" min="0" inputmode="numeric" value="${d.reps??''}" placeholder="${P.min??''}"></label><button class="tick ${d.ok?'on':''}" data-set="${i}" aria-pressed="${d.ok}" aria-label="Serie ${i+1} fatta">${CHECK}</button></div>`).join('')}</div>`; }
     root.innerHTML=`<div class="cook wo-run" role="dialog" aria-modal="true" aria-label="Allenamento ${esc(S.n)}">
-      <div class="ck-top"><b class="ck-title">${esc(S.n)} · ${esc(W.t)}</b><button class="icon-btn" id="wo-x" aria-label="Chiudi senza salvare"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="ck-top"><b class="ck-title">${esc(S.n)} · ${esc(W.t)}</b><button class="icon-btn" id="wo-x" aria-label="Chiudi l'allenamento"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       <div class="ck-dots">${Array.from({length:n+2},(_,k)=>`<i class="${k-1<=st.step?'on':''}"></i>`).join('')}</div>
       <div class="ck-body">${body}</div>
       <div class="ck-nav"><button class="btn big" id="wo-prev" ${st.step<0?'disabled':''}>Indietro</button>${st.step>=n?'<button class="btn primary big" id="wo-end">Fine allenamento</button>':`<button class="btn primary big" id="wo-next">${st.step<0?'Inizia gli esercizi':st.step===n-1?'Stretching finale':'Avanti'}</button>`}</div></div>`;
-    $('wo-x').onclick=close; $('wo-prev').onclick=()=>{ st.step=Math.max(-1,st.step-1); draw(); };
-    if($('wo-next')) $('wo-next').onclick=()=>{ st.step=Math.min(n,st.step+1); draw(); };
+    $('wo-x').onclick=()=>woClose(false); $('wo-prev').onclick=()=>{ st.step=Math.max(-1,st.step-1); saveDraft(); draw(); };
+    if($('wo-next')) $('wo-next').onclick=()=>{ st.step=Math.min(n,st.step+1); saveDraft(); draw(); };
     if($('wo-end')) $('wo-end').onclick=finish;
-    root.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ const [ph,i]=b.dataset.st.split('-'), x=STRETCH[ph][+i]; addTimer(x.n,x.s); b.textContent='Timer avviato'; b.disabled=true; });
+    root.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ const [ph,i]=b.dataset.st.split('-'), x=STRETCH[ph][+i]; addTimer(x.n+(/per lato/.test(x.d)?' · cambia lato a metà':''),x.s); b.textContent='Timer avviato'; b.disabled=true; });
     if(st.step>=0&&st.step<n){ const [nm]=S.ex[st.step], id=exId(where,nm), rows=st.done[id], P=parseSR(S.ex[st.step][1]);
       rows.forEach((d,i)=>{ const k=$('set-'+i+'-kg'), r=$('set-'+i+'-reps');
-        if(k) k.oninput=()=>{ d.kg=k.value===''?null:parseFloat(k.value); }; r.oninput=()=>{ d.reps=r.value===''?null:parseInt(r.value,10); }; });
-      root.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.set, d=rows[i];
-        if(d.reps==null) d.reps=P.max!=null?P.max:null; d.ok=!d.ok;
-        const lastSet=st.step===n-1&&i===rows.length-1;
-        if(d.ok&&!lastSet) addTimer(`Recupero · ${nm}`, gym?(st.step<2?150:90):60);
-        draw(); }); }
+        if(k) k.oninput=()=>{ const v=parseFloat(k.value); d.kg=k.value===''||!(v>0)?null:v; saveDraft(); };
+        r.oninput=()=>{ const v=Math.round(+r.value); d.reps=r.value===''||!(v>=0)?null:v; saveDraft(); }; });
+      root.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.set, d=rows[i], r=$('set-'+i+'-reps');
+        if(d.reps==null&&P.min!=null){ d.reps=P.min; r.value=P.min; }
+        d.ok=!d.ok; b.classList.toggle('on',d.ok); b.setAttribute('aria-pressed',String(d.ok)); $('row-'+i).classList.toggle('ok',d.ok); b.focus();
+        clearRest(); const lastSet=st.step===n-1&&i===rows.length-1;
+        if(d.ok&&!lastSet) addTimer(`Recupero · ${nm}`, gym?(st.step<2?150:90):60, 'rest');
+        saveDraft(); }); }
   }
   draw();
 }
@@ -2014,11 +2035,12 @@ function viewAllenamento(){
     <div><div class="eyebrow">Allenamento di forza</div><h2 style="font-size:1.6rem">Schede</h2></div>
     ${trainBlock(new Date())}
     ${profile.obj==='ricomp'?'<p class="note"><b>Skinny fat:</b> l\'allenamento di forza è la parte più importante. La dieta toglie il grasso, ma solo i pesi (o il corpo libero) costruiscono il muscolo che cambia la forma del corpo.</p>':''}
+    ${(dr=>dr&&WK[dr.where]?`<div class="note warn" style="display:grid;gap:8px"><b>Hai un allenamento in corso: ${esc(WK[dr.where].s[dr.si].n)} · ${esc(WK[dr.where].t)}</b><div class="row"><button class="btn primary" data-act="woresume">Riprendi</button><button class="btn" data-act="wodiscard">Scarta</button></div></div>`:'')(store.get('wodraft',null))}
     <div class="seg" role="group" aria-label="Dove ti alleni"><button data-wk="casa" aria-pressed="${ui.wk==='casa'}">A casa</button><button data-wk="palestra" aria-pressed="${ui.wk==='palestra'}">In palestra</button></div>
     <div><h3 style="font-size:1.2rem">${w.t}</h3><p class="muted" style="margin:.25rem 0 0">${w.sub}</p></div>
     <div class="week">${w.week.map(([d,s])=>`<div class="wd ${s==='A'||s==='B'?'on':s?'walk':''}"><span>${d}</span><b>${s||'–'}</b></div>`).join('')}</div>
     <p class="muted" style="margin:0;font-size:.85rem">Settimana dopo inverti l'ordine: B, A, B. Se preferisci altri giorni va bene, basta lasciare un giorno di riposo tra un allenamento e l'altro.</p>
-    <div class="workouts">${w.s.map((s,si)=>`<article class="wo"><div class="row"><div style="margin-right:auto"><span class="eyebrow">${s.d}</span><h3>${s.n}</h3></div><button class="btn primary" data-act="wostart" data-w="${ui.wk}" data-s="${si}">Inizia allenamento</button></div><ul class="ex">${s.ex.map(([n,sr,c])=>`<li><span class="en">${esc(n)}</span><span class="sr num">${sr}</span><span class="cue">${esc(c)}</span>${(l=>l?`<span class="last num">Ultima volta: ${fmtSets(l)}</span>`:'')(lastOf(exId(ui.wk,n)))}</li>`).join('')}</ul></article>`).join('')}</div>
+    <div class="workouts">${w.s.map((s,si)=>`<article class="wo"><div class="row"><div style="margin-right:auto"><span class="eyebrow">${s.d}</span><h3>${s.n}</h3></div><button class="btn primary" data-act="wostart" data-w="${ui.wk}" data-s="${si}">Inizia allenamento</button></div><ul class="ex">${s.ex.map(([n,sr,c])=>`<li><span class="en">${esc(n)}</span><span class="sr num">${sr}</span><span class="cue">${esc(c)}</span>${(l=>l?`<span class="last num">Ultima volta: ${fmtSets(l,parseSR(sr).unit)}</span>`:'')(lastOf(exId(ui.wk,n)))}</li>`).join('')}</ul></article>`).join('')}</div>
     <div class="workouts"><article class="wo">${stretchHTML('pre',false)}</article><article class="wo">${stretchHTML('post',false)}</article></div>
     <p class="muted" style="margin:0;font-size:.85rem">Con "Inizia allenamento" l'app ti guida: riscaldamento, esercizi con le serie da spuntare e il recupero a tempo, poi lo stretching finale con un timer per ogni posizione.</p>
     <p class="note"><b>Come progredire:</b> ${w.prog}</p>
@@ -2404,7 +2426,8 @@ let timers = store.get('timers',[]).filter(t=>t.end>Date.now()-15*60000);
 function audio(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} return AC; }
 function beep(){ const a=audio(); if(!a) return; try{ [0,.45,.9,1.35].forEach(t=>{ const o=a.createOscillator(), g=a.createGain(); o.frequency.value=t%0.9?660:880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.32,a.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.35); o.start(a.currentTime+t); o.stop(a.currentTime+t+.37); }); }catch(e){} }
 function saveTimers(){ store.set('timers',timers); }
-function addTimer(label,sec){ audio(); timers.push({id:String(Date.now()),label,end:Date.now()+sec*1000,done:false}); saveTimers(); runTimers(); }
+function addTimer(label,sec,kind){ audio(); timers.push({id:String(Date.now()+Math.random()),label,end:Date.now()+sec*1000,done:false,kind:kind||''}); saveTimers(); runTimers(); }
+function clearRest(){ const n=timers.length; timers=timers.filter(t=>t.kind!=='rest'); if(timers.length!==n){ saveTimers(); runTimers(); } }
 function runTimers(){ clearInterval(tIv); tIv = timers.length ? setInterval(drawTimers,500) : null; drawTimers(); }
 function drawTimers(){
   const dock=$('timer-dock'); if(!dock) return; const now=Date.now(); let fired=false;
@@ -2566,6 +2589,8 @@ const HANDLERS = {
   'backup-cancel':()=>{ $('bk-msg').innerHTML=''; },
   'backup-confirm':()=>{ const r=importData($('bk-in').value.trim()); $('bk-msg').innerHTML=`<p class="${r.ok?'ck-ok':'note'}" style="margin:0">${esc(r.msg)}${r.ok?' Ricarico l\'app…':''}</p>`; if(r.ok) setTimeout(()=>location.reload(),900); },
   wostart:t=>workout(t.dataset.w,+t.dataset.s),
+  woresume:()=>{ const d=store.get('wodraft',null); if(d&&WK[d.where]) workout(d.where,d.si,d); },
+  wodiscard:()=>{ store.set('wodraft',null); viewAllenamento(); },
   train:t=>{ const k=t.dataset.k, cur=log[k]&&log[k].train; setTrain(k, cur===t.dataset.v?null:t.dataset.v); render(); },
   rmprog:t=>{ prog=prog.filter(x=>String(x.t)!==t.dataset.d); store.set('prog',prog); viewOggi(); }
 };

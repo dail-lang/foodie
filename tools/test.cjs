@@ -353,6 +353,50 @@ test('ultima volta mostrata nella scheda', async p => {
 
 test('ultima volta compatta con lo stesso peso', async p => { assertEq(await ev(p, () => [fmtSets({ sets: [{ kg: 60, reps: 8 }, { kg: 60, reps: 7 }] }), fmtSets({ sets: [{ kg: 60, reps: 8 }, { kg: 62.5, reps: 6 }] })]), ['60 kg × 8 · 7', '60 kg × 8 · 62,5 kg × 6']); });
 
+/* ---------- Revisione allenamento ---------- */
+const openWo = async (p, where = 'palestra') => { await ev(p, w => { location.hash = 'allenamento'; ui.wk = w; viewAllenamento(); }, where); await p.waitForTimeout(100); await p.locator('[data-act="wostart"][data-s="0"]').click(); await p.waitForTimeout(80); await p.click('#wo-next'); await p.waitForTimeout(50); };
+test('un solo timer di recupero alla volta, tolto alla chiusura', async p => {
+  await openWo(p); await p.fill('#set-0-reps', '8'); await p.click('[data-set="0"]'); await p.fill('#set-1-reps', '8'); await p.click('[data-set="1"]');
+  const a = await ev(p, () => timers.filter(t => t.kind === 'rest').length);
+  await p.click('[data-set="0"]'); await p.click('[data-set="0"]');
+  const b = await ev(p, () => timers.filter(t => t.kind === 'rest').length);
+  await ev(p, () => woClose(true)); const c = await ev(p, () => timers.filter(t => t.kind === 'rest').length);
+  assertEq([a, b, c], [1, 1, 0]);
+}, { seed: { 'pp.profile': REAL } });
+test('spunta senza scrivere: ripetizioni minime, niente +2,5 kg', async p => {
+  await openWo(p); for (const i of [0, 1, 2]) { await p.fill(`#set-${i}-kg`, '60'); await p.click(`[data-set="${i}"]`); }
+  for (let i = 0; i < 7; i++) { if (await p.locator('#wo-next').count()) await p.click('#wo-next'); }
+  await p.click('#wo-end'); await p.waitForTimeout(80);
+  const r = await ev(p, () => { const id = exId('palestra', WK.palestra.s[0].ex[0][0]); return [store.get('wlog', {})[id][0].sets.map(s => s.reps), suggest(id, WK.palestra.s[0].ex[0][1], true).kg]; });
+  assertEq(r, [[6, 6, 6], 60]);
+}, { seed: { 'pp.profile': REAL } });
+test('× con serie segnate chiede conferma e la bozza sopravvive al ricaricamento', async p => {
+  await openWo(p); await p.fill('#set-0-reps', '7'); await p.click('[data-set="0"]');
+  await p.click('#wo-x'); await p.waitForTimeout(50);
+  const still = await p.locator('.wo-run').count(); const ask = await p.locator('#wo-confirm').count();
+  await p.reload(); await p.waitForTimeout(250); await ev(p, () => { location.hash = 'allenamento'; }); await p.waitForTimeout(120);
+  await p.locator('[data-act="woresume"]').click(); await p.waitForTimeout(80);
+  const r = await ev(p, () => [document.querySelector('[data-set="0"]').getAttribute('aria-pressed'), document.getElementById('set-0-reps').value]);
+  assertEq([still, ask, ...r], [1, 1, 'true', '7']);
+}, { seed: { 'pp.profile': REAL } });
+test('consigli per esercizi a tempo', async p => {
+  const r = await ev(p, () => { const id = exId('casa', 'Plank'); const a = suggest(id, '3 × 30–45 s', false).text; logExercise(id, [{ kg: null, reps: 45 }, { kg: null, reps: 45 }, { kg: null, reps: 45 }]); const b = suggest(id, '3 × 30–45 s', false).text; return [/second/i.test(a) || /prima volta/i.test(a), /second/.test(b) && !/scendi/.test(b), fmtSets(lastOf(id), 's')]; });
+  assertEq(r, [true, true, '45 s · 45 s · 45 s']);
+});
+test('spuntare una serie non fa saltare la pagina', async p => {
+  await p.setViewportSize({ width: 375, height: 600 }); await openWo(p);
+  await ev(p, () => { document.querySelector('.ck-body').scrollTop = 200; }); const before = await ev(p, () => document.querySelector('.ck-body').scrollTop);
+  await p.locator('[data-set="2"]').click({ force: true }); await p.waitForTimeout(50);
+  const r = await ev(p, () => [document.querySelector('.ck-body').scrollTop, document.activeElement && document.activeElement.dataset.set]);
+  assertEq([r[0] === before && before > 0, r[1]], [true, '2']);
+}, { seed: { 'pp.profile': REAL } });
+test('finire senza serie non conta come allenamento', async p => {
+  await openWo(p); for (let i = 0; i < 7; i++) { if (await p.locator('#wo-next').count()) await p.click('#wo-next'); }
+  await p.click('#wo-end'); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => !!(log[todayKey()] && log[todayKey()].train)), false);
+}, { seed: { 'pp.profile': REAL } });
+test('backup con registro pesi rovinato rifiutato', async p => { assertEq(await ev(p, () => BK_SHAPE.wlog({ a: [{ d: 'x' }] })), false); });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

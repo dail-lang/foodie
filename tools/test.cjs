@@ -266,6 +266,16 @@ test('[RF 3] nessun sostituto possibile: niente loop', async p => {
   assertEq(r, [7, true]);
 }, { seed: { 'pp.profile': REAL } });
 
+/* ---------- Antinfiammatorio, Task 5: consigli ---------- */
+test('consigli antinfiammatori con livello', async p => {
+  const r = await ev(p, () => TIPS.filter(t => t.cat === 'Antinfiammatorio').map(t => t.lv));
+  assert(r.length >= 9 && r.every(l => ['solide', 'promettenti', 'tradizionale', 'limitare'].includes(l)), JSON.stringify(r));
+});
+test('consigli mostrano il livello', async p => {
+  await ev(p, () => { ui.cat = 'Antinfiammatorio'; location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  assert(/prove solide/.test(await p.locator('#v-consigli .tips').innerText()));
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

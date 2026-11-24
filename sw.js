@@ -1,5 +1,5 @@
 // Foodie: funziona anche offline
-const VERSION = 'foodie-v32';
+const VERSION = 'foodie-v33';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

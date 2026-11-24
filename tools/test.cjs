@@ -426,7 +426,7 @@ test('insegna un cibo: poi viene riconosciuto e va nel backup', async p => {
 });
 test('cibo sconosciuto offre di insegnarlo', async p => {
   await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
-  await p.fill('#q-txt', 'bibimbap'); await p.waitForTimeout(80);
+  await p.fill('#q-txt', 'zighini'); await p.waitForTimeout(80);
   assert(await p.locator('[data-act="teach"]').count() === 1);
 });
 
@@ -443,7 +443,7 @@ test('cibi insegnati vecchi con valori vuoti vengono sistemati', async p => {
 test('insegnami: nome pulito da quantità e unità', async p => { assertEq(await ev(p, () => ['2 bibimbop', 'una fetta di bibimbap', 'mezza porzione di bibimbap grande'].map(teachName)), ['Bibimbop', 'Bibimbap', 'Bibimbap']); });
 test('dopo aver aggiunto a mano il testo si svuota', async p => {
   await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
-  await p.fill('#q-txt', 'bibimbap'); await p.waitForTimeout(60);
+  await p.fill('#q-txt', 'zighini'); await p.waitForTimeout(60);
   await p.click('[data-act="teach"]'); await p.fill('#q-k', '500'); await p.click('[data-act="addq"]'); await p.waitForTimeout(80);
   assertEq(await ev(p, () => [ui.qtxt, $('q-txt').value, dayLog().items.length]), ['', '', 1]);
 });
@@ -463,6 +463,19 @@ test('numeri con la virgola nel modulo a mano', async p => {
 test('valori corretti: nachos, liquori, piña colada', async p => {
   assertEq(await ev(p, () => [analyzeFood('nachos').items[0].food.k, analyzeFood('limoncello').items[0].food.c >= 20, analyzeFood('pina colada').items[0].food.k >= 170]), [306, true, true]);
 });
+
+/* ---------- Piatti più comuni ---------- */
+const COMMON = ['penne all\'arrabbiata', 'spaghetti aglio olio e peperoncino', 'pasta alla norma', 'pasta al tonno', 'pasta con zucchine', 'pasta al salmone', 'pasta e piselli', 'pasta e patate', 'orecchiette alle cime di rapa', 'insalata di pasta', 'gnocchi al pomodoro', 'gnocchi alla sorrentina', 'risotto alla pescatora', 'risotto alla zucca', 'paella', 'zuppa di pesce', 'brodo', 'ribollita', 'pizzoccheri', 'tagliatelle ai funghi', 'pollo al forno', 'pollo alla cacciatora', 'scaloppine al limone', 'arrosto di vitello', 'involtini di carne', 'bollito', 'fegato alla veneziana', 'agnello', 'coniglio', 'burger vegetale', 'cozze', 'tonno fresco', 'insalata di mare', 'insalata di farro', 'insalata russa', 'panzanella', 'peperonata', 'caponata', 'purè', 'carciofi alla romana', 'funghi trifolati', 'mais', 'pizza fritta', 'focaccia farcita', 'club sandwich', 'bagel', 'trapizzino', 'rustici', 'anelli di cipolla', 'milkshake', 'profiteroles', 'babà', 'pastiera', 'zuppa inglese', 'semifreddo', 'macedonia', 'crema catalana', 'torrone', 'cioccolatini', 'caramelle', 'snickers', 'pain au chocolat', 'ginseng', 'caffè macchiato', 'marocchino', 'cioccolata calda', 'caffè d\'orzo', 'philadelphia', 'feta', 'seitan', 'gallette di riso', 'taralli', 'pane carasau', 'pancarrè', 'pane arabo', 'castagne', 'birra analcolica', 'kombucha', 'gatorade', 'pho', 'bibimbap', 'pollo tikka masala', 'biryani', 'samosa', 'tabbouleh', 'tajine', 'chili con carne', 'fajitas', 'guacamole', 'fish and chips', 'noodles saltati', 'pollo alle mandorle', 'onigiri', 'souvlaki', 'kofte', 'shakshuka', 'crepe salata', 'quiche', 'gazpacho', 'chinotto', 'pompelmo', 'paccheri al pomodoro'];
+test('i piatti più comuni sono tutti riconosciuti', async p => {
+  const miss = await ev(p, L => L.filter(t => { const a = analyzeFood(t); return !a.items.length || a.unknown.length; }), COMMON);
+  assertEq(miss, []);
+});
+test('piatti specifici vincono sull\'ingrediente', async p => {
+  assertEq(await ev(p, () => ['gnocchi al pomodoro', 'risotto alla zucca', 'insalata di farro', 'caffè d\'orzo', 'birra analcolica', 'purè', 'crepe salata', 'quiche', 'noodles saltati', 'involtini primavera'].map(t => analyzeFood(t).items[0].food.n)),
+    ['Gnocchi al pomodoro', 'Risotto alla zucca', 'Insalata di farro', 'Caffè d\'orzo', 'Birra analcolica', 'Purè di patate', 'Crêpe salata', 'Torta salata o quiche', 'Noodles saltati', 'Involtini primavera']);
+});
+
+test('petto di pollo con patate: due cibi', async p => { assertEq(await ev(p, () => analyzeFood('150 g petto di pollo con patate al forno').items.map(i => i.food.n)), ['Petto di pollo', 'Patate al forno']); });
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 

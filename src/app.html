@@ -290,6 +290,16 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 }
 
 /* ===== Ritocchi grafici ===== */
+.sets{display:grid;gap:8px}
+.setrow{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:10px;align-items:end;background:var(--sunk);border-radius:12px;padding:10px 12px}
+.setrow.ok{background:var(--pra-soft)}
+.setrow .sn{align-self:center;font-weight:700;font-size:.9rem;white-space:nowrap}
+.setrow label{display:grid;gap:2px;font-size:.75rem;color:var(--muted);min-width:0}
+.setrow input{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:1.05rem}
+.setrow .tick{width:42px;height:42px}
+.wo-run .ex li{grid-template-columns:1fr auto}
+.wo-run .ex .btn{grid-column:1 / -1;justify-self:start;margin-top:4px}
+.ex .last{grid-column:1 / -1;font-size:.8rem;color:var(--basil-text);font-weight:600}
 .aib{display:inline-flex;align-items:center;gap:4px;background:var(--pra-soft);color:var(--basil-text);border-radius:999px;padding:1px 8px;font-weight:700;font-size:.78rem}
 .aib.big{font-size:.9rem;padding:3px 10px}
 .pill.ai{background:var(--pra-soft)}
@@ -1743,7 +1753,7 @@ function viewConsigli(){
     ${proteinTable()}`;
 }
 /* ---------- Backup ---------- */
-const BK_KEYS = ['profile','plan','favs','shop','mine','log','prog','timers','recent','badges','cooked'];
+const BK_KEYS = ['profile','plan','favs','shop','mine','log','prog','timers','recent','badges','cooked','wlog'];
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const BK_SHAPE={
   profile:v=>isObj(v)&&['peso','alt','eta'].every(k=>typeof v[k]==='number'&&v[k]>0),
@@ -1751,7 +1761,8 @@ const BK_SHAPE={
   favs:Array.isArray, shop:Array.isArray, timers:Array.isArray, recent:Array.isArray, prog:v=>Array.isArray(v)&&v.every(isObj),
   mine:v=>Array.isArray(v)&&v.every(r=>isObj(r)&&r.id&&Array.isArray(r.ing)&&Array.isArray(r.s)&&Array.isArray(r.m)&&Array.isArray(r.tags)),
   log:v=>isObj(v)&&Object.values(v).every(d=>isObj(d)&&Array.isArray(d.items)),
-  badges:isObj, cooked:v=>typeof v==='number'&&v>=0
+  badges:isObj, cooked:v=>typeof v==='number'&&v>=0,
+  wlog:v=>isObj(v)&&Object.values(v).every(a=>Array.isArray(a))
 };
 function exportData(){
   const data={}; BK_KEYS.forEach(k=>{ const v=store.get(k,undefined); if(v!==undefined) data[k]=v; });
@@ -1889,6 +1900,92 @@ const RULES = [
  ['8.000–10.000 passi','Il movimento di tutti i giorni brucia più calorie del cardio in palestra ed è facile da mantenere.'],
  ['Pazienza: 8–12 settimane','I primi cambiamenti allo specchio arrivano dopo 2–3 mesi di costanza. Misura il giro vita ogni 2 settimane.']
 ];
+/* ---------- Allenamento guidato, registro pesi, stretching ---------- */
+function parseSR(sr){
+  const m=String(sr).match(/^(\d+)\s*×\s*(.*)$/); if(!m) return {sets:1,min:null,max:null,unit:'rip'};
+  const rest=m[2], unit=/\d\s*s\b/.test(rest)?'s':'rip';
+  if(/max/i.test(rest)) return {sets:+m[1],min:null,max:null,unit};
+  const r=rest.match(/(\d+)(?:\s*[–-]\s*(\d+))?/); if(!r) return {sets:+m[1],min:null,max:null,unit};
+  return {sets:+m[1],min:+r[1],max:+(r[2]||r[1]),unit};
+}
+const exId=(where,name)=>where+'-'+String(name).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+function lastOf(id){ const a=store.get('wlog',{})[id]; return a&&a.length?a[a.length-1]:null; }
+function logExercise(id,sets){ const w=store.get('wlog',{}), a=w[id]||(w[id]=[]), d=todayKey();
+  if(a.length&&a[a.length-1].d===d) a[a.length-1]={d,sets}; else a.push({d,sets}); w[id]=a.slice(-30); store.set('wlog',w); }
+function fmtSets(l){ const r=x=>x.reps==null?'–':x.reps, kgs=[...new Set(l.sets.map(x=>x.kg||0))];
+  if(kgs.length===1) return (kgs[0]?fmt(kgs[0])+' kg × ':'')+l.sets.map(r).join(' · ');
+  return l.sets.map(x=>(x.kg?fmt(x.kg)+' kg × ':'')+r(x)).join(' · '); }
+function suggest(id,sr,gym){
+  const P=parseSR(sr), last=lastOf(id);
+  if(!last) return {kg:null,text:'Prima volta: '+(gym?'scegli un peso con cui completi le ripetizioni lasciandone 1–2 di riserva.':'fai le ripetizioni indicate lasciandone 1–2 di riserva.')};
+  const kg=gym?(Math.max(0,...last.sets.map(x=>+x.kg||0))||null):null;
+  const all=P.max!=null&&last.sets.length>=P.sets&&last.sets.every(x=>(+x.reps||0)>=P.max);
+  if(all) return gym&&kg?{kg:kg+2.5,text:`Ottimo: la volta scorsa hai completato tutte le serie. Oggi prova ${fmt(kg+2.5)} kg.`}:{kg,text:'Hai completato tutte le serie: passa alla versione più difficile o scendi in 3 secondi.'};
+  return {kg,text:gym&&kg?`Stesso peso (${fmt(kg)} kg): prova a fare 1 ripetizione in più in almeno una serie.`:'Prova a fare 1 ripetizione in più in almeno una serie.'};
+}
+const STRETCH = {
+ pre:[
+  {n:'Marcia sul posto',d:'60 s',s:60,c:'Ginocchia alte e braccia che oscillano: scalda tutto il corpo.'},
+  {n:'Rotazioni delle braccia',d:'30 s',s:30,c:'Cerchi ampi in avanti per 15 secondi, poi all\'indietro.'},
+  {n:'Cerchi con le anche',d:'30 s',s:30,c:'Mani sui fianchi, cerchi ampi in entrambi i sensi.'},
+  {n:'Gatto-mucca',d:'8 ripetizioni',s:40,c:'A quattro zampe: inarca e arrotonda la schiena lentamente, respirando.'},
+  {n:'Affondi con torsione del busto',d:'6 per lato',s:60,c:'Affondo in avanti e ruota il busto verso la gamba davanti.'},
+  {n:'Oscillazioni delle gambe',d:'10 per gamba',s:40,c:'Tenendoti a un muro, oscilla la gamba avanti e indietro senza forzare.'},
+  {n:'Squat lenti',d:'10 ripetizioni',s:45,c:'Scendi in 3 secondi: prepari ginocchia e anche ai carichi.'}],
+ post:[
+  {n:'Quadricipiti in piedi',d:'30 s per lato',s:60,c:'Afferra il piede dietro di te, ginocchia vicine, bacino leggermente in avanti.'},
+  {n:'Femorali da seduto',d:'30 s per lato',s:60,c:'Gamba tesa davanti, schiena dritta: inclinati in avanti partendo dall\'anca.'},
+  {n:'Glutei a figura 4',d:'30 s per lato',s:60,c:'Da sdraiato, caviglia sul ginocchio opposto, tira la coscia verso il petto.'},
+  {n:'Flessori dell\'anca in affondo',d:'30 s per lato',s:60,c:'Ginocchio dietro a terra, spingi il bacino in avanti tenendo il busto dritto.'},
+  {n:'Pettorali al muro',d:'30 s per lato',s:60,c:'Avambraccio sul muro all\'altezza della spalla, ruota il busto dalla parte opposta.'},
+  {n:'Posizione del bambino',d:'45 s',s:45,c:'Seduto sui talloni, braccia distese a terra: allunga schiena e dorsali.'},
+  {n:'Polpacci al muro',d:'30 s per lato',s:60,c:'Mani al muro, gamba dietro tesa e tallone a terra.'}]
+};
+function stretchHTML(ph, withTimer){
+  const t=ph==='pre'?['Riscaldamento: stretching dinamico','Movimenti controllati, senza molleggiare. Circa 5 minuti.']:['Defaticamento: stretching statico','Tieni ogni posizione senza dolore, respirando lentamente. Circa 6 minuti.'];
+  return `<div><div class="eyebrow">${ph==='pre'?'Prima dell\'allenamento':'Dopo l\'allenamento'}</div><h3 style="font-size:1.15rem">${t[0]}</h3><p class="muted" style="margin:.2rem 0 0;font-size:.88rem">${t[1]}</p></div>
+    <ul class="ex">${STRETCH[ph].map((x,i)=>`<li><span class="en">${esc(x.n)}</span><span class="sr num">${esc(x.d)}</span><span class="cue">${esc(x.c)}</span>${withTimer?`<button class="btn small" data-st="${ph}-${i}">Avvia ${x.s} s</button>`:''}</li>`).join('')}</ul>`;
+}
+function workout(where,si){
+  const W=WK[where], S=W.s[si], gym=where==='palestra', letter=si===0?'A':'B', n=S.ex.length;
+  const st={step:-1,wl:null,done:{}}, root=$('overlay-root');
+  S.ex.forEach(([nm,sr])=>{ const id=exId(where,nm), P=parseSR(sr), sg=suggest(id,sr,gym); st.done[id]=Array.from({length:P.sets},()=>({kg:sg.kg,reps:null,ok:false})); });
+  document.body.classList.add('cooking'); audio();
+  try{ navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>st.wl=w).catch(()=>{}); }catch(e){}
+  const close=()=>{ try{ st.wl&&st.wl.release(); }catch(e){} root.innerHTML=''; document.body.classList.remove('cooking'); document.removeEventListener('keydown',onKey); };
+  const onKey=e=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown',onKey);
+  const finish=()=>{ S.ex.forEach(([nm])=>{ const id=exId(where,nm), ok=st.done[id].filter(d=>d.ok).map(d=>({kg:d.kg,reps:d.reps})); if(ok.length) logExercise(id,ok); });
+    setTrain(todayKey(),letter); close(); render(); toast(`${MEDAL}<div><small>Allenamento salvato</small><b>${esc(S.n)} · ${esc(W.t)}</b><span>Trovi i carichi nella scheda la prossima volta.</span></div>`); celebrate(); };
+  function draw(){
+    let body;
+    if(st.step<0) body=stretchHTML('pre',true);
+    else if(st.step>=n) body=stretchHTML('post',true);
+    else { const [nm,sr,cue]=S.ex[st.step], id=exId(where,nm), P=parseSR(sr), sg=suggest(id,sr,gym), last=lastOf(id), rows=st.done[id];
+      body=`<div class="eyebrow">Esercizio ${st.step+1} di ${n} · ${esc(sr)}</div><p class="ck-step">${esc(nm)}</p><p class="muted" style="margin:0">${esc(cue)}</p>
+        <div class="hint">${esc(sg.text)}</div>${last?`<p class="muted" style="margin:0;font-size:.88rem">Ultima volta: ${fmtSets(last)}</p>`:''}
+        <div class="sets">${rows.map((d,i)=>`<div class="setrow ${d.ok?'ok':''}"><span class="sn">Serie ${i+1}</span>${gym?`<label>kg<input id="set-${i}-kg" type="number" step="0.5" min="0" inputmode="decimal" value="${d.kg??''}"></label>`:''}<label>${P.unit==='s'?'sec':'rip.'}<input id="set-${i}-reps" type="number" min="0" inputmode="numeric" value="${d.reps??''}" placeholder="${P.max??''}"></label><button class="tick ${d.ok?'on':''}" data-set="${i}" aria-pressed="${d.ok}" aria-label="Serie ${i+1} fatta">${CHECK}</button></div>`).join('')}</div>`; }
+    root.innerHTML=`<div class="cook wo-run" role="dialog" aria-modal="true" aria-label="Allenamento ${esc(S.n)}">
+      <div class="ck-top"><b class="ck-title">${esc(S.n)} · ${esc(W.t)}</b><button class="icon-btn" id="wo-x" aria-label="Chiudi senza salvare"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="ck-dots">${Array.from({length:n+2},(_,k)=>`<i class="${k-1<=st.step?'on':''}"></i>`).join('')}</div>
+      <div class="ck-body">${body}</div>
+      <div class="ck-nav"><button class="btn big" id="wo-prev" ${st.step<0?'disabled':''}>Indietro</button>${st.step>=n?'<button class="btn primary big" id="wo-end">Fine allenamento</button>':`<button class="btn primary big" id="wo-next">${st.step<0?'Inizia gli esercizi':st.step===n-1?'Stretching finale':'Avanti'}</button>`}</div></div>`;
+    $('wo-x').onclick=close; $('wo-prev').onclick=()=>{ st.step=Math.max(-1,st.step-1); draw(); };
+    if($('wo-next')) $('wo-next').onclick=()=>{ st.step=Math.min(n,st.step+1); draw(); };
+    if($('wo-end')) $('wo-end').onclick=finish;
+    root.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ const [ph,i]=b.dataset.st.split('-'), x=STRETCH[ph][+i]; addTimer(x.n,x.s); b.textContent='Timer avviato'; b.disabled=true; });
+    if(st.step>=0&&st.step<n){ const [nm]=S.ex[st.step], id=exId(where,nm), rows=st.done[id], P=parseSR(S.ex[st.step][1]);
+      rows.forEach((d,i)=>{ const k=$('set-'+i+'-kg'), r=$('set-'+i+'-reps');
+        if(k) k.oninput=()=>{ d.kg=k.value===''?null:parseFloat(k.value); }; r.oninput=()=>{ d.reps=r.value===''?null:parseInt(r.value,10); }; });
+      root.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.set, d=rows[i];
+        if(d.reps==null) d.reps=P.max!=null?P.max:null; d.ok=!d.ok;
+        const lastSet=st.step===n-1&&i===rows.length-1;
+        if(d.ok&&!lastSet) addTimer(`Recupero · ${nm}`, gym?(st.step<2?150:90):60);
+        draw(); }); }
+  }
+  draw();
+}
+
 function viewAllenamento(){
   const el = document.getElementById('v-allenamento');
   const w = WK[ui.wk];
@@ -1900,7 +1997,9 @@ function viewAllenamento(){
     <div><h3 style="font-size:1.2rem">${w.t}</h3><p class="muted" style="margin:.25rem 0 0">${w.sub}</p></div>
     <div class="week">${w.week.map(([d,s])=>`<div class="wd ${s==='A'||s==='B'?'on':s?'walk':''}"><span>${d}</span><b>${s||'–'}</b></div>`).join('')}</div>
     <p class="muted" style="margin:0;font-size:.85rem">Settimana dopo inverti l'ordine: B, A, B. Se preferisci altri giorni va bene, basta lasciare un giorno di riposo tra un allenamento e l'altro.</p>
-    <div class="workouts">${w.s.map(s=>`<article class="wo"><div><span class="eyebrow">${s.d}</span><h3>${s.n}</h3></div><ul class="ex">${s.ex.map(([n,sr,c])=>`<li><span class="en">${esc(n)}</span><span class="sr num">${sr}</span><span class="cue">${esc(c)}</span></li>`).join('')}</ul></article>`).join('')}</div>
+    <div class="workouts">${w.s.map((s,si)=>`<article class="wo"><div class="row"><div style="margin-right:auto"><span class="eyebrow">${s.d}</span><h3>${s.n}</h3></div><button class="btn primary" data-act="wostart" data-w="${ui.wk}" data-s="${si}">Inizia allenamento</button></div><ul class="ex">${s.ex.map(([n,sr,c])=>`<li><span class="en">${esc(n)}</span><span class="sr num">${sr}</span><span class="cue">${esc(c)}</span>${(l=>l?`<span class="last num">Ultima volta: ${fmtSets(l)}</span>`:'')(lastOf(exId(ui.wk,n)))}</li>`).join('')}</ul></article>`).join('')}</div>
+    <div class="workouts"><article class="wo">${stretchHTML('pre',false)}</article><article class="wo">${stretchHTML('post',false)}</article></div>
+    <p class="muted" style="margin:0;font-size:.85rem">Con "Inizia allenamento" l'app ti guida: riscaldamento, esercizi con le serie da spuntare e il recupero a tempo, poi lo stretching finale con un timer per ogni posizione.</p>
     <p class="note"><b>Come progredire:</b> ${w.prog}</p>
     <div class="rules">${RULES.map(([t,b])=>`<div class="rule"><h3>${t}</h3><p>${b}</p></div>`).join('')}</div>
     <p class="note">Se hai dolori, problemi articolari o non ti alleni da tempo, fatti seguire da un istruttore per la tecnica. Il dolore muscolare dei giorni dopo è normale, il dolore alle articolazioni no.</p>`;
@@ -2445,6 +2544,7 @@ const HANDLERS = {
     $('bk-msg').innerHTML='<div class="note warn" style="display:grid;gap:8px"><b>I dati attuali verranno sostituiti da quelli del backup.</b><div class="row"><button class="btn primary" data-act="backup-confirm">Sì, ripristina</button><button class="btn" data-act="backup-cancel">Annulla</button></div></div>'; },
   'backup-cancel':()=>{ $('bk-msg').innerHTML=''; },
   'backup-confirm':()=>{ const r=importData($('bk-in').value.trim()); $('bk-msg').innerHTML=`<p class="${r.ok?'ck-ok':'note'}" style="margin:0">${esc(r.msg)}${r.ok?' Ricarico l\'app…':''}</p>`; if(r.ok) setTimeout(()=>location.reload(),900); },
+  wostart:t=>workout(t.dataset.w,+t.dataset.s),
   train:t=>{ const k=t.dataset.k, cur=log[k]&&log[k].train; setTrain(k, cur===t.dataset.v?null:t.dataset.v); render(); },
   rmprog:t=>{ prog=prog.filter(x=>String(x.t)!==t.dataset.d); store.set('prog',prog); viewOggi(); }
 };

@@ -315,6 +315,44 @@ test('lista spesa: uova intere arrotondate per eccesso', async p => {
   assertEq(r, [['Uova', 'pz', '23']]);
 });
 
+/* ---------- Allenamento: guidato, registro, stretching ---------- */
+test('lettura serie e ripetizioni', async p => {
+  assertEq(await ev(p, () => ['3 × 6–8', '3 × max −2', '3 × 30–45 s', '2 × 12 in superserie', '3 × 10 per gamba', '3 × 5'].map(parseSR)), [
+    { sets: 3, min: 6, max: 8, unit: 'rip' }, { sets: 3, min: null, max: null, unit: 'rip' }, { sets: 3, min: 30, max: 45, unit: 's' },
+    { sets: 2, min: 12, max: 12, unit: 'rip' }, { sets: 3, min: 10, max: 10, unit: 'rip' }, { sets: 3, min: 5, max: 5, unit: 'rip' }]);
+});
+test('suggerimento: prima volta, stesso peso, +2,5 kg', async p => {
+  const r = await ev(p, () => { const id = exId('palestra', 'Panca piana con bilanciere o manubri'); const a = suggest(id, '3 × 6–8', true).text;
+    logExercise(id, [{ kg: 40, reps: 8 }, { kg: 40, reps: 7 }, { kg: 40, reps: 6 }]); const b = suggest(id, '3 × 6–8', true);
+    logExercise(id, [{ kg: 40, reps: 8 }, { kg: 40, reps: 8 }, { kg: 40, reps: 8 }]); const c = suggest(id, '3 × 6–8', true);
+    return [/prima volta/i.test(a), b.kg, /ripetizione in più/.test(b.text), c.kg]; });
+  assertEq(r, [true, 40, true, 42.5]);
+});
+test('stretching prima dinamico e dopo statico', async p => {
+  const r = await ev(p, () => [STRETCH.pre.length, STRETCH.post.length, STRETCH.post.every(x => x.s >= 30), STRETCH.pre.every(x => x.n && x.d && x.c)]);
+  assertEq(r, [7, 7, true, true]);
+});
+test('allenamento guidato completo salva serie e segna la giornata', async p => {
+  await ev(p, () => { location.hash = 'allenamento'; ui.wk = 'palestra'; viewAllenamento(); }); await p.waitForTimeout(150);
+  await p.locator('[data-act="wostart"][data-s="0"]').click(); await p.waitForTimeout(100);
+  assert(/Riscaldamento/i.test(await p.locator('.wo-run').innerText()), 'manca il riscaldamento');
+  await p.click('#wo-next'); await p.waitForTimeout(50);
+  await p.fill('#set-0-kg', '40'); await p.fill('#set-0-reps', '8'); await p.click('[data-set="0"]'); await p.waitForTimeout(50);
+  const t = await ev(p, () => timers.length);
+  for (let i = 0; i < 7; i++) { if (await p.locator('#wo-next').count()) await p.click('#wo-next'); await p.waitForTimeout(30); }
+  assert(/Defaticamento|stretching/i.test(await p.locator('.wo-run').innerText()), 'manca lo stretching finale');
+  await p.click('#wo-end'); await p.waitForTimeout(100);
+  const r = await ev(p, () => { const id = exId('palestra', WK.palestra.s[0].ex[0][0]); return [log[todayKey()] && log[todayKey()].train, (store.get('wlog', {})[id] || []).length, store.get('wlog', {})[id][0].sets[0]]; });
+  assertEq([t >= 1, ...r], [true, 'A', 1, { kg: 40, reps: 8 }]);
+}, { seed: { 'pp.profile': REAL } });
+test('registro pesi nel backup', async p => { assert(await ev(p, () => BK_KEYS.includes('wlog') && BK_SHAPE.wlog({ a: [{ d: '2026-01-01', sets: [] }] }) && !BK_SHAPE.wlog([]))); });
+test('ultima volta mostrata nella scheda', async p => {
+  await ev(p, () => { logExercise(exId('casa', 'Squat a corpo libero'), [{ kg: null, reps: 18 }, { kg: null, reps: 16 }]); ui.wk = 'casa'; location.hash = 'allenamento'; viewAllenamento(); }); await p.waitForTimeout(100);
+  assert(/Ultima volta: 18 · 16/.test(await p.locator('#v-allenamento').innerText()));
+});
+
+test('ultima volta compatta con lo stesso peso', async p => { assertEq(await ev(p, () => [fmtSets({ sets: [{ kg: 60, reps: 8 }, { kg: 60, reps: 7 }] }), fmtSets({ sets: [{ kg: 60, reps: 8 }, { kg: 62.5, reps: 6 }] })]), ['60 kg × 8 · 7', '60 kg × 8 · 62,5 kg × 6']); });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

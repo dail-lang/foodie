@@ -62,7 +62,7 @@ test('recente con un tocco aggiunge al diario', async p => {
   await p.waitForTimeout(150);
   await p.locator('[data-act="recent"]').first().click();
   const n = await ev(p, () => dayLog().items.length);
-  assertEq(n, 1);
+  assertEq(n, 2);
 });
 
 /* ---------- Task 4: spesa per reparto ---------- */
@@ -614,6 +614,67 @@ test('righe: avviso quantità sospetta', async p => {
 });
 test('righe: grammi scritti restano in grammi, cibo sparito ignorato', async p => {
   assertEq(await ev(p, () => { const r = calcRows('pasta 90 g', {}, [])[0]; const k = calcRows('pollo', {}, [])[0].key; return [r.mode, calcRows('pollo', { [k]: { food: 'Non esiste' } }, [])[0].food.n === calcRows('pollo', {}, [])[0].food.n]; }), ['g', true]);
+});
+
+/* ---------- Conferma come Yazio ---------- */
+test('conferma: − e + cambiano pezzi e totale', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', '5 nuggets'); await p.waitForTimeout(80);
+  await p.click('[data-act="qplus"]'); await p.click('[data-act="qplus"]'); await p.click('[data-act="qminus"]');
+  assertEq(await ev(p, () => [calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].n, /6 nuggets/.test($('q-res').textContent)]), [6, true]);
+});
+test('conferma: grammi con la virgola, valori non validi ignorati, minimo 1 pezzo', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', '1 nuggets'); await p.waitForTimeout(80);
+  await p.click('[data-act="qminus"]');
+  const n1 = await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].n);
+  for (const v of ['abc', '0', '']) { await p.fill('input.qg', v); await p.dispatchEvent('input.qg', 'change'); }
+  const g1 = await ev(p, () => Math.round(calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].g));
+  await p.fill('input.qg', '35,5'); await p.dispatchEvent('input.qg', 'change');
+  assertEq([n1, g1, await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].g)], [1, 18, 35.5]);
+});
+test('conferma: mezzo pezzo scende fino a 0,5', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', 'mezza mela'); await p.waitForTimeout(80);
+  await p.click('[data-act="qminus"]'); await p.click('[data-act="qplus"]'); await p.click('[data-act="qminus"]');
+  assertEq(await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].n), 0.5);
+});
+test('conferma: Non è questo? cambia il cibo', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', 'pollo'); await p.waitForTimeout(80);
+  await p.click('[data-act="qalt"]'); const alt = await p.locator('[data-act="qpick"]').first().getAttribute('data-food');
+  await p.locator('[data-act="qpick"]').first().click(); assertEq(await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].food.n), alt);
+  assert(await p.locator('[data-act="teach"]').count() === 0, 'menu chiuso dopo la scelta');
+});
+test('conferma: avviso Controlla la quantità', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', '5 cotolette'); await p.waitForTimeout(80);
+  assert(await p.locator('.qwarn').count() === 1);
+});
+test('conferma: il campo testo non perde il fuoco quando premo +', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', '5 nuggets'); await p.waitForTimeout(80);
+  await p.click('[data-act="qplus"]'); await p.type('#q-txt', ' e una mela'); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => [ui.qtxt, calcRows(ui.qtxt, ui.qedit, ui.qscan).map(r => r.n)]), ['5 nuggets e una mela', [6, 1]]);
+});
+test('aggiungi: una voce per cibo con le correzioni, recente le ripete', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', '5 nuggets e una mela'); await p.waitForTimeout(80);
+  await p.click('[data-act="qplus"]'); await p.click('[data-act="addtxt"]'); await p.waitForTimeout(80);
+  await p.locator('[data-act="recent"]').first().click(); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => [dayLog().items.length, dayLog().items[0].n, Math.round(dayLog().items[0].k) === Math.round(dayLog().items[2].k), ui.qtxt, Object.keys(ui.qedit).length]),
+    [4, 'Nuggets di pollo · 6 nuggets · 108 g', true, '', 0]);
+});
+test('recenti vecchi solo testo: una voce per cibo', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.locator('[data-act="recent"]').first().click(); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => dayLog().items.map(i => i.n.split(' · ')[0])), ['Cappuccino', 'Cornetto']);
+}, { seed: { 'pp.recent': [{ t: 'cappuccino e cornetto' }] } });
+test('bevanda: la riga mostra ml', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', 'una birra'); await p.waitForTimeout(80);
+  await p.fill('input.qg', '330'); await p.dispatchEvent('input.qg', 'change');
+  assertEq([(await p.textContent('.qgl')).trim(), await p.inputValue('input.qg')], ['ml', '330']);
 });
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };

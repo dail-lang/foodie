@@ -350,6 +350,19 @@ label.btn{cursor:pointer}
 .recent{display:grid;gap:6px}
 .rchip{background:var(--pra-soft);color:var(--basil-text);border-color:transparent}
 .qres{display:grid;gap:10px}
+.qrow{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px;background:var(--surface)}
+.qrow-h{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.qrow small{font-size:.78rem}.qrow small.guess{color:var(--basil-text);font-weight:600}
+.qrow-q{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.qstep{width:40px;height:40px;border-radius:999px;border:1.5px solid var(--basil);background:var(--basil-soft);color:var(--basil-text);font-size:1.35rem;font-weight:700;line-height:1;display:grid;place-items:center;flex:none}
+.qlbl{min-width:0}
+.qgl{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:.9rem;margin-left:auto}
+.qrow-f{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.qg{width:72px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);text-align:right;font-size:1rem}
+.linkbtn{background:none;border:0;color:var(--basil-text);text-decoration:underline;text-underline-offset:3px;font-weight:600;padding:8px 2px;min-height:40px;margin-left:auto;font-size:.9rem}
+.qwarn{margin:0;color:var(--tomato);font-weight:600;font-size:.85rem}
+.qalts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem}
+.qtot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:8px 12px;border-radius:12px;background:var(--sunk);font-size:.9rem}
 .qres:empty{display:none}
 table.qt{width:100%;border-collapse:collapse;font-size:.88rem}
 .qt th,.qt td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
@@ -1331,9 +1344,6 @@ function manualItem(n,k,p,c,f){
     if(c==null&&f==null){ c=rem*.5/4; f=rem*.5/9; } else if(c==null) c=rem/4; else f=rem/9; }
   return {n,k,p,c,f,src:'q',...(est?{est:true}:{})};
 }
-function textItem(text){ const {items}=analyzeFood(text||''); if(!items.length) return null;
-  const t=items.reduce((s,i)=>({k:s.k+i.k,p:s.p+i.p,c:s.c+i.c,f:s.f+i.f,fib:s.fib+i.fib}),{k:0,p:0,c:0,f:0,fib:0});
-  const name=text.trim().replace(/\s+/g,' '); return {n:name.length>70?name.slice(0,68)+'…':name,...t,src:'q'}; }
 function recentChips(){ const list=store.get('recent',[]); if(!list.length) return '';
   return `<div class="recent"><span class="muted" style="font-size:.85rem">Recenti, tocca per aggiungere:</span><div class="chips">${list.map((e,i)=>`<button class="chip rchip" data-act="recent" data-i="${i}">+ ${esc((e.t||e.n).length>32?(e.t||e.n).slice(0,30)+'…':(e.t||e.n))}</button>`).join('')}</div></div>`; }
 /* ---------- Voto del giorno, serie, allenamenti ---------- */
@@ -1444,7 +1454,7 @@ function badgesBlock(){
 }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
-const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:''};
+const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:'',qedit:{},qscan:[],qalt:null};
 
 /* ---------- Calcoli ---------- */
 const ACT = {sed:[1.2,'Sedentario'],leggero:[1.375,'Leggero (1–3 allenamenti/sett.)'],moderato:[1.55,'Moderato (3–5/sett.)'],intenso:[1.725,'Intenso (6–7/sett.)']};
@@ -2461,8 +2471,8 @@ function rankFoods(ws,loose){
 }
 function bestFood(ws){ const r=rankFoods(ws)[0]; return r?{food:r.food,guess:r.guess}:null; }
 const INV=new Set(['kiwi','sushi','toast','burrito','kebab','hot','dog','bowl','ramen','avocado','cono','cornetto?','sashimi','poke']);
-function plur(lbl,c){ if(c<=1) return lbl; return lbl.split(' ').map(w=>{ if(INV.has(w)||!/[aeo]$/.test(w)) return w;
-  if(w==='uovo') return 'uova'; if(w==='nugget') return 'nuggets'; if(/io$/.test(w)) return w.slice(0,-1); if(/ca$|ga$/.test(w)) return w.slice(0,-1)+'he';
+function plur(lbl,c){ if(c<=1) return lbl; return lbl.split(' ').map(w=>{ if(w==='nugget') return 'nuggets'; if(INV.has(w)||!/[aeo]$/.test(w)) return w;
+  if(w==='uovo') return 'uova'; if(/io$/.test(w)) return w.slice(0,-1); if(/ca$|ga$/.test(w)) return w.slice(0,-1)+'he';
   return w.slice(0,-1)+(w.endsWith('a')?'e':'i'); }).join(' '); }
 function parseFoodChunk(ch,ctx){
   const low=ch.toLowerCase(), ws=fw(ch);
@@ -2510,7 +2520,8 @@ function calcRows(text, edits, scans){
     let {g,n,mode}=r;
     if(e.n>0&&mode==='pz'){ n=e.n; g=n*r.unitG; }
     else if(e.g>0){ g=e.g; n=null; mode='g'; }
-    const row={key:it.key, src:'txt', food:r.food, n, unitG:r.unitG, unitL:r.unitL, mode, ml:r.ml, guess:r.guess, ...nutr(r.food,g)};
+    const ch=chunks.find(c=>c.key===it.key);
+    const row={key:it.key, src:'txt', text:ch?ch.text:'', ws:it.ws, food:r.food, n, unitG:r.unitG, unitL:r.unitL, mode, ml:r.ml, guess:r.guess, ...nutr(r.food,g)};
     if(!e.n&&!e.g&&!e.food) row.label=r.label;
     rows.push(row); }
   for(const sc of (scans||[])){ const f=FOODS.find(x=>x.n===sc.food); if(!f) continue;
@@ -2546,20 +2557,52 @@ function analyzeFood(text){
     if(r){ r.key=key; items.push(r); out.push({key,text:ch,ctx}); } else unknown.push(ch); }
   return {items,unknown,chunks:out};
 }
+const curRows=()=>calcRows(ui.qtxt, ui.qedit, ui.qscan);
+function rowsToItems(rows){ return rows.map(r=>({n:`${r.food.n} · ${r.label}`, k:r.k, p:r.p, c:r.c, f:r.f, fib:r.fib, src:'q'})); }
+// correzione di una riga: n e g si escludono, food resta
+function setEdit(key,patch){
+  const sc=ui.qscan.find(x=>x.key===key), o=sc||(ui.qedit[key]=ui.qedit[key]||{});
+  if('n' in patch){ delete o.g; } if('g' in patch){ delete o.n; } Object.assign(o,patch);
+}
+function refreshQ(){ const el=$('q-res'); if(!el||refreshQ.busy) return; refreshQ.busy=true; try{ el.innerHTML=foodResHTML(); } finally{ refreshQ.busy=false; } }
+function qStep(key,d){
+  const r=curRows().find(x=>x.key===key); if(!(r&&r.unitG>0)) return;
+  const base=calcRows(ui.qtxt,{},ui.qscan.map(x=>({...x,n:1,g:0}))).find(x=>x.key===key), min=base&&base.n>0&&base.n<1?.5:1;
+  const cur=r.mode==='pz'?r.n:r.g/r.unitG;
+  const n = d>0 ? (cur<1?1:Math.floor(cur+1e-9)+1) : (cur<=1?min:Math.max(min,Math.ceil(cur-1e-9)-1));
+  setEdit(key,{n}); refreshQ();
+}
 function foodResHTML(){
-  const t=(ui.qtxt||'').trim(); if(!t) return '';
-  const {items,unknown}=analyzeFood(t);
-  const tot=items.reduce((s,i)=>({k:s.k+i.k,p:s.p+i.p,c:s.c+i.c,f:s.f+i.f,fib:s.fib+i.fib}),{k:0,p:0,c:0,f:0,fib:0});
-  const mi=[...new Set(items.flatMap(i=>i.food.mi))];
+  const t=(ui.qtxt||'').trim(); if(!t&&!ui.qscan.length) return '';
+  const unknown=t?analyzeFood(t).unknown:[], rows=curRows();
+  const tot=rows.reduce((s,i)=>({k:s.k+i.k,p:s.p+i.p,c:s.c+i.c,f:s.f+i.f,fib:s.fib+i.fib}),{k:0,p:0,c:0,f:0,fib:0});
+  const mi=[...new Set(rows.flatMap(i=>i.food.mi))];
   const R1=v=>Math.round(v), R2=v=>fmt(Math.round(v*10)/10);
+  const altHTML=r=>{ if(ui.qalt!==r.key||r.src!=='txt') return '';
+    const alts=rankFoods(r.ws||[],true).filter(x=>x.food!==r.food).slice(0,3);
+    return `<div class="qalts"><span class="muted">Intendevi:</span>${alts.map(a=>`<button class="chip" data-act="qpick" data-key="${esc(r.key)}" data-food="${esc(a.food.n)}">${esc(a.food.n)}</button>`).join('')}
+      <button class="chip" data-act="teach" data-n="${esc(r.text)}">Insegnami «${esc(r.text.length>24?r.text.slice(0,22)+'…':r.text)}»</button></div>`; };
+  const rowHTML=r=>`<div class="qrow" data-key="${esc(r.key)}">
+      <div class="qrow-h"><b>${esc(r.food.n)}</b><span class="num"><b>${R1(r.k)}</b> kcal</span></div>
+      ${r.guess?`<small class="guess">ho capito «${esc(r.guess)}» come ${esc(r.food.n)}</small>`:''}
+      <div class="qrow-q">
+        ${r.unitG>0?`<button class="qstep" data-act="qminus" data-key="${esc(r.key)}" aria-label="Uno in meno">−</button>`:''}
+        ${r.mode==='pz'?`<span class="num qlbl">${fmt(r.n)} ${esc(plur(r.unitL,r.n))}</span>`:''}
+        ${r.unitG>0?`<button class="qstep" data-act="qplus" data-key="${esc(r.key)}" aria-label="Uno in più">+</button>`:''}
+        <label class="qgl"><input class="qg" data-key="${esc(r.key)}" type="text" inputmode="decimal" autocomplete="off" value="${R1(r.g)}" aria-label="Quantità in ${r.ml?'ml':'grammi'} di ${esc(r.food.n)}"> ${r.ml?'ml':'g'}</label>
+      </div>
+      <div class="qrow-f"><small class="muted num">Prot. ${R2(r.p)} g · Carb. ${R2(r.c)} g · Grassi ${R2(r.f)} g</small>
+        ${r.src==='txt'?`<button class="linkbtn" data-act="qalt" data-key="${esc(r.key)}" aria-expanded="${ui.qalt===r.key}">Non è questo?</button>`:`<button class="linkbtn" data-act="qdel" data-key="${esc(r.key)}" aria-label="Togli ${esc(r.food.n)}">Togli</button>`}</div>
+      ${r.warn?`<p class="qwarn">Controlla la quantità: ${esc(r.label)} è molto più di una porzione normale.</p>`:''}
+      ${altHTML(r)}
+    </div>`;
   return `<div class="qres">
-    ${items.length?`<div class="tbl"><table class="qt"><thead><tr><th>Cibo</th><th class="n">kcal</th><th class="n">Prot.</th><th class="n">Carb.</th><th class="n">Grassi</th></tr></thead><tbody>
-      ${items.map(i=>`<tr><td><b>${esc(i.food.n)}</b>${i.guess?`<small class="guess">ho capito «${esc(i.guess)}» come ${esc(i.food.n)}</small>`:''}<small class="num">${esc(i.label)}</small></td><td class="n num">${R1(i.k)}</td><td class="n num">${R2(i.p)}</td><td class="n num">${R2(i.c)}</td><td class="n num">${R2(i.f)}</td></tr>`).join('')}
-      </tbody>${items.length>1?`<tfoot><tr><td><b>Totale</b></td><td class="n num"><b>${R1(tot.k)}</b></td><td class="n num"><b>${R2(tot.p)}</b></td><td class="n num"><b>${R2(tot.c)}</b></td><td class="n num"><b>${R2(tot.f)}</b></td></tr></tfoot>`:''}</table></div>
-      <div class="qmeta"><span class="num">Fibre <b>${R2(tot.fib)} g</b></span>${mi.length?`<span>Fonte di:</span>${mi.map(m=>`<span class="tag sfm">${NUTR[m]?NUTR[m].n:m}</span>`).join('')}`:''}</div>`:''}
+    ${rows.map(rowHTML).join('')}
+    ${rows.length>1?`<div class="qtot num"><b>Totale</b><span><b>${R1(tot.k)} kcal</b> · P ${R2(tot.p)} · C ${R2(tot.c)} · G ${R2(tot.f)}</span></div>`:''}
+    ${rows.length?`<div class="qmeta"><span class="num">Fibre <b>${R2(tot.fib)} g</b></span>${mi.length?`<span>Fonte di:</span>${mi.map(m=>`<span class="tag sfm">${NUTR[m]?NUTR[m].n:m}</span>`).join('')}`:''}</div>`:''}
     ${unknown.length?`<div class="note" style="margin:0;display:grid;gap:8px"><span>Non riconosco: <b>${unknown.map(esc).join(', ')}</b>. Prova con un nome più semplice (es. "pasta", "pollo", "dolce") oppure insegnamelo: lo ricorderò la prossima volta.</span><div class="row">${unknown.map(u=>`<button class="btn small" data-act="teach" data-n="${esc(u)}">Insegnami «${esc(u.length>24?u.slice(0,22)+'…':u)}»</button>`).join('')}</div></div>`:''}
-    ${items.length?`<button class="btn primary" data-act="addtxt">Aggiungi al diario · ${R1(tot.k)} kcal</button>
-      <p class="muted" style="margin:0;font-size:.8rem">Stime per porzioni medie da tabelle CREA e USDA. Se sai i grammi scrivili, per esempio "pasta 90 g": il calcolo è più preciso.</p>`:''}
+    ${rows.length?`<button class="btn primary" data-act="addtxt">Aggiungi al diario · ${R1(tot.k)} kcal</button>
+      <p class="muted" style="margin:0;font-size:.8rem">Controlla le quantità e correggile con − e + o scrivendo i grammi. Stime da tabelle CREA e USDA.</p>`:''}
   </div>`;
 }
 
@@ -2836,12 +2879,20 @@ const HANDLERS = {
   eat:t=>{ toggleEaten((selDate().getDay()+6)%7, t.dataset.sl, todayKey(selDate())); viewOggi(); },
   eatall:()=>{ eatAllPlanned(todayKey(selDate())); viewOggi(); },
   eatplan:t=>{ toggleEaten((new Date().getDay()+6)%7, t.dataset.sl, todayKey()); viewPiano(); },
-  recent:t=>{ const e=store.get('recent',[])[+t.dataset.i]; if(!e) return; const it=e.t?textItem(e.t):{n:e.n,k:e.k,p:e.p,c:e.c||0,f:e.f||0,src:'q'};
-    if(!it) return; dayLog().items.push(it); pushRecent(e); saveLog(); viewOggi(); },
+  recent:t=>{ const e=store.get('recent',[])[+t.dataset.i]; if(!e) return;
+    const its=Array.isArray(e.items)?e.items.filter(x=>x&&typeof x.n==='string'&&x.k>=0).map(x=>({...x,src:'q'})) : e.t?rowsToItems(calcRows(e.t,{},[])) : [{n:e.n,k:e.k,p:e.p,c:e.c||0,f:e.f||0,src:'q'}];
+    if(!its.length) return; dayLog().items.push(...its); pushRecent(e); saveLog(); viewOggi(); },
   addr:()=>{ const r=byId[$('add-r').value], x=+$('add-x').value||1; if(!r) return;
     dayLog().items.push({n:r.n+(x!==1?` (${fmt(x)} porz.)`:''),rid:r.id,k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); saveLog(); viewOggi(); },
-  addtxt:()=>{ const it=textItem(ui.qtxt); if(!it) return; dayLog().items.push(it); pushRecent({t:(ui.qtxt||'').trim()});
-    ui.qtxt=''; saveLog(); viewOggi(); },
+  addtxt:()=>{ const rows=curRows(); if(!rows.length) return; const items=rowsToItems(rows); dayLog().items.push(...items);
+    const t=(ui.qtxt||'').trim().replace(/\s+/g,' ')||rows.map(r=>r.food.n).join(', ');
+    pushRecent({t:t.length>70?t.slice(0,68)+'…':t, items:items.map(({src,...x})=>x)});
+    ui.qtxt=''; ui.qedit={}; ui.qscan=[]; ui.qalt=null; saveLog(); viewOggi(); },
+  qplus:t=>qStep(t.dataset.key,1),
+  qminus:t=>qStep(t.dataset.key,-1),
+  qalt:t=>{ ui.qalt = ui.qalt===t.dataset.key ? null : t.dataset.key; refreshQ(); },
+  qpick:t=>{ setEdit(t.dataset.key,{food:t.dataset.food}); ui.qalt=null; refreshQ(); },
+  qdel:t=>{ ui.qscan=ui.qscan.filter(x=>x.key!==t.dataset.key); refreshQ(); },
   addq:()=>{ const v=id=>{ const x=$(id).value.trim(); return x===''?null:Math.max(0,parseFloat(x.replace(',','.'))||0); };
     const it=manualItem($('q-n').value.trim()||'Altro', v('q-k'), v('q-p'), v('q-c'), v('q-f')); if(!it){ $('q-k').focus(); return; }
     if($('q-save').checked){ const g=v('q-g')||100; teachFood({n:it.n,g,k:it.k,p:it.p,c:it.c,f:it.f}); ui.qtxt=''; }
@@ -2891,6 +2942,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='pantry'){ ui.pantry=e.target.value; $('cards').innerHTML=cardsHTML(); }
 });
 document.addEventListener('change',e=>{
+  if(e.target.classList&&e.target.classList.contains('qg')){ const v=parseFloat(String(e.target.value).replace(',','.')); if(v>0) setEdit(e.target.dataset.key,{g:v}); setTimeout(refreshQ,0); return; }
   if(e.target.id==='bk-file'&&e.target.files&&e.target.files[0]){ const fr=new FileReader(); fr.onload=()=>{ $('bk-in').value=fr.result; HANDLERS['backup-restore'](); }; fr.readAsText(e.target.files[0]); return; }
   if(e.target.dataset.shop){const k=e.target.dataset.shop;e.target.checked?shopDone.add(k):shopDone.delete(k);store.set('shop',[...shopDone]);
     const items=shopList();const span=document.querySelector('.shop .row .muted');if(span)span.textContent=`${items.filter(([k])=>!shopDone.has(k)).length} da prendere su ${items.length}`;}

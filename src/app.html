@@ -363,6 +363,13 @@ label.btn{cursor:pointer}
 .qwarn{margin:0;color:var(--tomato);font-weight:600;font-size:.85rem}
 .qalts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem}
 .qoff{margin:0;font-size:.85rem}
+.scanbtn{justify-self:start}
+.scan{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:none;place-items:center;padding:16px}
+.scan.on{display:grid}
+.scan-box{background:var(--surface);color:var(--ink);border-radius:16px;padding:14px;width:min(100%,420px);display:grid;gap:10px;max-height:calc(100vh - 32px);overflow:auto}
+.scan-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#scan-v{width:100%;aspect-ratio:4/3;background:#000;border-radius:10px;object-fit:cover}
+.scan.nocam #scan-v{display:none}
 .qoffb{display:grid;gap:6px;font-size:.88rem}
 .qoffl{display:grid;gap:6px}
 .offpick{display:grid;gap:2px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;min-height:44px}
@@ -2527,6 +2534,64 @@ function offQuery(key,text){
   offSearch(q).then(r=>{ const o=ui.qoff[key]; if(!o||o.q!==q) return;
     o.st=r.ok?'ok':r.why==='offline'?'offline':'error'; o.list=r.ok?r.list:[]; refreshQ(); });
 }
+async function offProduct(code){
+  const r=await offGet(`${OFF}/api/v2/product/${code}.json?fields=${OFF_FIELDS}`);
+  if(!r.ok) return {ok:false,why:r.why};
+  const d=r.data; if(!d||d.status!==1||!d.product) return {ok:false,why:'notfound'};
+  const prod=offNorm({...d.product,code}); return prod?{ok:true,prod}:{ok:false,why:'nokcal'};
+}
+/* ---------- Lettura del codice a barre ---------- */
+const ZXING_URL='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+const scanSt={stream:null,timer:null,reader:null,busy:false};
+const SCRIPTS={};
+function loadScript(src){ return SCRIPTS[src]||(SCRIPTS[src]=new Promise((ok,ko)=>{ const el=document.createElement('script'); el.src=src; el.onload=ok; el.onerror=()=>{ delete SCRIPTS[src]; ko(new Error('script')); }; document.head.appendChild(el); })); }
+function scanMsg(html){ const el=$('scan-res'); if(el) el.innerHTML=html; }
+function openScan(){
+  let d=$('scan');
+  if(!d){ d=document.createElement('div'); d.id='scan'; d.className='scan'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true'); d.setAttribute('aria-label','Scansiona un codice a barre');
+    d.innerHTML=`<div class="scan-box"><div class="scan-h"><b>Scansiona il codice a barre</b><button class="icon-btn" data-act="scanclose" aria-label="Chiudi">×</button></div>
+      <video id="scan-v" playsinline muted></video>
+      <p id="scan-cam" class="muted" style="margin:0">Inquadra il codice a barre del prodotto.</p>
+      <div class="inline"><div class="field wide"><label for="scan-code">Oppure scrivi il codice</label><input id="scan-code" type="text" inputmode="numeric" autocomplete="off" placeholder="es. 8000500121467"></div><button class="btn primary" data-act="scancode">Cerca</button></div>
+      <div id="scan-res" aria-live="polite"></div><small class="muted">Dati: Open Food Facts</small></div>`;
+    document.body.appendChild(d); }
+  d.classList.add('on'); d.classList.remove('nocam'); $('scan-code').value=''; scanMsg(''); startCam();
+}
+function noCam(){ const d=$('scan'); if(!d) return; d.classList.add('nocam'); $('scan-cam').textContent='Fotocamera non disponibile: scrivi il codice qui sotto.'; }
+async function startCam(){
+  const v=$('scan-v'); if(!v) return;
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)) return noCam();
+  const cons={video:{facingMode:'environment'},audio:false};
+  try{
+    if('BarcodeDetector' in window){
+      const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
+      scanSt.stream=await navigator.mediaDevices.getUserMedia(cons); if(!$('scan').classList.contains('on')) return stopCam();
+      v.srcObject=scanSt.stream; await v.play();
+      scanSt.timer=setInterval(async()=>{ if(scanSt.busy||v.readyState<2) return; try{ const c=await det.detect(v); if(c&&c[0]) onBarcode(c[0].rawValue); }catch(e){} },300);
+    } else {
+      await loadScript(ZXING_URL); if(!$('scan').classList.contains('on')) return;
+      scanSt.reader=new ZXing.BrowserMultiFormatReader();
+      await scanSt.reader.decodeFromConstraints(cons,v,res=>{ if(res&&!scanSt.busy) onBarcode(res.getText()); });
+    }
+  }catch(e){ stopCam(); noCam(); }
+}
+function stopCam(){ clearInterval(scanSt.timer); scanSt.timer=null;
+  if(scanSt.reader){ try{ scanSt.reader.reset(); }catch(e){} scanSt.reader=null; }
+  if(scanSt.stream){ scanSt.stream.getTracks().forEach(t=>t.stop()); scanSt.stream=null; }
+  const v=$('scan-v'); if(v) v.srcObject=null; }
+function closeScan(){ stopCam(); const d=$('scan'); if(d) d.classList.remove('on'); scanSt.busy=false; }
+async function onBarcode(code){
+  code=String(code||'').trim();
+  if(!/^\d{8,14}$/.test(code)){ scanMsg('<p class="qwarn">Il codice deve avere da 8 a 14 cifre.</p>'); return; }
+  if(scanSt.busy) return; scanSt.busy=true; scanMsg('<p class="muted" style="margin:0">Cerco il prodotto…</p>');
+  const r=await offProduct(code); scanSt.busy=false;
+  if(r.ok){ const f=saveProduct(r.prod); if(!f) return; const key='scan:'+code, ex=ui.qscan.find(x=>x.key===key);
+    if(ex){ ex.food=f.n; if(ex.g){ ex.g+=f.pz||f.por; } else ex.n=(ex.n||1)+1; } else ui.qscan.push({key,food:f.n,n:1});
+    closeScan(); refreshQ(); return; }
+  stopCam();
+  const why={notfound:'Prodotto non trovato su Open Food Facts.',nokcal:'Il prodotto è su Open Food Facts ma non ha le calorie.',offline:'Sei offline: per cercare il codice serve internet.',error:'Ricerca non riuscita, riprova più tardi.'}[r.why]||'Ricerca non riuscita, riprova più tardi.';
+  scanMsg(`<div class="note" style="margin:0;display:grid;gap:8px"><span>${why}</span><button class="btn small" data-act="scanmanual">Inseriscilo a mano</button></div>`);
+}
 let offTimer=null;
 function scheduleOff(){ clearTimeout(offTimer); offTimer=setTimeout(()=>{ if(!$('q-res')) return;
   analyzeFood(ui.qtxt||'').unknown.forEach(u=>offQuery('u|'+u.toLowerCase().replace(/\s+/g,' '),u)); },500); }
@@ -2764,6 +2829,7 @@ function viewOggi(){
         
         <div class="field"><label for="q-txt"><b>Calcola un piatto:</b> scrivi cosa hai mangiato e ti dico i nutrienti</label>
           <textarea id="q-txt" rows="2" placeholder="es. 2 fette di pizza margherita e una birra media">${esc(ui.qtxt||'')}</textarea></div>
+        <button class="btn small scanbtn" data-act="scan"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>Scansiona un codice a barre</button>
         <div id="q-res">${foodResHTML()}</div>
         ${recentChips()}
         <details class="manual"><summary>Inserisci a mano o insegnami un cibo</summary>
@@ -2993,6 +3059,10 @@ const HANDLERS = {
   offpick:t=>{ const key=t.dataset.key, o=ui.qoff[key], pr=o&&o.list.find(x=>x.code===t.dataset.code); if(!pr) return;
     const unk=key.startsWith('u|'), f=saveProduct(pr, unk?o.text:null); delete ui.qoff[key];
     if(f&&!unk) setEdit(key,{food:f.n}); ui.qalt=null; refreshQ(); },
+  scan:()=>openScan(),
+  scanclose:()=>closeScan(),
+  scancode:()=>onBarcode($('scan-code').value),
+  scanmanual:()=>{ closeScan(); const d=document.querySelector('details.manual'); if(!d) return; d.open=true; $('q-n').focus(); d.scrollIntoView({block:'center'}); },
   qdel:t=>{ ui.qscan=ui.qscan.filter(x=>x.key!==t.dataset.key); refreshQ(); },
   addq:()=>{ const v=id=>{ const x=$(id).value.trim(); return x===''?null:Math.max(0,parseFloat(x.replace(',','.'))||0); };
     const it=manualItem($('q-n').value.trim()||'Altro', v('q-k'), v('q-p'), v('q-c'), v('q-f')); if(!it){ $('q-k').focus(); return; }
@@ -3025,6 +3095,8 @@ const HANDLERS = {
   train:t=>{ const k=t.dataset.k, cur=log[k]&&log[k].train; setTrain(k, cur===t.dataset.v?null:t.dataset.v); render(); },
   rmprog:t=>{ prog=prog.filter(x=>String(x.t)!==t.dataset.d); store.set('prog',prog); viewOggi(); }
 };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('scan')&&$('scan').classList.contains('on')) closeScan(); if(e.key==='Enter'&&e.target.id==='scan-code') onBarcode(e.target.value); });
+window.addEventListener('hashchange',()=>closeScan());
 document.addEventListener('click',e=>{
   const t = e.target.closest('button'); if(!t) return;
   if(t.dataset.act && HANDLERS[t.dataset.act]){ HANDLERS[t.dataset.act](t); celebrate(); return; }

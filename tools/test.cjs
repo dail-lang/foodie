@@ -628,7 +628,7 @@ test('conferma: grammi con la virgola, valori non validi ignorati, minimo 1 pezz
   await p.fill('#q-txt', '1 nuggets'); await p.waitForTimeout(80);
   await p.click('[data-act="qminus"]');
   const n1 = await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].n);
-  for (const v of ['abc', '0', '']) { await p.fill('input.qg', v); await p.dispatchEvent('input.qg', 'change'); }
+  for (const v of ['abc', '0', '']) { await p.fill('input.qg', v); await p.dispatchEvent('input.qg', 'change'); await p.waitForTimeout(40); }
   const g1 = await ev(p, () => Math.round(calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].g));
   await p.fill('input.qg', '35,5'); await p.dispatchEvent('input.qg', 'change');
   assertEq([n1, g1, await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].g)], [1, 18, 35.5]);
@@ -749,6 +749,47 @@ test('Non è questo? cerca anche tra le marche', async p => {
   await p.click('[data-act="qalt"]'); await p.click('[data-act="qoff"]'); await p.waitForTimeout(300);
   await p.locator('[data-act="offpick"]').first().click(); await p.waitForTimeout(80);
   assertEq(await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].food.n), 'Kinder Bueno');
+});
+
+/* ---------- Codice a barre ---------- */
+test('codice scritto a mano: prodotto aggiunto come riga', async p => {
+  await offRoute(p, { status: 1, product: OFF_BUENO });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.click('[data-act="scan"]'); await p.fill('#scan-code', '8000500121467'); await p.click('[data-act="scancode"]'); await p.waitForTimeout(300);
+  assertEq(await ev(p, () => [ui.qscan.length, calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].food.n, Math.round(calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].g), !!document.querySelector('#scan.on')]), [1, 'Kinder Bueno', 22, false]);
+  await p.click('[data-act="addtxt"]'); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => [dayLog().items.length, ui.qscan.length]), [1, 0]);
+});
+test('stesso codice due volte: una riga con 2 porzioni', async p => {
+  await offRoute(p, { status: 1, product: OFF_BUENO });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await ev(p, () => onBarcode('8000500121467')); await ev(p, () => onBarcode('8000500121467'));
+  assertEq(await ev(p, () => [ui.qscan.length, calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].n]), [1, 2]);
+});
+test('codice sconosciuto: offre di inserirlo a mano', async p => {
+  await offRoute(p, { status: 0 });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.click('[data-act="scan"]'); await p.fill('#scan-code', '12345678'); await p.click('[data-act="scancode"]'); await p.waitForTimeout(300);
+  assert(/non trovato/i.test(await p.textContent('#scan')) && await p.locator('[data-act="scanmanual"]').count() === 1);
+  await p.click('[data-act="scanmanual"]'); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => [document.querySelector('details.manual').open, !!document.querySelector('#scan.on')]), [true, false]);
+});
+test('codice non valido non fa richieste', async p => {
+  let n = 0; await p.route(/openfoodfacts\.org/, r => { n++; r.abort(); });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await ev(p, () => onBarcode('12ab')); assertEq(n, 0);
+});
+test('riga scansionata si toglie', async p => {
+  await offRoute(p, { status: 1, product: OFF_BUENO });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await ev(p, () => onBarcode('8000500121467')); await p.waitForTimeout(200);
+  await p.click('[data-act="qdel"]'); assertEq(await ev(p, () => ui.qscan.length), 0);
+});
+test('fotocamera non disponibile: si può scrivere il codice', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.click('[data-act="scan"]'); await p.waitForTimeout(400);
+  assert(/scrivi il codice/i.test(await p.textContent('#scan')) && await p.isVisible('#scan-code'));
+  await p.click('[data-act="scanclose"]'); assertEq(await ev(p, () => !!document.querySelector('#scan.on')), false);
 });
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };

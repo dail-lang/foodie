@@ -202,6 +202,22 @@ test('ricette senza glutine non hanno cereali col glutine', async p => {
   assertEq(bad, []);
 });
 
+/* ---------- Antinfiammatorio, Task 1: punteggio ---------- */
+test('taratura: 25–40% delle ricette attuali antinfiammatorie', async p => {
+  const r = await ev(p, () => { const base = R.filter(r => !r.tags.includes('mia')).slice(0, 100); return base.filter(isAI).length / base.length; });
+  assert(r >= .25 && r <= .40, 'quota ' + r);
+});
+test('pizza e sgarri con farina sotto 6', async p => {
+  const r = await ev(p, () => R.filter(r => r.id === 'pizza-yogurt' || (r.tags.includes('sgarro') && r.ing.some(i => /farina(?! d.avena)|savoiardi|biscotti/i.test(i[0])))).filter(isAI).map(r => r.id));
+  assertEq(r, []);
+});
+test('salmone ai pistacchi e zuppa di ceci sopra 6', async p => { assertEq(await ev(p, () => ['salmone-pistacchi', 'zuppa-ceci'].map(id => isAI(byId[id]))), [true, true]); });
+test('[RF 2] ricetta senza grammi', async p => {
+  const s = await ev(p, () => aiScore({ ing: [['Curcuma', '0', 'q.b.'], ['Zenzero', '0', 'q.b.']], s: [], tags: [] }));
+  assert(Number.isFinite(s) && s >= 0 && s <= 10, String(s));
+});
+test('livelli validi', async p => { assertEq(await ev(p, () => ANTI.filter(a => !['solide', 'promettenti', 'tradizionale', 'limitare'].includes(a.lv)).length), 0); });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

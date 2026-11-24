@@ -930,6 +930,60 @@ const MICRO = {
  'toast-ricotta-pera':['calcio','fibre','omega3'],'porridge-cacao-lamponi':['fibre','magnesio','antiox','calcio'],'chia-pudding':['fibre','omega3','vitC','magnesio'],'omelette-spinaci-feta':['B12','vitD','folati','calcio','ferro'],'yogurt-bowl-granola':['calcio','probiotici','vitC','fibre','magnesio'],'crepes-albumi':['antiox','vitC','calcio'],'muffin-uova-verdure':['B12','vitD','vitC','folati','calcio'],'segale-salmone-avocado':['omega3','vitD','B12','fibre','potassio'],'frullato-proteico':['potassio','magnesio','fibre','calcio'],'bruschetta-fiocchi':['calcio','antiox','fibre'],'pancake-avena-mirtilli':['fibre','antiox','magnesio'],'skyr-mela-cotta':['calcio','probiotici','fibre'],'poke-salmone':['omega3','vitD','B12','fibre','potassio','folati'],'pollo-curry-yogurt':['antiox','B12','calcio','fibre'],'tacos-tacchino':['fibre','ferro','zinco','B12','folati'],'burger-ceci':['fibre','ferro','folati','magnesio'],'spaghetti-gamberi':['iodio','zinco','B12','fibre','vitC'],'polpette-tacchino':['B12','zinco','potassio','antiox'],'insalata-lenticchie-feta':['ferro','fibre','folati','calcio','magnesio'],'salmone-pistacchi':['omega3','vitD','B12','vitC','folati'],'chili-manzo':['ferro','zinco','fibre','B12','antiox'],'frittata-albumi':['vitC','B12','fibre'],'couscous-pollo':['B12','vitC','fibre','potassio'],'zuppa-farro-fagioli':['fibre','ferro','magnesio','folati'],'tagliata-manzo':['ferro','zinco','B12','calcio','vitC'],'orzotto-funghi':['fibre','folati','magnesio','calcio'],'bowl-greca':['calcio','probiotici','B12','fibre','antiox'],'pesce-spada-siciliana':['omega3','B12','potassio','antiox','iodio'],'pasta-ceci':['fibre','ferro','folati','magnesio'],'insalata-nizzarda':['B12','vitD','potassio','folati','fibre'],'tofu-agrodolce':['calcio','ferro','vitC','magnesio'],'vellutata-zucca-lenticchie':['antiox','fibre','ferro','potassio','magnesio'],'sformato-zucchine':['calcio','B12','vitD','potassio'],'spiedini-pollo':['vitC','antiox','B12','fibre'],'orata-cartoccio':['iodio','B12','omega3','potassio'],'lasagna-leggera':['calcio','folati','ferro','vitC'],'wrap-tonno-hummus':['B12','fibre','antiox'],'gnocchi-pesto-rucola':['calcio','B12','vitC','potassio'],'pad-thai':['B12','folati','antiox'],'merluzzo-erbe':['iodio','B12','fibre','folati'],'fajitas-pollo':['vitC','B12','fibre','antiox'],'caesar-leggera':['calcio','B12','folati','vitC'],'cookies-proteici':['fibre','magnesio','potassio'],'barrette-avena-pb':['fibre','magnesio','omega3'],'frozen-yogurt':['calcio','vitC','probiotici'],'mousse-cioccolato':['calcio','magnesio','antiox'],'muffin-banana-mirtilli':['antiox','fibre','potassio'],'ceci-croccanti':['fibre','ferro','folati'],'toast-pb-banana':['potassio','magnesio','fibre'],'frullato-verde':['vitC','folati','calcio','omega3'],'crackers-tonno':['B12','iodio'],'popcorn-cacao':['fibre','antiox'],'panna-cotta-yogurt':['calcio','antiox'],'mela-forno':['fibre','omega3','antiox'],'hummus-barbabietola':['fibre','ferro','folati','antiox']
 };
 R.forEach(r=>{r.mi=MICRO[r.id]||[]});
+/* ---------- Antinfiammatorio: cibi, livello di prova, punteggio ricette ---------- */
+const ANTI = [
+ {id:'pesce',n:'Pesce azzurro e salmone',lv:'solide',why:'omega-3 EPA e DHA',kw:'salmone|sgombro|sardine|alici|acciughe|trota|aringa|tonno'},
+ {id:'evo',n:'Olio extravergine d\'oliva',lv:'solide',why:'polifenoli e oleocantale',kw:'olio extravergine'},
+ {id:'foglia',n:'Verdure a foglia verde',lv:'solide',why:'folati, vitamina K e polifenoli',kw:'spinaci|rucola|cavolo nero|cavolo riccio|bietola|lattuga|insalata|valeriana|cicoria'},
+ {id:'legumi',n:'Legumi',lv:'solide',why:'fibre che nutrono il microbiota',kw:'ceci|lenticchie|fagioli|piselli|edamame|hummus|tofu'},
+ {id:'integrali',n:'Cereali integrali',lv:'solide',why:'fibre e polifenoli dei cereali integrali',kw:'avena|farro|orzo|quinoa|riso integrale|riso venere|pane integrale|pasta integrale|farina integrale|spaghetti integrali|cous cous integrale|pane segale|grano saraceno|pangrattato integrale|tortillas integrali|cracker integrali|piadina integrale|muesli|granola'},
+ {id:'secca',n:'Frutta secca e semi oleosi',lv:'solide',why:'grassi buoni, vitamina E e polifenoli',kw:'noci|mandorle|nocciole|pistacchi|anacardi|semi zucca|semi girasole|semi sesamo|burro mandorle'},
+ {id:'curcuma',n:'Curcuma',lv:'promettenti',why:'curcumina: usala con pepe nero e un grasso',kw:'curcuma|curry',spice:true},
+ {id:'zenzero',n:'Zenzero',lv:'promettenti',why:'gingeroli',kw:'zenzero',spice:true},
+ {id:'bacche',n:'Frutti di bosco e frutti rossi',lv:'promettenti',why:'antociani',kw:'frutti bosco|mirtilli|lamponi|fragole|more|ciliegie|melagrana|ribes'},
+ {id:'cacao',n:'Cacao e cioccolato fondente',lv:'promettenti',why:'flavanoli',kw:'cacao|cioccolato fondente'},
+ {id:'te',n:'Tè verde',lv:'promettenti',why:'catechine (EGCG)',kw:'te verde|matcha'},
+ {id:'fermentati',n:'Fermentati',lv:'promettenti',why:'fermenti vivi per il microbiota',kw:'yogurt|kefir|skyr|miso|crauti|kimchi'},
+ {id:'crucifere',n:'Broccoli e crucifere',lv:'promettenti',why:'sulforafano',kw:'broccoli|cavolfiore|cavolo|cavolini|verza|cime rapa'},
+ {id:'pomodoro',n:'Pomodoro',lv:'promettenti',why:'licopene, si assorbe meglio cotto con olio',kw:'pomodoro|pomodori|pomodorini|passata'},
+ {id:'colorate',n:'Verdure arancio e rosse',lv:'promettenti',why:'carotenoidi e betalaine',kw:'carote|carota|zucca|peperoni|barbabietola|patata dolce'},
+ {id:'avocado',n:'Avocado',lv:'promettenti',why:'grassi monoinsaturi e carotenoidi',kw:'avocado'},
+ {id:'cannella',n:'Cannella',lv:'tradizionale',why:'polifenoli, pochi studi sull\'infiammazione',kw:'cannella',spice:true},
+ {id:'aglio',n:'Aglio',lv:'tradizionale',why:'allicina',kw:'aglio',spice:true},
+ {id:'cipolla',n:'Cipolla e porro',lv:'tradizionale',why:'quercetina',kw:'cipolla|cipollotto|porro'},
+ {id:'erbe',n:'Erbe aromatiche',lv:'tradizionale',why:'polifenoli (rosmarino, origano, timo)',kw:'rosmarino|origano|timo|salvia|prezzemolo|basilico|menta',spice:true},
+ {id:'semi',n:'Semi di lino e chia',lv:'tradizionale',why:'omega-3 vegetali (ALA)',kw:'semi lino|semi chia|chia|lino'},
+ {id:'brodo',n:'Brodo di ossa',lv:'tradizionale',why:'collagene e glicina',kw:'brodo ossa'},
+ {id:'zuccheri',n:'Zuccheri aggiunti',lv:'limitare',why:'picchi di glicemia',kw:'zucchero|miele|sciroppo|marmellata|confettura|crema spalmabile'},
+ {id:'raffinati',n:'Farine raffinate e prodotti da forno',lv:'limitare',why:'amido raffinato, poche fibre',kw:'farina|pangrattato|savoiardi|biscotti|cracker|sfoglie|corn flakes|gallette|pane bianco|piadina|tortillas'},
+ {id:'lavorate',n:'Carni lavorate',lv:'limitare',why:'conservanti e grassi saturi',kw:'bresaola|salsiccia|wurstel|salame'},
+ {id:'fritti',n:'Fritti e bibite zuccherate',lv:'limitare',why:'grassi ossidati e zuccheri',kw:'fritto|fritte|fritti|bibita|cola'}
+];
+const AI_PTS = {solide:3, promettenti:2.1, tradizionale:1.2};
+let AI_F = .6, AI_S = 2;
+function aiEntry(name, ctx){
+  const ws=words(name); let best=null, bl=0;
+  for(const a of ANTI){ for(const ph of a.kw.split('|')){ const pw=words(ph); if(!pw.length) continue;
+    if(pw.every(x=>ws.some(w=>stemMatch(x,w)))){ const sc=pw.length*2+(a.lv==='limitare'?1:0); if(sc>bl){ bl=sc; best=a; } } } }
+  // farina negli impasti lievitati (pizza, torte, muffin) conta come raffinata anche se integrale
+  if(ctx&&ctx.dough&&/farina/i.test(name)&&!/avena/i.test(name)) best=ANTI.find(a=>a.id==='raffinati');
+  return best;
+}
+function aiMatch(r){ const dough=(r.ing||[]).some(i=>/lievito/i.test(i[0])); return (r.ing||[]).map(i=>({a:aiEntry(i[0],{dough}),ing:i})).filter(x=>x.a); }
+function ingGrams(i){ const q=+i[1]||0; if(i[2]==='q.b.') return 0; if(i[2]==='pz') return q*(/uov/i.test(i[0])?55:50); if(i[2]==='cucchiai') return q*10; return q; }
+function aiScore(r){
+  if(r._ai!=null) return r._ai;
+  const m=aiMatch(r), tot=(r.ing||[]).reduce((s,i)=>s+ingGrams(i),0);
+  const seen=new Set(); let pts=0, goodG=0, pen=0, spice=0;
+  m.forEach(({a,ing})=>{ const g=ingGrams(ing);
+    if(a.lv==='limitare'){ pen+=Math.min(4,g/15); return; }
+    if(a.spice){ if(!seen.has(a.id)){ seen.add(a.id); spice=Math.min(1.8,spice+.6); } return; }
+    goodG+=g; if(g>=8&&!seen.has(a.id)){ seen.add(a.id); pts+=AI_PTS[a.lv]; } });
+  const share=tot>0?goodG/tot:0;
+  const sc=Math.round(Math.max(0,Math.min(10,AI_F*pts+AI_S*share+spice-pen))*10)/10;
+  if(r.id) r._ai=sc; return sc;
+}
+const isAI = r => aiScore(r)>=6;
 const BOOST = [
  '1 cucchiaio di semi di lino macinati nello yogurt o nel porridge (omega-3, fibre)',
  '1 manciata di frutti di bosco (antiossidanti, vitamina C)',

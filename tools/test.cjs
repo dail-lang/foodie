@@ -230,6 +230,28 @@ test('40 ricette v3- valide', async p => {
   assert(r.n === 40 && r.sgarri >= 12 && !r.slow.length && r.tot >= 160, JSON.stringify(r));
 });
 
+/* ---------- Antinfiammatorio, Task 3: modalità, filtro, schede ---------- */
+test('[RF 4] profilo senza ai: casella spenta', async p => { await ev(p, () => { location.hash = 'profilo'; }); await p.waitForTimeout(150); assertEq(await p.locator('#f-ai').isChecked(), false); }, { seed: { 'pp.profile': REAL } });
+test('modalità ai alza il punteggio medio del piano', async p => {
+  const r = await ev(p, () => { const avg = () => { let s = 0, n = 0; for (let k = 0; k < 15; k++) { makePlan(); plan.days.forEach(d => SLOTS_IDS.forEach(sl => { s += aiScore(byId[d[sl].id]); n++; })); } return s / n; }; profile.ai = false; const off = avg(); profile.ai = true; const on = avg(); return on - off; });
+  assert(r >= 0.8, 'differenza ' + r);
+}, { seed: { 'pp.profile': REAL } });
+test('filtro Antinfiammatoria', async p => { const r = await ev(p, () => { ui.flt = new Set(['ai']); const l = filtered().list; return [l.every(isAI), l.length]; }); assert(r[0] && r[1] >= 30, JSON.stringify(r)); });
+test('scheda mostra livelli di prova', async p => {
+  await ev(p, () => openRecipe('salmone-pistacchi', 1)); await p.waitForTimeout(100);
+  assert(/prove solide/.test(await p.locator('.sheet').innerText()));
+});
+test('[RF 5] piano salvato non si rigenera', async p => {
+  const a = await ev(p, () => { makePlan(); return JSON.stringify(plan.days); });
+  await p.reload(); await p.waitForTimeout(300);
+  assertEq(await ev(p, () => JSON.stringify(plan.days)), a);
+}, { seed: { 'pp.profile': REAL } });
+test('salvare il profilo memorizza ai', async p => {
+  await ev(p, () => { location.hash = 'profilo'; }); await p.waitForTimeout(150);
+  await p.check('#f-ai'); await p.click('#pf button[type=submit]'); await p.waitForTimeout(150);
+  assertEq(await ev(p, () => store.get('profile', {}).ai), true);
+}, { seed: { 'pp.profile': REAL } });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

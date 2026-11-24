@@ -290,6 +290,14 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 }
 
 /* ===== Ritocchi grafici ===== */
+.aib{display:inline-flex;align-items:center;gap:4px;background:var(--pra-soft);color:var(--basil-text);border-radius:999px;padding:1px 8px;font-weight:700;font-size:.78rem}
+.aib.big{font-size:.9rem;padding:3px 10px}
+.pill.ai{background:var(--pra-soft)}
+.tag.lv{white-space:nowrap;font-weight:600}
+.tag.lv-solide{background:var(--basil);color:var(--basil-ink)}
+.tag.lv-promettenti{background:var(--pra-soft);color:var(--basil-text)}
+.tag.lv-tradizionale{background:var(--sunk);color:var(--ink)}
+.tag.lv-limitare{background:var(--col-soft);color:var(--ink)}
 .badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
 .badge-card{display:grid;gap:3px;justify-items:center;text-align:center;padding:12px 6px;border-radius:14px;background:var(--sunk);color:var(--muted);font-size:.75rem;line-height:1.25}
 .badge-card b{font-size:.84rem;color:var(--muted)}
@@ -1208,6 +1216,16 @@ function aiScore(r){
   if(r.id) r._ai=sc; return sc;
 }
 const isAI = r => aiScore(r)>=6;
+const LV_LBL = {solide:'prove solide',promettenti:'prove promettenti',tradizionale:'uso tradizionale',limitare:'da limitare'};
+const LEAF='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-4 6-6 10-8"/></svg>';
+function aiSheet(r){
+  const m=aiMatch(r); if(!m.length) return '';
+  const seen=new Set(), rows=m.filter(x=>{ const k=x.ing[0]; if(seen.has(k)) return false; seen.add(k); return true; });
+  rows.sort((a,b)=>['solide','promettenti','tradizionale','limitare'].indexOf(a.a.lv)-['solide','promettenti','tradizionale','limitare'].indexOf(b.a.lv));
+  return `<div><div class="row" style="margin-bottom:6px"><h3 style="font-size:1rem;margin-right:auto">Ingredienti antinfiammatori</h3><span class="aib big">${LEAF} ${fmt(aiScore(r))}/10</span></div>
+    <ul class="mic">${rows.map(x=>`<li><span class="tag lv lv-${x.a.lv}">${LV_LBL[x.a.lv]}</span><span><b>${esc(x.ing[0])}</b> · ${esc(x.a.why)}</span></li>`).join('')}</ul>
+    <p class="muted" style="margin:.4rem 0 0;font-size:.78rem">Il punteggio considera quanta parte del piatto è fatta di cibi antinfiammatori. Le prove "promettenti" e "tradizionali" sono ancora poche: non sono cure.</p></div>`;
+}
 const BOOST = [
  '1 cucchiaio di semi di lino macinati nello yogurt o nel porridge (omega-3, fibre)',
  '1 manciata di frutti di bosco (antiossidanti, vitamina C)',
@@ -1417,8 +1435,9 @@ function pool(slot){ return R.filter(r=>r.m.includes(slot)&&dietOK(r,profile.die
 function portion(r,kcal){ const x=Math.round((kcal/r.k)*4)/4; return Math.min(2,Math.max(.5,x)); }
 const pick = a => a[Math.floor(Math.random()*a.length)];
 // In modalità Superfood i piatti con più micronutrienti hanno più probabilità di uscire
-function pickW(a){ const w=a.map(r=>(r.mi.length+1)**2); let x=Math.random()*w.reduce((s,v)=>s+v,0); for(let i=0;i<a.length;i++){x-=w[i];if(x<=0)return a[i]} return a[a.length-1]; }
-const choose = a => profile.sf ? pickW(a) : pick(a);
+const pickWeight = r => (profile.sf?(r.mi.length+1)**2:1) * (profile.ai?(1+aiScore(r))**2:1);
+function pickW(a){ const w=a.map(pickWeight); let x=Math.random()*w.reduce((s,v)=>s+v,0); for(let i=0;i<a.length;i++){x-=w[i];if(x<=0)return a[i]} return a[a.length-1]; }
+const choose = a => (profile.sf||profile.ai) ? pickW(a) : pick(a);
 function coverage(days){ const c={}; Object.keys(NUTR).forEach(k=>c[k]=0); days.forEach(d=>SLOTS.forEach(([sl])=>byId[d[sl].id].mi.forEach(m=>c[m]++))); return c; }
 
 function makePlan(){
@@ -1537,7 +1556,7 @@ function viewPiano(){
   }).join('');
   el.innerHTML = `
     ${profile.esempio?`<div class="note"><b>Piano di esempio</b> per un uomo di 30 anni, 72 kg, obiettivo ricomposizione. <a href="#profilo">Inserisci i tuoi dati</a> per avere le tue calorie.</div>`:''}
-    <div class="row">${profile.obj==='ricomp'?'<span class="pill">Ricomposizione · skinny fat</span>':''}${profile.sf?'<span class="pill sf">Superfood attivo</span>':''}${profile.dieta==='nopork'?'<span class="pill">Senza maiale</span>':''}</div>
+    <div class="row">${profile.obj==='ricomp'?'<span class="pill">Ricomposizione · skinny fat</span>':''}${profile.sf?'<span class="pill sf">Superfood attivo</span>':''}${profile.ai?'<span class="pill ai">Antinfiammatoria attiva</span>':''}${profile.dieta==='nopork'?'<span class="pill">Senza maiale</span>':''}</div>
     ${helloBlock()}
     ${goalBlock()}
     ${profile.obj==='ricomp'?`<p class="note"><b>Skinny fat:</b> leggero deficit (circa 10%) e proteine alte, circa 2 g per kg. Senza allenamento di forza non funziona: trovi le schede in <a href="#allenamento">Allenati</a>.</p>`:''}
@@ -1617,7 +1636,7 @@ function filtered(){
   let list = R.filter(r=>
     (ui.slot==='tutti'||r.m.includes(ui.slot)) &&
     (!q || r.n.toLowerCase().includes(q) || r.ing.some(i=>i[0].toLowerCase().includes(q))) &&
-    [...ui.flt].every(f=> f==='fav'?favs.has(r.id) : f==='superfood'? r.mi.length>=5 : f==='veloce'? r.t<=15 : f==='proteico'? r.p*4/r.k>=.3 : r.tags.includes(f))
+    [...ui.flt].every(f=> f==='fav'?favs.has(r.id) : f==='superfood'? r.mi.length>=5 : f==='ai'? isAI(r) : f==='veloce'? r.t<=15 : f==='proteico'? r.p*4/r.k>=.3 : r.tags.includes(f))
   );
   const ts = pantryTerms(); let ms = null;
   if(ts.length){
@@ -1629,7 +1648,7 @@ function filtered(){
 function viewRicette(){
   const el = document.getElementById('v-ricette');
   const slotChips = [['tutti','Tutte'],...SLOTS.map(s=>[s[0],s[2]])].map(([v,l])=>`<button class="chip" data-slot="${v}" aria-pressed="${ui.slot===v}">${l}</button>`).join('');
-  const fltChips = [['sgarro','Sgarri sani'],['superfood','Superfood (5+ nutrienti)'],['veloce','≤ 15 min'],['proteico','Proteica'],['veg','Vegetariana'],['vegan','Vegana'],['pesce','Pesce'],['legumi','Legumi'],['gf','Senza glutine'],['fav','Preferite'],['mia','Le mie']].map(([v,l])=>`<button class="chip" data-flt="${v}" aria-pressed="${ui.flt.has(v)}">${l}</button>`).join('');
+  const fltChips = [['ai','Antinfiammatoria'],['sgarro','Sgarri sani'],['superfood','Superfood (5+ nutrienti)'],['veloce','≤ 15 min'],['proteico','Proteica'],['veg','Vegetariana'],['vegan','Vegana'],['pesce','Pesce'],['legumi','Legumi'],['gf','Senza glutine'],['fav','Preferite'],['mia','Le mie']].map(([v,l])=>`<button class="chip" data-flt="${v}" aria-pressed="${ui.flt.has(v)}">${l}</button>`).join('');
   el.innerHTML = `
     <div class="row" style="align-items:end"><div style="margin-right:auto"><div class="eyebrow">${R.length} ricette veloci e bilanciate</div><h2 style="font-size:1.6rem">Ricette</h2></div>
       <button class="btn primary" data-act="addform">+ Aggiungi la tua ricetta</button></div>
@@ -1645,7 +1664,7 @@ function viewRicette(){
 function cardHTML(r,m){
   return `<button class="card" data-open="${r.id}" data-x="1">
       <div class="card-top">${thumb(r,r.m[0])}<div class="card-h"><div class="slots">${r.m.map(s=>SLOT_LBL[s]).join(' · ')}${favs.has(r.id)?' <span style="color:var(--tomato)">♥</span>':''}</div><h3>${esc(r.n)}</h3></div></div>
-      <div class="kv num"><span><b>${r.k}</b> kcal</span><span><b>${r.p}</b> g proteine</span><span><b>${r.t}</b> min</span></div>
+      <div class="kv num"><span><b>${r.k}</b> kcal</span><span><b>${r.p}</b> g proteine</span><span><b>${r.t}</b> min</span>${isAI(r)?`<span class="aib">${LEAF} ${fmt(aiScore(r))}</span>`:''}</div>
       ${m?`<div class="have">${m.miss.length?`Hai ${m.has} su ${m.tot} · manca: ${esc(m.miss.slice(0,3).join(', '))}${m.miss.length>3?'…':''}`:'Hai tutto!'}</div>`:''}
       <div class="tags">${r.tags.filter(t=>t!=='veg'||!r.tags.includes('vegan')).map(t=>`<span class="tag">${TAG_LBL[t]||t}</span>`).join('')}</div>
     </button>`;
@@ -1731,6 +1750,7 @@ function viewProfilo(){
       <div class="field"><label for="f-obj">Obiettivo</label><select id="f-obj" name="obj">${opt(OBJ,p.obj)}</select></div>
       <div class="field"><label for="f-dieta">Alimentazione</label><select id="f-dieta" name="dieta">${opt({onni:'Mangio di tutto',nopork:'Senza maiale e derivati',veg:'Vegetariana',vegan:'Vegana'},p.dieta)}</select></div>
       <div class="field" style="grid-column:1 / -1"><label class="check" for="f-sf"><input id="f-sf" name="sf" type="checkbox" ${p.sf?'checked':''}> <span><b>Modalità Superfood</b>: il piano sceglie i piatti per coprire anche vitamine, minerali, omega-3, fibre e fermenti, non solo proteine, carboidrati e grassi.</span></label></div>
+      <div class="field" style="grid-column:1 / -1"><label class="check" for="f-ai"><input id="f-ai" name="ai" type="checkbox" ${p.ai?'checked':''}> <span><b>Modalità Antinfiammatoria</b>: il piano sceglie più spesso i piatti ricchi di cibi antinfiammatori (pesce azzurro, olio extravergine, verdure a foglia, legumi, curcuma, frutti di bosco…) e con meno zuccheri e farine raffinate.</span></label></div>
       <div class="field" style="align-self:end"><button class="btn primary" type="submit">Salva e rifai il piano</button></div>
     </form>
     <div class="results">
@@ -1763,6 +1783,7 @@ function openRecipe(id,x){
       <div><h3 style="font-size:1rem;margin-bottom:6px">Preparazione</h3><ol class="steps">${r.s.map(s=>{ const u=stepIngs(r,s); return `<li>${esc(s)}${u.length?`<span class="st-q num">${u.map(i=>`${esc(i[0])}: <b>${qty(i[1]*px,i[2])}</b>`).join(' · ')}</span>`:''}</li>`; }).join('')}</ol></div>
       <div class="row"><button class="btn primary" data-act="cook" data-id="${r.id}" data-x="${px}">Modalità cucina</button>${r.tags.includes('mia')?`<button class="btn" data-act="delmine" data-id="${r.id}">Elimina ricetta</button>`:''}</div>
       ${r.h?`<div class="hint"><b>Consiglio:</b> ${esc(r.h)}</div>`:''}
+      ${aiSheet(r)}
       ${r.mi.length?`<div><h3 style="font-size:1rem;margin-bottom:6px">Nutrienti chiave e come sfruttarli</h3><ul class="mic">${r.mi.map(m=>`<li><span class="tag sfm">${NUTR[m].n}</span><span>${esc(NUTR[m].why)} ${esc(NUTR[m].tip)}</span></li>`).join('')}</ul></div>`:''}
     </div></div>`;
     const close=()=>{root.innerHTML='';document.removeEventListener('keydown',onKey)};
@@ -2412,7 +2433,7 @@ document.addEventListener('submit',e=>{
   if(e.target.id==='mf'){ e.preventDefault(); saveMine(new FormData(e.target)); return; }
   if(e.target.id!=='pf') return; e.preventDefault();
   const f = new FormData(e.target);
-  profile = {sesso:f.get('sesso'),eta:+f.get('eta'),peso:+f.get('peso'),alt:+f.get('alt'),att:f.get('att'),obj:f.get('obj'),dieta:f.get('dieta'),sf:f.get('sf')==='on'};
+  profile = {sesso:f.get('sesso'),eta:+f.get('eta'),peso:+f.get('peso'),alt:+f.get('alt'),att:f.get('att'),obj:f.get('obj'),dieta:f.get('dieta'),sf:f.get('sf')==='on',ai:f.get('ai')==='on'};
   store.set('profile',profile); makePlan(); location.hash='piano';
 });
 

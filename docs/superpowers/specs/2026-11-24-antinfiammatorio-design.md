@@ -16,6 +16,8 @@ La persona che usa Foodie vuole mangiare in modo antinfiammatorio: pasti costrui
 6. **Correzione delle proteine nel piano** (scelta dalla persona, vale con e senza modalità Antinfiammatoria). Oggi `makePlan` controlla solo le calorie: con il profilo di esempio circa 1 giorno su 3 resta sotto il 90% delle proteine. Dopo la scelta dei piatti, per ogni giorno sotto il 90% dell'obiettivo di proteine il piano sostituisce prima lo spuntino, poi la colazione, poi pranzo o cena con un'alternativa più proteica dello stesso pasto, rispettando dieta, modalità attive, pesce 2 e legumi 3 a settimana e il limite di 2 ripetizioni per ricetta. **Criterio di accettazione:** su 40 piani generati per il profilo di esempio (con e senza modalità Antinfiammatoria e Superfood), al massimo il 10% dei giorni sotto il 90% delle proteine e calorie medie entro ±5% dell'obiettivo.
 7. **Sezione "Antinfiammatorio" nei Consigli**: una scheda per ogni gruppo di cibi, con il livello di prova in evidenza e la frase su come usarli (es. curcuma sempre con un pizzico di pepe nero e un grasso).
 
+8. **40 ricette in più di ogni tipo** (richiesta aggiunta dalla persona: "aumenta le ricette in generale, sgarri sani ecc."): 12 sgarri sani, 8 colazioni, 12 pranzi e cene, 8 spuntini salati; senza maiale, ≤ 30 minuti. Totale ricette: 160.
+
 ## Non obiettivi
 - Nessun "indice antinfiammatorio del giorno" nel diario (si può aggiungere dopo).
 - Nessuna promessa di cura: l'app non dice che un cibo cura malattie o guarisce l'intestino.

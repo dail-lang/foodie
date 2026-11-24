@@ -91,6 +91,27 @@ test('20 ricette ai- valide e antinfiammatorie', async p => {
 (I test esistenti "100 ricette valide", "nessun maiale", "id unici" continuano a valere su tutte le ricette.)
 - [ ] **Steps 2–5:** FAIL → aggiungere → PASS (anche la taratura del Task 1, calcolata sulle prime 100) → commit `feat: 20 ricette antinfiammatorie`.
 
+### Task 2b: 40 ricette in più di ogni tipo
+
+**Files:** Modify `src/app.html` (array `R`, `MICRO`); Test.
+
+**Interfaces:** id con prefisso `v3-`. Formato e regole come le ricette esistenti; i test "100 ricette valide", "nessun maiale", "id unici e micronutrienti" valgono anche per queste. La taratura del Task 1 resta calcolata sulle prime 100 ricette.
+
+Ricette (nomi definitivi):
+- **Sgarri sani (12, tag `sgarro`):** Cheesecake proteica in tazza · Brownie in tazza al burro d'arachidi · Tartellette d'avena con yogurt e frutta · Pizza con base di cavolfiore · Hamburger fatto in casa con panino integrale e patate al forno · Nuggets di ceci al forno con salsa allo yogurt · Gelato proteico al pistacchio · Banana bread in tazza · Waffle proteici con frutti di bosco · Crumble di mele in tazza · Patatine di patate dolci al forno · Bocconcini gelati di yogurt greco e frutta.
+- **Colazioni (8):** Crêpes integrali con ricotta e fragole · French toast proteico · Porridge salato con uovo e spinaci · Yogurt parfait con muesli e pesca · Pane integrale con hummus e pomodori · Frittatine di albumi e zucchine in tazza · Bowl di skyr, banana e cacao · Bagel integrale con salmone affumicato e spalmabile light.
+- **Pranzi e cene (12):** Orzotto alla zucca e salvia · Paella leggera di pollo e gamberi · Vellutata di piselli e menta con crostini · Polpettine di tacchino con verdure al forno · Melanzane ripiene di manzo magro · Insalata di pollo, mela e noci · Cous cous alla marocchina con verdure e ceci · Branzino al forno con limone e patate · Straccetti di manzo con rucola e pomodorini · Riso venere con gamberi e zucchine · Insalata di polpo e patate · Sushi bowl vegana con tofu e avocado.
+- **Spuntini salati (8):** Rotolini di bresaola, rucola e grana · Uova sode alla paprika · Hummus di lenticchie con carote · Chips di cavolo riccio al forno · Tzatziki con grissini integrali · Mozzarella light e pomodorini · Muffin di ceci e verdure · Toast di segale con fiocchi di latte ed erba cipollina.
+
+- [ ] **Step 1: Test**
+```js
+test('40 ricette v3- valide', async p => {
+  const r = await ev(p, () => { const a = R.filter(r => r.id.startsWith('v3-')); const by = m => a.filter(r => r.m[0] === m).length; return { n: a.length, sgarri: a.filter(r => r.tags.includes('sgarro')).length, slow: a.filter(r => r.t > 30).map(r => r.id), tot: R.filter(r => !r.tags.includes('mia')).length }; });
+  assert(r.n === 40 && r.sgarri >= 12 && !r.slow.length && r.tot >= 160, JSON.stringify(r));
+});
+```
+- [ ] **Steps 2–5:** FAIL → aggiungere → PASS → commit `feat: 40 ricette in più`.
+
 ### Task 3: Modalità Antinfiammatoria nel piano, filtro e schede
 
 **Files:** Modify `src/app.html` (`viewProfilo`, submit del profilo, `choose`, `cardHTML`, `openRecipe`, `viewRicette`, `filtered`, `viewPiano` pill); Test.

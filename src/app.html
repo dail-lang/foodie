@@ -1440,6 +1440,25 @@ function pickW(a){ const w=a.map(pickWeight); let x=Math.random()*w.reduce((s,v)
 const choose = a => (profile.sf||profile.ai) ? pickW(a) : pick(a);
 function coverage(days){ const c={}; Object.keys(NUTR).forEach(k=>c[k]=0); days.forEach(d=>SLOTS.forEach(([sl])=>byId[d[sl].id].mi.forEach(m=>c[m]++))); return c; }
 
+/* ---------- Proteine del piano ---------- */
+function dayTotals(day){ return SLOTS_IDS.reduce((t,sl)=>{ const e=day[sl], r=byId[e.id]; return {k:t.k+r.k*e.x, p:t.p+r.p*e.x}; },{k:0,p:0}); }
+function weekCount(days,tag){ return days.reduce((n,d)=>n+['pranzo','cena'].filter(sl=>byId[d[sl].id].tags.includes(tag)).length,0); }
+function fixProtein(days,T,prot,used){
+  const share=Object.fromEntries(SLOTS.map(s=>[s[0],s[1]]));
+  days.forEach(day=>{
+    for(const sl of ['spuntino','colazione','pranzo','cena']){
+      if(dayTotals(day).p>=.9*prot) break;
+      const cur=byId[day[sl].id], inDay=SLOTS_IDS.map(x=>day[x].id), main=sl==='pranzo'||sl==='cena';
+      const keepTag=tag=>main&&cur.tags.includes(tag)&&weekCount(days,tag)<=(tag==='pesce'?2:3);
+      let c=pool(sl).filter(r=>!inDay.includes(r.id)&&(used[r.id]||0)<2&&r.p/r.k>cur.p/cur.k+.02
+        &&(!keepTag('pesce')||r.tags.includes('pesce'))&&(!keepTag('legumi')||r.tags.includes('legumi')));
+      if(!c.length) continue;
+      c.sort((a,b)=>b.p/b.k-a.p/a.k); c=c.slice(0,Math.max(3,Math.ceil(c.length*.4)));
+      const r=choose(c); used[cur.id]=Math.max(0,(used[cur.id]||1)-1); used[r.id]=(used[r.id]||0)+1;
+      day[sl]={id:r.id,x:portion(r,T*share[sl])};
+    }
+  });
+}
 function makePlan(){
   const T = calc(profile).target, used={}, days=[];
   for(let d=0; d<7; d++){
@@ -1486,6 +1505,7 @@ function makePlan(){
     }
   }
   ensure('pesce',2); ensure('legumi',3);
+  fixProtein(days,T,calc(profile).prot,used);
   plan={days,target:T,created:Date.now()};
   shopDone=new Set(); store.set('shop',[]);
   store.set('plan',plan);

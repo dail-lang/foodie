@@ -252,6 +252,20 @@ test('salvare il profilo memorizza ai', async p => {
   assertEq(await ev(p, () => store.get('profile', {}).ai), true);
 }, { seed: { 'pp.profile': REAL } });
 
+/* ---------- Antinfiammatorio, Task 4: proteine del piano ---------- */
+const planStats = async (p, opts) => ev(p, o => { Object.assign(profile, o); const c = calc(profile); let low = 0, n = 0, kcal = 0, bad = 0; for (let k = 0; k < 40; k++) { makePlan(); let f = 0, l = 0; const cnt = {}; plan.days.forEach(d => { const t = dayTotals(d); n++; kcal += t.k; if (t.p < .9 * c.prot) low++; ['pranzo', 'cena'].forEach(s => { const tg = byId[d[s].id].tags; if (tg.includes('pesce')) f++; if (tg.includes('legumi')) l++; }); SLOTS_IDS.forEach(s => cnt[d[s].id] = (cnt[d[s].id] || 0) + 1); }); if ((o.dieta === 'onni' && f < 2) || l < 3 || Object.values(cnt).some(v => v > 2)) bad++; } return { low: low / n, kcal: kcal / n / c.target, bad }; }, opts);
+for (const [nome, o] of [['base', { sf: false, ai: false }], ['superfood', { sf: true, ai: false }], ['antinfiammatoria', { sf: false, ai: true }], ['entrambe', { sf: true, ai: true }]]) {
+  test('proteine piano ' + nome, async p => { const r = await planStats(p, { ...o, dieta: 'onni' }); assert(r.low <= .10 && Math.abs(r.kcal - 1) <= .05 && r.bad === 0, JSON.stringify(r)); }, { seed: { 'pp.profile': REAL } });
+}
+test('[RF 1] vegano con antinfiammatoria resta vegano', async p => {
+  const r = await ev(p, () => { profile.dieta = 'vegan'; profile.ai = true; let ok = true; for (let k = 0; k < 10; k++) { makePlan(); ok = ok && plan.days.every(d => SLOTS_IDS.every(s => byId[d[s].id].tags.includes('vegan'))); } return ok; });
+  assert(r);
+}, { seed: { 'pp.profile': REAL } });
+test('[RF 3] nessun sostituto possibile: niente loop', async p => {
+  const r = await ev(p, () => { const t0 = performance.now(); profile.peso = 200; makePlan(); return [plan.days.length, performance.now() - t0 < 2000]; });
+  assertEq(r, [7, true]);
+}, { seed: { 'pp.profile': REAL } });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

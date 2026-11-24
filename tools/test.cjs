@@ -792,6 +792,67 @@ test('fotocamera non disponibile: si può scrivere il codice', async p => {
   await p.click('[data-act="scanclose"]'); assertEq(await ev(p, () => !!document.querySelector('#scan.on')), false);
 });
 
+/* ---------- Revisione finale ---------- */
+const fage = (code, k) => ({ code, product_name: 'Total', brands: 'Fage', serving_quantity: 170, nutriments: { 'energy-kcal_100g': k, proteins_100g: 9, carbohydrates_100g: 4, fat_100g: 2 } });
+test('[RF 1] tre prodotti con lo stesso nome: ognuno coi suoi valori', async p => {
+  await offRoute(p, { products: [fage('5201054010001', 54), fage('5201054010002', 73), fage('5201054010003', 96)] });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await ev(p, async () => { for (const c of ['5201054010001', '5201054010002', '5201054010003']) await onBarcode(c); });
+  assertEq(await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan).map(r => Math.round(r.food.k))), [54, 73, 96]);
+});
+test('[RF 2] prodotto con nome non latino: la scansione non si blocca', async p => {
+  await offRoute(p, { status: 1, product: { code: '5201054017128', product_name: 'Γιαούρτι', nutriments: { 'energy-kcal_100g': 70 } } });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.click('[data-act="scan"]'); await p.fill('#scan-code', '5201054017128'); await p.click('[data-act="scancode"]'); await p.waitForTimeout(300);
+  assertEq(await ev(p, () => [ui.qscan.length, !!document.querySelector('#scan.on'), calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].food.n]), [1, false, 'Γιαούρτι']);
+});
+test('[RF 3] chiudere mentre la fotocamera si accende la spegne', async p => {
+  await ev(p, () => { location.hash = 'oggi'; window.__stopped = 0;
+    window.BarcodeDetector = class { detect() { return Promise.resolve([]); } };
+    navigator.mediaDevices.getUserMedia = () => new Promise(ok => setTimeout(() => ok({ getTracks: () => [{ stop() { window.__stopped++; } }] }), 300)); });
+  await p.waitForTimeout(120);
+  await p.click('[data-act="scan"]'); await p.click('[data-act="scanclose"]'); await p.waitForTimeout(500);
+  assertEq(await ev(p, () => window.__stopped), 1);
+});
+test('[RF 3] senza BarcodeDetector (iPhone): chiudere subito spegne la fotocamera', async p => {
+  await p.route('**/cdn.jsdelivr.net/**', r => r.fulfill({ contentType: 'application/javascript', body: 'window.ZXing={BrowserMultiFormatReader:class{decodeFromStream(){return new Promise(()=>{})} decodeFromConstraints(c){return navigator.mediaDevices.getUserMedia(c).then(()=>new Promise(()=>{}))} reset(){}}};' }));
+  await ev(p, () => { location.hash = 'oggi'; window.__stopped = 0; delete window.BarcodeDetector;
+    navigator.mediaDevices.getUserMedia = () => new Promise(ok => setTimeout(() => ok({ getTracks: () => [{ stop() { window.__stopped++; } }] }), 300)); });
+  await p.waitForTimeout(120);
+  await p.click('[data-act="scan"]'); await p.click('[data-act="scanclose"]'); await p.waitForTimeout(600);
+  await p.click('[data-act="scan"]'); await p.waitForTimeout(600); await p.click('[data-act="scanclose"]'); await p.waitForTimeout(100);
+  assertEq(await ev(p, () => window.__stopped), 2);
+});
+test('[RF 3] risposta del codice dopo aver chiuso: niente riga', async p => {
+  await offRoute(p, { status: 1, product: OFF_BUENO }, 500);
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.click('[data-act="scan"]'); await p.fill('#scan-code', '8000500121467'); await p.click('[data-act="scancode"]'); await p.click('[data-act="scanclose"]'); await p.waitForTimeout(800);
+  assertEq(await ev(p, () => ui.qscan.length), 0);
+});
+test('[RF 4] prodotto con macro mancanti: la riga dice dati incompleti', async p => {
+  await offRoute(p, { status: 1, product: { code: '80000016', product_name: 'Biscotti misteriosi', nutriments: { 'energy-kcal_100g': 450 } } });
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await ev(p, () => onBarcode('80000016')); await p.waitForTimeout(100);
+  assert(/dati incompleti/.test(await p.textContent('#q-res')));
+});
+test('[RF 5] prodotto senza porzione: si conta in etti', async p => {
+  assertEq(await ev(p, () => { saveProduct(offNorm({ code: '80000024', product_name: 'Muesli croccante', brands: 'Bio', nutriments: { 'energy-kcal_100g': 420 } }));
+    return [calcRows('2 muesli croccante', {}, [])[0].label, calcRows('', {}, [{ key: 'scan:80000024', code: '80000024', n: 1 }])[0].label]; }), ['2 etti · 200 g', '1 etto · 100 g']);
+});
+test('[RF 7] − sotto un pezzo non aumenta i grammi', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', '5 nuggets'); await p.waitForTimeout(80);
+  await p.fill('input.qg', '5'); await p.dispatchEvent('input.qg', 'change'); await p.waitForTimeout(40);
+  await p.click('[data-act="qminus"]');
+  assertEq(await ev(p, () => Math.round(calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].g)), 5);
+});
+test('[RF 8] svuotare il testo dimentica le correzioni', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  await p.fill('#q-txt', '5 nuggets'); await p.waitForTimeout(80); await p.click('[data-act="qplus"]');
+  await p.fill('#q-txt', ''); await p.fill('#q-txt', '5 nuggets'); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => calcRows(ui.qtxt, ui.qedit, ui.qscan)[0].n), 5);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

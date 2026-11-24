@@ -2480,9 +2480,10 @@ function cleanProducts(){ const raw=store.get('products',[]); const list=(Array.
   if(JSON.stringify(list)!==JSON.stringify(raw)) store.set('products',list); return list; }
 function addProductFood(pr){
   const i=FOODS.findIndex(f=>f.prod&&f.code===pr.code); if(i>=0) FOODS.splice(i,1);
-  let n=pr.n; if(FOODS.some(f=>f.n===n)) n+=` (${pr.b||pr.code})`;
-  const kws=prodKeywords(pr); if(!kws.length) return null;
-  const f=F(n,kws.join('|'),pr.k,pr.p,pr.c,pr.f,pr.fib,pr.sv||100,pr.sv?'porzione':'100 g',pr.sv,'porzione');
+  let n=pr.n; const taken=x=>FOODS.some(f=>f.n===x);
+  if(taken(n)) n=`${pr.n} (${pr.b||pr.code})`; if(taken(n)) n=`${pr.n} (${pr.b?pr.b+' ':''}${pr.code})`;
+  const kws=prodKeywords(pr); // può restare vuoto (nome non latino): il prodotto si usa comunque da codice a barre
+  const f=F(n,kws.join('|'),pr.k,pr.p,pr.c,pr.f,pr.fib,pr.sv||100,pr.sv?'porzione':'etto',pr.sv,'porzione');
   f.kws=kws.map(k=>fw(k)).filter(a=>a.length); f.prod=true; f.code=pr.code; f.liq=pr.ml; f.partial=pr.partial; f.brand=pr.b;
   FOODS.push(f); PROTECT=null; return f;
 }
@@ -2542,7 +2543,7 @@ async function offProduct(code){
 }
 /* ---------- Lettura del codice a barre ---------- */
 const ZXING_URL='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
-const scanSt={stream:null,timer:null,reader:null,busy:false};
+const scanSt={stream:null,timer:null,reader:null,busy:false,gen:0};
 const SCRIPTS={};
 function loadScript(src){ return SCRIPTS[src]||(SCRIPTS[src]=new Promise((ok,ko)=>{ const el=document.createElement('script'); el.src=src; el.onload=ok; el.onerror=()=>{ delete SCRIPTS[src]; ko(new Error('script')); }; document.head.appendChild(el); })); }
 function scanMsg(html){ const el=$('scan-res'); if(el) el.innerHTML=html; }
@@ -2558,35 +2559,39 @@ function openScan(){
   d.classList.add('on'); d.classList.remove('nocam'); $('scan-code').value=''; scanMsg(''); startCam();
 }
 function noCam(){ const d=$('scan'); if(!d) return; d.classList.add('nocam'); $('scan-cam').textContent='Fotocamera non disponibile: scrivi il codice qui sotto.'; }
+// gen: ogni chiusura invalida quello che era in corso (fotocamera che si accende, risposta del codice)
 async function startCam(){
   const v=$('scan-v'); if(!v) return;
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)) return noCam();
-  const cons={video:{facingMode:'environment'},audio:false};
+  const g=++scanSt.gen, alive=()=>g===scanSt.gen&&$('scan')&&$('scan').classList.contains('on');
+  let stream=null;
   try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    if(!alive()){ stream.getTracks().forEach(t=>t.stop()); return; }
+    scanSt.stream=stream;
     if('BarcodeDetector' in window){
       const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
-      scanSt.stream=await navigator.mediaDevices.getUserMedia(cons); if(!$('scan').classList.contains('on')) return stopCam();
-      v.srcObject=scanSt.stream; await v.play();
-      scanSt.timer=setInterval(async()=>{ if(scanSt.busy||v.readyState<2) return; try{ const c=await det.detect(v); if(c&&c[0]) onBarcode(c[0].rawValue); }catch(e){} },300);
+      v.srcObject=stream; await v.play(); if(!alive()) return;
+      scanSt.timer=setInterval(async()=>{ if(scanSt.busy||v.readyState<2) return; try{ const c=await det.detect(v); if(c&&c[0]&&alive()) onBarcode(c[0].rawValue); }catch(e){} },300);
     } else {
-      await loadScript(ZXING_URL); if(!$('scan').classList.contains('on')) return;
-      scanSt.reader=new ZXing.BrowserMultiFormatReader();
-      await scanSt.reader.decodeFromConstraints(cons,v,res=>{ if(res&&!scanSt.busy) onBarcode(res.getText()); });
+      await loadScript(ZXING_URL); if(!alive()) return;
+      const reader=new ZXing.BrowserMultiFormatReader(); scanSt.reader=reader;
+      Promise.resolve(reader.decodeFromStream(stream,v,res=>{ if(res&&!scanSt.busy&&alive()) onBarcode(res.getText()); })).catch(()=>{ if(alive()){ stopCam(); noCam(); } });
     }
-  }catch(e){ stopCam(); noCam(); }
+  }catch(e){ if(stream&&!scanSt.stream) stream.getTracks().forEach(t=>t.stop()); if(alive()){ stopCam(); noCam(); } }
 }
 function stopCam(){ clearInterval(scanSt.timer); scanSt.timer=null;
   if(scanSt.reader){ try{ scanSt.reader.reset(); }catch(e){} scanSt.reader=null; }
   if(scanSt.stream){ scanSt.stream.getTracks().forEach(t=>t.stop()); scanSt.stream=null; }
   const v=$('scan-v'); if(v) v.srcObject=null; }
-function closeScan(){ stopCam(); const d=$('scan'); if(d) d.classList.remove('on'); scanSt.busy=false; }
+function closeScan(){ scanSt.gen++; stopCam(); const d=$('scan'); if(d) d.classList.remove('on'); scanSt.busy=false; }
 async function onBarcode(code){
   code=String(code||'').trim();
   if(!/^\d{8,14}$/.test(code)){ scanMsg('<p class="qwarn">Il codice deve avere da 8 a 14 cifre.</p>'); return; }
   if(scanSt.busy) return; scanSt.busy=true; scanMsg('<p class="muted" style="margin:0">Cerco il prodotto…</p>');
-  const r=await offProduct(code); scanSt.busy=false;
-  if(r.ok){ const f=saveProduct(r.prod); if(!f) return; const key='scan:'+code, ex=ui.qscan.find(x=>x.key===key);
-    if(ex){ ex.food=f.n; if(ex.g){ ex.g+=f.pz||f.por; } else ex.n=(ex.n||1)+1; } else ui.qscan.push({key,food:f.n,n:1});
+  const g=scanSt.gen, r=await offProduct(code); if(g!==scanSt.gen) return; scanSt.busy=false;
+  if(r.ok){ const f=saveProduct(r.prod), key='scan:'+code, ex=ui.qscan.find(x=>x.key===key);
+    if(ex){ ex.food=f.n; if(ex.g){ ex.g+=f.pz||f.por; } else ex.n=(ex.n||1)+1; } else ui.qscan.push({key,code,food:f.n,n:1});
     closeScan(); refreshQ(); return; }
   stopCam();
   const why={notfound:'Prodotto non trovato su Open Food Facts.',nokcal:'Il prodotto è su Open Food Facts ma non ha le calorie.',offline:'Sei offline: per cercare il codice serve internet.',error:'Ricerca non riuscita, riprova più tardi.'}[r.why]||'Ricerca non riuscita, riprova più tardi.';
@@ -2662,6 +2667,8 @@ function parseFoodChunk(ch,ctx){
   const r=grams/100;
   return {food, g:grams, label, k:food.k*r, p:food.p*r, c:food.c*r, f:food.f*r, fib:food.fib*r, guess, n, unitG:uG, unitL:uL, mode, ws:wsx, ml:!!(food.liq||(mu&&/ml|cl|l/.test(mu[2])))};
 }
+const foodId=f=>f.prod?'p:'+f.code:f.n;
+const foodById=id=>{ id=String(id||''); return id.startsWith('p:')?FOODS.find(x=>x.prod&&x.code===id.slice(2)):FOODS.find(x=>x.n===id); };
 const nutr=(food,g)=>{ const r=g/100; return {g, k:food.k*r, p:food.p*r, c:food.c*r, f:food.f*r, fib:food.fib*r}; };
 function rowLabel(r){ const u=r.ml?'ml':'g';
   return r.mode==='pz' ? `${fmt(r.n)} ${plur(r.unitL,r.n)} · ${Math.round(r.g)} ${u}` : `${Math.round(r.g)} ${u}`; }
@@ -2669,7 +2676,7 @@ function rowLabel(r){ const u=r.ml?'ml':'g';
 function calcRows(text, edits, scans){
   edits=edits||{}; const {items,chunks}=analyzeFood(text||''), rows=[];
   for(const it of items){ let r=it; const e=edits[it.key]||{};
-    if(e.food){ const f=FOODS.find(x=>x.n===e.food), ch=chunks.find(c=>c.key===it.key);
+    if(e.food){ const f=foodById(e.food), ch=chunks.find(c=>c.key===it.key);
       if(f&&ch){ const r2=parseFoodChunk(ch.text,{...ch.ctx,food:f}); if(r2) r={...r2,guess:null}; } }
     let {g,n,mode}=r;
     if(e.n>0&&mode==='pz'){ n=e.n; g=n*r.unitG; }
@@ -2678,7 +2685,7 @@ function calcRows(text, edits, scans){
     const row={key:it.key, src:'txt', text:ch?ch.text:'', ws:it.ws, food:r.food, n, unitG:r.unitG, unitL:r.unitL, mode, ml:r.ml, guess:r.guess, ...nutr(r.food,g)};
     if(!e.n&&!e.g&&!e.food) row.label=r.label;
     rows.push(row); }
-  for(const sc of (scans||[])){ const f=FOODS.find(x=>x.n===sc.food); if(!f) continue;
+  for(const sc of (scans||[])){ const f=(sc.code&&foodById('p:'+sc.code))||foodById(sc.food); if(!f) continue;
     const uG=f.pz||f.por, uL=f.pz?f.pzl:f.porl, byG=sc.g>0, n=byG?null:(sc.n>0?sc.n:1);
     rows.push({key:sc.key, src:'scan', food:f, n, unitG:uG, unitL:uL, mode:byG?'g':'pz', ml:!!f.liq, guess:null, ...nutr(f, byG?sc.g:n*uG)}); }
   rows.forEach(r=>{ r.warn = r.g>3*r.food.por || r.k>1200; if(!r.label) r.label=rowLabel(r); });
@@ -2723,6 +2730,7 @@ function qStep(key,d){
   const base=calcRows(ui.qtxt,{},ui.qscan.map(x=>({...x,n:1,g:0}))).find(x=>x.key===key), min=base&&base.n>0&&base.n<1?.5:1;
   const cur=r.mode==='pz'?r.n:r.g/r.unitG;
   const n = d>0 ? (cur<1?1:Math.floor(cur+1e-9)+1) : (cur<=1?min:Math.max(min,Math.ceil(cur-1e-9)-1));
+  if(d<0&&n*r.unitG>=r.g-1e-9) return; // − non aumenta mai la quantità
   setEdit(key,{n}); refreshQ();
 }
 function foodResHTML(){
@@ -2740,7 +2748,7 @@ function foodResHTML(){
       <small class="muted">Dati: Open Food Facts</small></div>`; };
   const altHTML=r=>{ if(ui.qalt!==r.key||r.src!=='txt') return '';
     const alts=rankFoods(r.ws||[],true).filter(x=>x.food!==r.food).slice(0,3);
-    return `<div class="qalts"><span class="muted">Intendevi:</span>${alts.map(a=>`<button class="chip" data-act="qpick" data-key="${esc(r.key)}" data-food="${esc(a.food.n)}">${esc(a.food.n)}</button>`).join('')}
+    return `<div class="qalts"><span class="muted">Intendevi:</span>${alts.map(a=>`<button class="chip" data-act="qpick" data-key="${esc(r.key)}" data-food="${esc(foodId(a.food))}">${esc(a.food.n)}</button>`).join('')}
       <button class="chip" data-act="qoff" data-key="${esc(r.key)}">Cerca tra i prodotti di marca</button>
       <button class="chip" data-act="teach" data-n="${esc(r.text)}">Insegnami «${esc(r.text.length>24?r.text.slice(0,22)+'…':r.text)}»</button></div>${offHTML(r.key)}`; };
   const rowHTML=r=>`<div class="qrow" data-key="${esc(r.key)}">
@@ -2752,7 +2760,7 @@ function foodResHTML(){
         ${r.unitG>0?`<button class="qstep" data-act="qplus" data-key="${esc(r.key)}" aria-label="Uno in più">+</button>`:''}
         <label class="qgl"><input class="qg" data-key="${esc(r.key)}" type="text" inputmode="decimal" autocomplete="off" value="${R1(r.g)}" aria-label="Quantità in ${r.ml?'ml':'grammi'} di ${esc(r.food.n)}"> ${r.ml?'ml':'g'}</label>
       </div>
-      <div class="qrow-f"><small class="muted num">Prot. ${R2(r.p)} g · Carb. ${R2(r.c)} g · Grassi ${R2(r.f)} g</small>
+      <div class="qrow-f"><small class="muted num">Prot. ${R2(r.p)} g · Carb. ${R2(r.c)} g · Grassi ${R2(r.f)} g${r.food.partial?' · <b>dati incompleti</b>':''}</small>
         ${r.src==='txt'?`<button class="linkbtn" data-act="qalt" data-key="${esc(r.key)}" aria-expanded="${ui.qalt===r.key}">Non è questo?</button>`:`<button class="linkbtn" data-act="qdel" data-key="${esc(r.key)}" aria-label="Togli ${esc(r.food.n)}">Togli</button>`}</div>
       ${r.warn?`<p class="qwarn">Controlla la quantità: ${esc(r.label)} è molto più di una porzione normale.</p>`:''}
       ${altHTML(r)}
@@ -3058,7 +3066,7 @@ const HANDLERS = {
   qoff:t=>{ const r=curRows().find(x=>x.key===t.dataset.key); if(r) offQuery(r.key,r.text); },
   offpick:t=>{ const key=t.dataset.key, o=ui.qoff[key], pr=o&&o.list.find(x=>x.code===t.dataset.code); if(!pr) return;
     const unk=key.startsWith('u|'), f=saveProduct(pr, unk?o.text:null); delete ui.qoff[key];
-    if(f&&!unk) setEdit(key,{food:f.n}); ui.qalt=null; refreshQ(); },
+    if(f&&!unk) setEdit(key,{food:foodId(f)}); ui.qalt=null; refreshQ(); },
   scan:()=>openScan(),
   scanclose:()=>closeScan(),
   scancode:()=>onBarcode($('scan-code').value),
@@ -3111,7 +3119,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='search'){ ui.q=e.target.value; $('cards').innerHTML=cardsHTML(); }
-  if(e.target.id==='q-txt'){ ui.qtxt=e.target.value; $('q-res').innerHTML=foodResHTML(); scheduleOff(); }
+  if(e.target.id==='q-txt'){ ui.qtxt=e.target.value; if(!ui.qtxt.trim()){ ui.qedit={}; ui.qalt=null; ui.qoff={}; } $('q-res').innerHTML=foodResHTML(); scheduleOff(); }
   if(e.target.id==='pantry'){ ui.pantry=e.target.value; $('cards').innerHTML=cardsHTML(); }
 });
 document.addEventListener('change',e=>{

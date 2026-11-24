@@ -2447,24 +2447,30 @@ function fuzzyFood(ws){
   return best?{food:best,guess:true,word}:null;
 }
 const plainWord=(k,w)=>k===w||(k.length>=3&&k.slice(0,-1)===w.slice(0,-1)&&/[aeiou]$/.test(k)&&/[aeiou]$/.test(w));
-function bestFood(ws){
-  let best=null, bs=0, guess=null;
+// tutti i cibi compatibili con le parole, dal più probabile (a parità vince il primo della tabella)
+// loose: accetta anche nomi di cui combacia solo una parte (per le alternative di "Non è questo?")
+function rankFoods(ws,loose){
+  const by=new Map();
   for(const f of FOODS) for(const kw of f.kws){
-    let sc=0, ok=true, g=null;
-    for(const k of kw){ let m=0, mw=null; ws.forEach(w=>{ const x=fmatch(k,w); if(x>m){ m=x; mw=w; } }); if(!m){ ok=false; break; } sc+=m; if(!plainWord(k,mw)&&!g) g=mw; }
-    if(!ok) continue; sc = kw.length*10 + sc*2 + kw.join('').length/100 - (g?.5:0) + (f.mine?1:0) - (f.weak?.6:0);
-    if(sc>bs){ bs=sc; best=f; guess=g; }
+    let sc=0, ok=true, g=null, miss=0;
+    for(const k of kw){ let m=0, mw=null; ws.forEach(w=>{ const x=fmatch(k,w); if(x>m){ m=x; mw=w; } }); if(!m){ if(!loose){ ok=false; break; } miss++; continue; } sc+=m; if(!plainWord(k,mw)&&!g) g=mw; }
+    if(!ok||miss===kw.length) continue; sc = (kw.length-miss)*10 - miss*4 + sc*2 + kw.join('').length/100 - (g?.5:0) + (f.mine?1:0) - (f.weak?.6:0);
+    const o=by.get(f); if(!o||sc>o.sc) by.set(f,{food:f,guess:g,sc});
   }
-  return best?{food:best,guess}:null;
+  return [...by.values()].sort((a,b)=>b.sc-a.sc);
 }
+function bestFood(ws){ const r=rankFoods(ws)[0]; return r?{food:r.food,guess:r.guess}:null; }
 const INV=new Set(['kiwi','sushi','toast','burrito','kebab','hot','dog','bowl','ramen','avocado','cono','cornetto?','sashimi','poke']);
 function plur(lbl,c){ if(c<=1) return lbl; return lbl.split(' ').map(w=>{ if(INV.has(w)||!/[aeo]$/.test(w)) return w;
-  if(w==='uovo') return 'uova'; if(/io$/.test(w)) return w.slice(0,-1); if(/ca$|ga$/.test(w)) return w.slice(0,-1)+'he';
+  if(w==='uovo') return 'uova'; if(w==='nugget') return 'nuggets'; if(/io$/.test(w)) return w.slice(0,-1); if(/ca$|ga$/.test(w)) return w.slice(0,-1)+'he';
   return w.slice(0,-1)+(w.endsWith('a')?'e':'i'); }).join(' '); }
 function parseFoodChunk(ch,ctx){
   const low=ch.toLowerCase(), ws=fw(ch);
-  const wsx=ws.filter(w=>w.length>=3||w==='te'); if(!wsx.includes('pasta')&&wsx.some(w=>PASTA_SHAPES.has(w))) wsx.push('pasta'); const bf=bestFood(wsx); let food=bf&&bf.food, guess=bf&&bf.guess;
-  if(!food){ const fz=fuzzyFood(wsx); if(!fz) return null; food=fz.food; guess=fz.word; }
+  const wsx=ws.filter(w=>w.length>=3||w==='te'); if(!wsx.includes('pasta')&&wsx.some(w=>PASTA_SHAPES.has(w))) wsx.push('pasta');
+  let food=null, guess=null;
+  if(ctx&&ctx.food) food=ctx.food;
+  else { const bf=bestFood(wsx); food=bf&&bf.food; guess=bf&&bf.guess;
+    if(!food){ const fz=fuzzyFood(wsx); if(!fz) return null; food=fz.food; guess=fz.word; } }
   if(ctx&&ctx.bread&&food.n==='Panino imbottito') food=FOODS.find(x=>x.n==='Pane del panino');
   let grams=null, count=null, noun=null, mult=1;
   const mu=low.match(/(\d+(?:[.,]\d+)?)\s*(kg|grammi|grammo|gr|g|ml|cl|litri|litro|lt|l|etti|etto)(?![a-z])/);
@@ -2475,7 +2481,7 @@ function parseFoodChunk(ch,ctx){
   for(const w of raw){ const n=NOUNS.find(([st])=>w.startsWith(st)); if(n&&!food.kws.some(kw=>kw.includes(w))){ noun=n; break; } }
   const medium=raw.some(w=>/^medi[oa]$/.test(w));
   if(raw.some(w=>w.startsWith('piccol'))) mult=.7; else if(raw.some(w=>w.startsWith('grand')||w.startsWith('abbondant'))) mult=1.4;
-  let label;
+  let label, n=null, uG=null, uL=null, mode='g';
   if(grams==null){
     let unitG, unitL;
     if(noun){ unitG = food.u[noun[1]] || (food.porl&&food.porl.startsWith(noun[1])?food.por:0) || (food.pzl&&food.pzl.startsWith(noun[1])?food.pz:0) || noun[2] || (noun[1]==='pezzo'||noun[1]==='trancio' ? (food.pz||food.por) : food.por); unitL=noun[1]; }
@@ -2486,10 +2492,32 @@ function parseFoodChunk(ch,ctx){
     const c=count==null?1:count; grams=c*unitG*mult;
     if(mult!==1){ const fem=/a$/.test(unitL.split(' ')[0]); szw = mult<1 ? (c>1?(fem?' piccole':' piccoli'):(fem?' piccola':' piccolo')) : (c>1?' grandi':' grande'); }
     label=`${fmt(c)} ${plur(unitL,c)}${szw} · ${Math.round(grams)} ${food.liq?'ml':'g'}`;
+    n=c; uG=unitG*mult; uL=unitL; mode='pz';
   } else if(food.dry && grams<=160){ const dryG=grams; grams=dryG*food.dry; label=`${Math.round(dryG)} g di ${food.n.startsWith('Risotto')||food.n.includes('riso')?'riso':'pasta'} da crudo · piatto circa ${Math.round(grams/10)*10} g`; }
   else label=`${Math.round(grams)} ${food.liq||/ml|cl|l/.test(mu[2])?'ml':'g'}`;
   const r=grams/100;
-  return {food, g:grams, label, k:food.k*r, p:food.p*r, c:food.c*r, f:food.f*r, fib:food.fib*r, guess};
+  return {food, g:grams, label, k:food.k*r, p:food.p*r, c:food.c*r, f:food.f*r, fib:food.fib*r, guess, n, unitG:uG, unitL:uL, mode, ws:wsx, ml:!!(food.liq||(mu&&/ml|cl|l/.test(mu[2])))};
+}
+const nutr=(food,g)=>{ const r=g/100; return {g, k:food.k*r, p:food.p*r, c:food.c*r, f:food.f*r, fib:food.fib*r}; };
+function rowLabel(r){ const u=r.ml?'ml':'g';
+  return r.mode==='pz' ? `${fmt(r.n)} ${plur(r.unitL,r.n)} · ${Math.round(r.g)} ${u}` : `${Math.round(r.g)} ${u}`; }
+// righe del calcolatore: testo + correzioni (edits[key] = {food?, n?, g?}) + prodotti scansionati
+function calcRows(text, edits, scans){
+  edits=edits||{}; const {items,chunks}=analyzeFood(text||''), rows=[];
+  for(const it of items){ let r=it; const e=edits[it.key]||{};
+    if(e.food){ const f=FOODS.find(x=>x.n===e.food), ch=chunks.find(c=>c.key===it.key);
+      if(f&&ch){ const r2=parseFoodChunk(ch.text,{...ch.ctx,food:f}); if(r2) r={...r2,guess:null}; } }
+    let {g,n,mode}=r;
+    if(e.n>0&&mode==='pz'){ n=e.n; g=n*r.unitG; }
+    else if(e.g>0){ g=e.g; n=null; mode='g'; }
+    const row={key:it.key, src:'txt', food:r.food, n, unitG:r.unitG, unitL:r.unitL, mode, ml:r.ml, guess:r.guess, ...nutr(r.food,g)};
+    if(!e.n&&!e.g&&!e.food) row.label=r.label;
+    rows.push(row); }
+  for(const sc of (scans||[])){ const f=FOODS.find(x=>x.n===sc.food); if(!f) continue;
+    const uG=f.pz||f.por, uL=f.pz?f.pzl:f.porl, byG=sc.g>0, n=byG?null:(sc.n>0?sc.n:1);
+    rows.push({key:sc.key, src:'scan', food:f, n, unitG:uG, unitL:uL, mode:byG?'g':'pz', ml:!!f.liq, guess:null, ...nutr(f, byG?sc.g:n*uG)}); }
+  rows.forEach(r=>{ r.warn = r.g>3*r.food.por || r.k>1200; if(!r.label) r.label=rowLabel(r); });
+  return rows;
 }
 let PROTECT=null;
 const normWords=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[’']/g,' ').split(/[^a-z0-9]+/).filter(Boolean);
@@ -2509,12 +2537,14 @@ function analyzeFood(text){
       const m=chunks[i]+seps[i]+chunks[i+1], bf=bestFood(fw(m).filter(w=>w.length>=3||w==='te'));
       if(bf&&bf.food===P.food){ chunks.splice(i,2,m); seps.splice(i,1); merged=true; break; } }
     if(!merged) i++; }
-  const items=[], unknown=[];
+  const items=[], unknown=[], out=[], seen={};
   for(let i=0;i<chunks.length;i++){ const ch=chunks[i].trim(); if(ch.length<2) continue;
     const sep=(seps[i]||'').trim().toLowerCase();
     const bread = sep==='con' && /panin|piadin|tramezzin|wrap|toast/i.test(ch) && (chunks[i+1]||'').trim().length>1;
-    const r=parseFoodChunk(ch,{bread}); r?items.push(r):unknown.push(ch); }
-  return {items,unknown};
+    const nt=ch.toLowerCase().replace(/\s+/g,' '), occ=seen[nt]=(seen[nt]||0)+1, key=`${occ-1}|${nt}`;
+    const ctx={bread}, r=parseFoodChunk(ch,ctx);
+    if(r){ r.key=key; items.push(r); out.push({key,text:ch,ctx}); } else unknown.push(ch); }
+  return {items,unknown,chunks:out};
 }
 function foodResHTML(){
   const t=(ui.qtxt||'').trim(); if(!t) return '';

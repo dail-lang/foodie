@@ -590,6 +590,32 @@ test('5 nuggets non sono 5 cotolette', async p => {
     [['Nuggets di pollo', 90], ['Mandarino', 210], ['Wurstel', 100], ['Bignè', 100], ['Supplì', 240], ['Fichi secchi', 60]]);
 });
 
+/* ---------- Righe del calcolatore ---------- */
+test('rankFoods: il primo è bestFood', async p => {
+  assertEq(await ev(p, () => ['pasta al pomodoro', 'pollo', 'kinder'].map(t => { const ws = fw(t); return rankFoods(ws)[0].food === bestFood(ws).food && rankFoods(ws, true).length > 2; })), [true, true, true]);
+});
+test('righe: correzione dei pezzi e dei grammi', async p => {
+  assertEq(await ev(p, () => { const r0 = calcRows('5 nuggets e una mela', {}, []); const k = r0[0].key;
+    const r1 = calcRows('5 nuggets e una mela', { [k]: { n: 8 } }, []); const r2 = calcRows('5 nuggets e una mela', { [k]: { g: 50 } }, []);
+    return [r0.length, r0[0].mode, r1[0].n, Math.round(r1[0].g), Math.round(r2[0].g), r2[1].food.n]; }), [2, 'pz', 8, 144, 50, 'Mela']);
+});
+test('righe: la correzione resta se continuo a scrivere, sparisce se cambio quel pezzo', async p => {
+  assertEq(await ev(p, () => { const k = calcRows('5 nuggets', {}, [])[0].key, e = { [k]: { n: 8 } };
+    return [calcRows('5 nuggets e una mela', e, [])[0].n, calcRows('6 nuggets', e, [])[0].n]; }), [8, 6]);
+});
+test('righe: la stessa frase due volte ha due chiavi', async p => {
+  assertEq(await ev(p, () => { const r = calcRows('mela e mela', {}, []); const e = { [r[0].key]: { n: 3 } }; const r2 = calcRows('mela e mela', e, []); return [r[0].key !== r[1].key, r2[0].n, r2[1].n]; }), [true, 3, 1]);
+});
+test('righe: cambio cibo mantiene i pezzi', async p => {
+  assertEq(await ev(p, () => { const k = calcRows('5 nuggets', {}, [])[0].key; const r = calcRows('5 nuggets', { [k]: { food: 'Cotoletta impanata' } }, [])[0]; return [r.food.n, r.n]; }), ['Cotoletta impanata', 5]);
+});
+test('righe: avviso quantità sospetta', async p => {
+  assertEq(await ev(p, () => [calcRows('5 cotolette', {}, [])[0].warn, calcRows('1 cotoletta', {}, [])[0].warn, calcRows('una pizza margherita', {}, [])[0].warn]), [true, false, false]);
+});
+test('righe: grammi scritti restano in grammi, cibo sparito ignorato', async p => {
+  assertEq(await ev(p, () => { const r = calcRows('pasta 90 g', {}, [])[0]; const k = calcRows('pollo', {}, [])[0].key; return [r.mode, calcRows('pollo', { [k]: { food: 'Non esiste' } }, [])[0].food.n === calcRows('pollo', {}, [])[0].food.n]; }), ['g', true]);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

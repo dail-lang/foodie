@@ -1188,14 +1188,14 @@ const ANTI = [
  {id:'pesce',n:'Pesce azzurro e salmone',lv:'solide',why:'omega-3 EPA e DHA',kw:'salmone|sgombro|sardine|alici|acciughe|trota|aringa|tonno'},
  {id:'evo',n:'Olio extravergine d\'oliva',lv:'solide',why:'polifenoli e oleocantale',kw:'olio extravergine'},
  {id:'foglia',n:'Verdure a foglia verde',lv:'solide',why:'folati, vitamina K e polifenoli',kw:'spinaci|rucola|cavolo nero|cavolo riccio|bietola|lattuga|insalata|valeriana|cicoria'},
- {id:'legumi',n:'Legumi',lv:'solide',why:'fibre che nutrono il microbiota',kw:'ceci|lenticchie|fagioli|piselli|edamame|hummus|tofu'},
- {id:'integrali',n:'Cereali integrali',lv:'solide',why:'fibre e polifenoli dei cereali integrali',kw:'avena|farro|orzo|quinoa|riso integrale|riso venere|pane integrale|pasta integrale|farina integrale|spaghetti integrali|cous cous integrale|pane segale|grano saraceno|pangrattato integrale|tortillas integrali|cracker integrali|piadina integrale|muesli|granola'},
+ {id:'legumi',n:'Legumi',lv:'solide',why:'fibre che nutrono il microbiota',kw:'farina ceci|ceci|lenticchie|fagioli|piselli|edamame|hummus|tofu'},
+ {id:'integrali',n:'Cereali integrali',lv:'solide',why:'fibre e polifenoli dei cereali integrali',kw:'farina avena|avena|farro|orzo|quinoa|riso integrale|riso venere|pane integrale|pasta integrale|farina integrale|spaghetti integrali|cous cous integrale|pane segale|grano saraceno|pangrattato integrale|tortillas integrali|cracker integrali|piadina integrale|muesli|granola'},
  {id:'secca',n:'Frutta secca e semi oleosi',lv:'solide',why:'grassi buoni, vitamina E e polifenoli',kw:'noci|mandorle|nocciole|pistacchi|anacardi|semi zucca|semi girasole|semi sesamo|burro mandorle'},
  {id:'curcuma',n:'Curcuma',lv:'promettenti',why:'curcumina: usala con pepe nero e un grasso',kw:'curcuma|curry',spice:true},
  {id:'zenzero',n:'Zenzero',lv:'promettenti',why:'gingeroli',kw:'zenzero',spice:true},
  {id:'bacche',n:'Frutti di bosco e frutti rossi',lv:'promettenti',why:'antociani',kw:'frutti bosco|mirtilli|lamponi|fragole|more|ciliegie|melagrana|ribes'},
  {id:'cacao',n:'Cacao e cioccolato fondente',lv:'promettenti',why:'flavanoli',kw:'cacao|cioccolato fondente'},
- {id:'te',n:'Tè verde',lv:'promettenti',why:'catechine (EGCG)',kw:'te verde|matcha'},
+ {id:'te',n:'Tè verde',lv:'promettenti',why:'catechine (EGCG)',kw:'matcha'},
  {id:'fermentati',n:'Fermentati',lv:'promettenti',why:'fermenti vivi per il microbiota',kw:'yogurt|kefir|skyr|miso|crauti|kimchi'},
  {id:'crucifere',n:'Broccoli e crucifere',lv:'promettenti',why:'sulforafano',kw:'broccoli|cavolfiore|cavolo|cavolini|verza|cime rapa'},
  {id:'pomodoro',n:'Pomodoro',lv:'promettenti',why:'licopene, si assorbe meglio cotto con olio',kw:'pomodoro|pomodori|pomodorini|passata'},
@@ -1214,18 +1214,21 @@ const ANTI = [
 ];
 const AI_PTS = {solide:3, promettenti:2.1, tradizionale:1.2};
 let AI_F = .6, AI_S = 2;
+const aiWord = (k,w) => k===w || (k.length>=4 && w.length>=4 && k.slice(0,-1)===w.slice(0,-1));
 function aiEntry(name, ctx){
-  const ws=words(name); let best=null, bl=0;
+  const clean=String(name).replace(/senza\s+\S+/gi,' '), ws=words(clean); let best=null, bl=0;
+  if(/\bt[eè]\s+verde\b/i.test(clean)){ best=ANTI.find(a=>a.id==='te'); bl=4; }
   for(const a of ANTI){ for(const ph of a.kw.split('|')){ const pw=words(ph); if(!pw.length) continue;
-    if(pw.every(x=>ws.some(w=>stemMatch(x,w)))){ const sc=pw.length*2+(a.lv==='limitare'?1:0); if(sc>bl){ bl=sc; best=a; } } } }
+    if(pw.every(x=>ws.some(w=>aiWord(x,w)))){ const sc=pw.length*2+(a.lv==='limitare'?1:0); if(sc>bl){ bl=sc; best=a; } } } }
   // farina negli impasti lievitati (pizza, torte, muffin) conta come raffinata anche se integrale
-  if(ctx&&ctx.dough&&/farina/i.test(name)&&!/avena/i.test(name)) best=ANTI.find(a=>a.id==='raffinati');
+  if(ctx&&ctx.dough&&/farina/i.test(name)&&!/avena|ceci/i.test(name)) best=ANTI.find(a=>a.id==='raffinati');
   return best;
 }
 function aiMatch(r){ const dough=(r.ing||[]).some(i=>/lievito/i.test(i[0])); return (r.ing||[]).map(i=>({a:aiEntry(i[0],{dough}),ing:i})).filter(x=>x.a); }
 function ingGrams(i){ const q=+i[1]||0; if(i[2]==='q.b.') return 0; if(i[2]==='pz') return q*(/uov/i.test(i[0])?55:50); if(i[2]==='cucchiai') return q*10; return q; }
+const AI_CACHE = new WeakMap();
 function aiScore(r){
-  if(r._ai!=null) return r._ai;
+  if(AI_CACHE.has(r)) return AI_CACHE.get(r);
   const m=aiMatch(r), tot=(r.ing||[]).reduce((s,i)=>s+ingGrams(i),0);
   const seen=new Set(); let pts=0, goodG=0, pen=0, spice=0;
   m.forEach(({a,ing})=>{ const g=ingGrams(ing);
@@ -1234,7 +1237,7 @@ function aiScore(r){
     goodG+=g; if(g>=8&&!seen.has(a.id)){ seen.add(a.id); pts+=AI_PTS[a.lv]; } });
   const share=tot>0?goodG/tot:0;
   const sc=Math.round(Math.max(0,Math.min(10,AI_F*pts+AI_S*share+spice-pen))*10)/10;
-  if(r.id) r._ai=sc; return sc;
+  if(r.id) AI_CACHE.set(r,sc); return sc;
 }
 const isAI = r => aiScore(r)>=6;
 const LV_LBL = {solide:'prove solide',promettenti:'prove promettenti',tradizionale:'uso tradizionale',limitare:'da limitare'};
@@ -1266,7 +1269,7 @@ const TIPS = [
  {cat:'Antinfiammatorio',lv:'solide',t:'Legumi e cereali integrali per le fibre',b:'Le fibre nutrono i batteri intestinali che producono acidi grassi a catena corta, sostanze antinfiammatorie. Obiettivo: 25–30 g di fibre al giorno.',src:'EFSA; revisioni su fibre alimentari e infiammazione'},
  {cat:'Antinfiammatorio',lv:'solide',t:'Una manciata di frutta secca',b:'30 g al giorno di noci, mandorle o semi. Le noci portano anche omega-3 vegetali. Scegli quella al naturale, non salata né tostata con olio.',src:'Revisioni sistematiche su frutta secca e marcatori infiammatori'},
  {cat:'Antinfiammatorio',lv:'promettenti',t:'Curcuma sempre con pepe nero e un grasso',b:'Da sola la curcumina si assorbe pochissimo: il pepe nero (piperina) ne aumenta molto l\'assorbimento, e si scioglie nei grassi. Usala in zuppe, legumi, uova e riso.',src:'Shoba et al., Planta Medica 1998 (piperina e curcumina); studi clinici ancora limitati'},
- {cat:'Antinfiammatorio',lv:'promettenti',t:'Zenzero fresco',b:'Grattugiato in tisane, verdure saltate e frullati. Gli studi sull\'infiammazione sono piccoli ma incoraggianti; sicuramente aiuta contro la nausea.',src:'Piccoli studi clinici e revisioni sullo zenzero'},
+ {cat:'Antinfiammatorio',lv:'promettenti',t:'Zenzero fresco',b:'Grattugiato in tisane, verdure saltate e frullati. Gli studi sull\'infiammazione sono piccoli ma incoraggianti; per la nausea le prove sono più solide.',src:'Piccoli studi clinici e revisioni sullo zenzero'},
  {cat:'Antinfiammatorio',lv:'promettenti',t:'Frutti di bosco e cacao amaro',b:'Mirtilli, lamponi, ciliegie e cacao amaro sono ricchi di polifenoli (antociani e flavanoli). Bastano 100 g di frutti di bosco, anche surgelati, o 10–15 g di cacao.',src:'Studi su polifenoli alimentari e marcatori infiammatori'},
  {cat:'Antinfiammatorio',lv:'promettenti',t:'Fermentati ogni giorno',b:'In uno studio, chi ha mangiato più cibi fermentati (yogurt, kefir, verdure fermentate) per 10 settimane ha ridotto diversi marcatori di infiammazione. Scegli quelli senza zucchero.',src:'Wastyk et al., Cell 2021 (Stanford)'},
  {cat:'Antinfiammatorio',lv:'tradizionale',t:'Erbe e spezie al posto del sale',b:'Aglio, cipolla, rosmarino, origano e cannella insaporiscono e contengono polifenoli. Gli studi sull\'uomo sono ancora pochi, ma usarle al posto del sale fa comunque bene.',src:'Uso tradizionale; studi di laboratorio'},
@@ -1309,7 +1312,7 @@ let profile = store.get('profile', EXAMPLE);
 let favs = new Set(store.get('favs', []));
 let shopDone = new Set(store.get('shop', []));
 let plan = store.get('plan', null);
-function prep(r){ r.k=Math.round(r.p*4+r.c*4+r.f*9); r.mi=r.mi||[]; byId[r.id]=r; }
+function prep(r){ delete r._ai; r.k=Math.round(r.p*4+r.c*4+r.f*9); r.mi=r.mi||[]; byId[r.id]=r; }
 let mine = store.get('mine', []);
 mine.forEach(r=>{ prep(r); R.push(r); });
 if(plan && !plan.days.every(d=>SLOTS_IDS.every(s=>d[s]&&byId[d[s].id]))) plan=null;
@@ -1477,12 +1480,15 @@ function dayTotals(day){ return SLOTS_IDS.reduce((t,sl)=>{ const e=day[sl], r=by
 function weekCount(days,tag){ return days.reduce((n,d)=>n+['pranzo','cena'].filter(sl=>byId[d[sl].id].tags.includes(tag)).length,0); }
 function fixProtein(days,T,prot,used){
   const share=Object.fromEntries(SLOTS.map(s=>[s[0],s[1]]));
-  days.forEach(day=>{
+  days.forEach((day,di)=>{
     for(const sl of ['spuntino','colazione','pranzo','cena']){
       if(dayTotals(day).p>=.9*prot) break;
       const cur=byId[day[sl].id], inDay=SLOTS_IDS.map(x=>day[x].id), main=sl==='pranzo'||sl==='cena';
+      const near=[days[di-1],days[di+1]].filter(Boolean).map(d=>d[sl].id);
+      const cov=profile.sf?coverage(days):null;
+      const keepsCoverage=r=>!cov||Object.keys(NUTR).every(m=>{ const w=NUTR[m].w; if(cov[m]<w) return true; return cov[m]-(cur.mi.includes(m)?1:0)+(r.mi.includes(m)?1:0)>=w; });
       const keepTag=tag=>main&&cur.tags.includes(tag)&&weekCount(days,tag)<=(tag==='pesce'?2:3);
-      let c=pool(sl).filter(r=>!inDay.includes(r.id)&&(used[r.id]||0)<2&&r.p/r.k>cur.p/cur.k+.02
+      let c=pool(sl).filter(r=>!inDay.includes(r.id)&&!near.includes(r.id)&&keepsCoverage(r)&&(used[r.id]||0)<2&&r.p/r.k>cur.p/cur.k+.02
         &&(!keepTag('pesce')||r.tags.includes('pesce'))&&(!keepTag('legumi')||r.tags.includes('legumi')));
       if(!c.length) continue;
       c.sort((a,b)=>b.p/b.k-a.p/a.k); c=c.slice(0,Math.max(3,Math.ceil(c.length*.4)));

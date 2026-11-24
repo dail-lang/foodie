@@ -276,6 +276,29 @@ test('consigli mostrano il livello', async p => {
   assert(/prove solide/.test(await p.locator('#v-consigli .tips').innerText()));
 });
 
+/* ---------- Revisione finale antinfiammatorio ---------- */
+test('niente falsi abbinamenti antinfiammatori', async p => {
+  const r = await ev(p, () => ['Latte parz. scremato', 'Fiocchi di latte', 'Latte di cocco light', 'Grana', 'Verdure per minestrone (anche surgelate)', 'Olive verdi', 'Fagioli cannellini cotti', 'Tè verde', 'Lattuga', 'Granola fatta in casa'].map(n => { const a = aiEntry(n); return a ? a.id : null; }));
+  assertEq(r, [null, null, null, null, null, null, 'legumi', 'te', 'foglia', 'integrali']);
+});
+test('farine di avena e ceci e muesli non sono da limitare', async p => {
+  const r = await ev(p, () => [aiEntry('Farina d\'avena'), aiEntry('Farina di ceci'), aiEntry('Muesli senza zucchero'), aiEntry('Farina d\'avena', { dough: true }), aiEntry('Farina integrale', { dough: true })].map(a => a && a.id));
+  assertEq(r, ['integrali', 'legumi', 'integrali', 'integrali', 'raffinati']);
+});
+test('correzione proteine non peggiora la copertura Superfood', async p => {
+  const r = await ev(p, () => { profile.sf = true; let miss = 0; for (let k = 0; k < 40; k++) { makePlan(); const c = coverage(plan.days); miss += Object.keys(NUTR).filter(m => c[m] < NUTR[m].w).length; } return miss / 40; });
+  assert(r <= .75, 'nutrienti mancanti in media ' + r);
+}, { seed: { 'pp.profile': REAL } });
+test('niente stesso piatto due giorni di fila', async p => {
+  const r = await ev(p, () => { profile.sf = true; profile.ai = true; let rep = 0; for (let k = 0; k < 40; k++) { makePlan(); for (let d = 1; d < 7; d++) SLOTS_IDS.forEach(s => { if (plan.days[d][s].id === plan.days[d - 1][s].id) rep++; }); } return rep; });
+  assert(r <= 10, 'ripetizioni consecutive ' + r);
+}, { seed: { 'pp.profile': REAL } });
+test('il punteggio non viene salvato nelle ricette mie', async p => {
+  const r = await ev(p, () => { const f = new FormData(); f.set('n', 'Prova'); f.append('m', 'pranzo'); f.set('t', '10'); f.set('p', '30'); f.set('c', '40'); f.set('f', '10'); f.set('ing', '150 g salmone\n100 g spinaci'); f.set('s', 'Cuoci.'); f.set('h', ''); saveMine(f); const r = R[R.length - 1]; aiScore(r); store.set('mine', mine); return '_ai' in store.get('mine', [])[0]; });
+  assertEq(r, false);
+});
+test('consiglio zenzero senza certezze', async p => { assert(await ev(p, () => !TIPS.some(t => t.cat === 'Antinfiammatorio' && /sicuramente/i.test(t.b)))); });
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

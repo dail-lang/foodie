@@ -65,6 +65,21 @@ test('recente con un tocco aggiunge al diario', async p => {
   assertEq(n, 1);
 });
 
+/* ---------- Task 4: spesa per reparto ---------- */
+test('reparti', async p => {
+  const r = await ev(p, () => ['Salmone', 'Yogurt greco 0%', 'Uova', 'Zucchine', 'Pasta integrale', 'Ceci cotti', 'Noci', 'Olio extravergine d\'oliva', 'Tonno al naturale'].map(aisleOf));
+  assertEq(r, ['Carne e pesce', 'Latticini e uova', 'Latticini e uova', 'Frutta e verdura', 'Pane, pasta e cereali', 'Legumi e conserve', 'Frutta secca e semi', 'Dispensa e condimenti', 'Carne e pesce']);
+});
+test('in Dispensa finiscono solo condimenti', async p => {
+  const odd = await ev(p, () => [...new Set(R.flatMap(r => r.ing).filter(i => i[2] !== 'q.b.').map(i => i[0]))].filter(n => aisleOf(n) === 'Dispensa e condimenti' && !/olio|miele|cacao|lievito|salsa|tahina|agar|brodo|aceto|curry|cannella|zucchero|granola|cioccolato|burro d|burro di|cocco|caff/i.test(n)));
+  assertEq(odd, []);
+});
+test('lista spesa raggruppata', async p => {
+  await ev(p, () => { ui.showShop = true; location.hash = 'piano'; render(); });
+  const heads = await ev(p, () => [...document.querySelectorAll('.shop .aisle h3')].map(h => h.textContent.replace(/\s*\d+$/, '').trim()));
+  assert(heads.length >= 5 && heads[0] === 'Frutta e verdura', JSON.stringify(heads));
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

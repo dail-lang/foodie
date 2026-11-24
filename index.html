@@ -309,6 +309,9 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 }
 
 /* ===== Ritocchi grafici ===== */
+.aisle{margin-top:14px}
+.aisle h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--basil-text);padding-bottom:4px;border-bottom:1px solid var(--line)}
+.aisle ul{margin-top:6px}
 .mbtns{display:flex;gap:6px;align-items:center}
 .tick{width:34px;height:34px;border-radius:999px;border:2px solid var(--basil);background:var(--surface);color:var(--basil);display:grid;place-items:center;padding:0}
 .tick svg{opacity:.35}
@@ -1158,11 +1161,27 @@ function shopList(){
   }));
   return [...m.entries()].sort((a,b)=>a[1].n.localeCompare(b[1].n,'it'));
 }
+const AISLES = [
+ ['Frutta e verdura', /zucchin|pomodor|spinaci|rucola|lattuga|insalata|carot|sedano|cipolla|peperon|melanzan|broccol|funghi|fagiolini|cetriolo|zucca|patat|barbabietola|germogli|verdur|avocado|banan|mela|pera|kiwi|fragol|frutti di bosco|lampon|mirtill|mango|ananas|frutta|limone|lime/i],
+ ['Carne e pesce', /pollo|tacchino|manzo|macinato|salmone|tonno|merluzzo|orata|pesce|gamber|sgombro|fesa|controfiletto/i],
+ ['Latticini e uova', /yogurt|skyr|kefir|latte|ricotta|feta|mozzarella|parmigiano|grana|uova|albume|bevanda/i],
+ ['Pane, pasta e cereali', /pane|pasta|spaghetti|riso|farro|orzo|quinoa|cous|avena|farina|piadina|tortilla|gnocchi|noodles|cracker|gallette|biscotti|savoiardi|corn flakes|sfoglie|popcorn|granola/i],
+ ['Legumi e conserve', /ceci|lenticchie|fagioli|edamame|hummus|passata|pomodori secchi|olive|tofu|piselli|capperi/i],
+ ['Frutta secca e semi', /noci|mandorle|pistacchi|arachidi|semi |datteri/i],
+ ['Dispensa e condimenti', /./]
+];
+const AISLE_FIRST = [ ['Dispensa e condimenti', /^olio|salsa|tahina|burro d|burro di|cocco|cacao|miele|cioccolato|lievito|agar/i], ['Legumi e conserve', /pomodori secchi|passata/i], ['Frutta secca e semi', /^semi|datteri/i], ['Latticini e uova', /fiocchi di latte/i], ['Pane, pasta e cereali', /fiocchi d.avena|pangrattato/i] ];
+function aisleOf(name){
+  const hit = AISLE_FIRST.find(([,re])=>re.test(name)) || AISLES.find(([,re])=>re.test(name));
+  return hit[0];
+}
 function shopBlock(){
   const items = shopList();
   const left = items.filter(([k])=>!shopDone.has(k)).length;
+  let j=0;
+  const groups = AISLES.map(([a])=>[a, items.filter(([,i])=>aisleOf(i.n)===a)]).filter(([,l])=>l.length);
   return `<div class="shop"><div class="row"><h2 style="font-size:1.15rem;margin-right:auto">Lista della spesa</h2><span class="muted num">${left} da prendere su ${items.length}</span></div>
-    <ul>${items.map(([k,i],j)=>`<li><label><input type="checkbox" id="sh-${j}" data-shop="${esc(k)}" ${shopDone.has(k)?'checked':''}><span>${esc(i.n)}</span><span class="q num">${qty(i.q,i.u)}</span></label></li>`).join('')}</ul></div>`;
+    ${groups.map(([a,l])=>`<section class="aisle"><h3>${a} <span class="muted num">${l.length}</span></h3><ul>${l.map(([k,i])=>`<li><label><input type="checkbox" id="sh-${j++}" data-shop="${esc(k)}" ${shopDone.has(k)?'checked':''}><span>${esc(i.n)}</span><span class="q num">${qty(i.q,i.u)}</span></label></li>`).join('')}</ul></section>`).join('')}</div>`;
 }
 /* "Cosa hai in casa": capisce testo libero, singolari/plurali, ignora le parole inutili */
 const STOP = new Set('di del della dello dei degli delle dal dalla con per tra fra the and ho hai abbiamo cosa casa frigo frigorifero dispensa freezer poi anche qualche poco pò sono avanzo avanzato avanzata avanzati avanzate mezzo mezza solo tipo alcune alcuni ancora pure invece oppure non che chi una uno gli les nel nella sul sulla vorrei voglio fare cucinare mangiare stasera oggi domani pranzo cena colazione grammi gram etto etti litro litri pacco pacchi confezione scatola scatolette barattolo vasetto'.split(' '));

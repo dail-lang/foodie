@@ -22,6 +22,8 @@ img{max-width:100%}
 
 
 
+
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -218,6 +220,12 @@ fieldset.field legend{font-size:.85rem;font-weight:500;margin-bottom:4px}
 .pantry{display:grid;gap:6px;background:var(--basil-soft);border-radius:var(--r);padding:12px}
 .pantry label{font-size:.9rem}
 .have{font-size:.8rem;color:var(--basil);font-weight:600}
+.pantry-in{border-radius:14px;resize:vertical;font:inherit;line-height:1.4}
+.pres{display:grid;gap:8px;margin-bottom:6px}
+.tag.ok{background:var(--basil);color:var(--basil-ink)}
+.psec{display:grid;gap:8px;margin-top:14px}
+.psec h3{font-size:1.1rem}
+.psec p{margin:0;font-size:.88rem}
 .tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 10px}
 table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
 .pt th,.pt td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
@@ -805,12 +813,23 @@ function shopBlock(){
   return `<div class="shop"><div class="row"><h2 style="font-size:1.15rem;margin-right:auto">Lista della spesa</h2><span class="muted num">${left} da prendere su ${items.length}</span></div>
     <ul>${items.map(([k,i],j)=>`<li><label><input type="checkbox" id="sh-${j}" data-shop="${esc(k)}" ${shopDone.has(k)?'checked':''}><span>${esc(i.n)}</span><span class="q num">${qty(i.q,i.u)}</span></label></li>`).join('')}</ul></div>`;
 }
-function pantryTerms(){ return ui.pantry.split(/[,;\n]+/).map(t=>t.trim().toLowerCase()).filter(t=>t.length>=3); }
+/* "Cosa hai in casa": capisce testo libero, singolari/plurali, ignora le parole inutili */
+const STOP = new Set('di del della dello dei degli delle dal dalla con per tra fra the and ho hai abbiamo cosa casa frigo frigorifero dispensa freezer poi anche qualche poco pò sono avanzo avanzato avanzata avanzati avanzate mezzo mezza solo tipo alcune alcuni ancora pure invece oppure non che chi una uno gli les nel nella sul sulla vorrei voglio fare cucinare mangiare stasera oggi domani pranzo cena colazione grammi gram etto etti litro litri pacco pacchi confezione scatola scatolette barattolo vasetto'.split(' '));
+const STAPLE = /^(olio extravergine|sale|pepe|paprika|curry|cannella|aglio e rosmarino|limone|lievito)/i;
+const words = t => t.toLowerCase().replace(/[’']/g,' ').split(/[^a-zà-ù]+/).filter(w=>w.length>=3&&!STOP.has(w));
+const stem = w => w.slice(0,Math.max(3,w.length-1));
+function stemMatch(a,b){
+  const x=stem(a), y=stem(b); if(x===y) return true;
+  if(x==='fagiol'&&y==='fagiolin'||y==='fagiol'&&x==='fagiolin') return false;
+  return (x.length>=4&&y.startsWith(x)&&y.length-x.length<=2) || (y.length>=4&&x.startsWith(y)&&x.length-y.length<=2);
+}
+function pantryTerms(){ return [...new Set(words(ui.pantry))]; }
 function pantryMatch(r,ts){
-  const need = r.ing.filter(i=>i[2]!=='q.b.');
-  const has = need.filter(i=>ts.some(t=>i[0].toLowerCase().includes(t.slice(0,Math.max(3,t.length-1)))));
+  const need = r.ing.filter(i=>i[2]!=='q.b.'&&!STAPLE.test(i[0]));
+  const has = need.filter(i=>{ const ws=words(i[0]); return ts.some(t=>ws.some(w=>stemMatch(t,w))); });
   return {has:has.length,tot:need.length,miss:need.filter(i=>!has.includes(i)).map(i=>i[0])};
 }
+function knownTerm(t){ return R.some(r=>r.ing.some(i=>words(i[0]).some(w=>stemMatch(t,w)))); }
 function filtered(){
   const q = ui.q.trim().toLowerCase();
   let list = R.filter(r=>
@@ -821,7 +840,7 @@ function filtered(){
   const ts = pantryTerms(); let ms = null;
   if(ts.length){
     ms = {}; list.forEach(r=>ms[r.id]=pantryMatch(r,ts));
-    list = list.filter(r=>ms[r.id].has>0).sort((a,b)=>(ms[b.id].has/ms[b.id].tot)-(ms[a.id].has/ms[a.id].tot) || ms[a.id].miss.length-ms[b.id].miss.length);
+    list = list.filter(r=>ms[r.id].has>0).sort((a,b)=>ms[a.id].miss.length-ms[b.id].miss.length || ms[b.id].has-ms[a.id].has || a.t-b.t);
   }
   return {list,ms};
 }
@@ -834,23 +853,37 @@ function viewRicette(){
       <button class="btn primary" data-act="addform">+ Aggiungi la tua ricetta</button></div>
     <div class="filters">
       <input class="search" id="search" type="search" placeholder="Cerca un piatto o un ingrediente (es. ceci, salmone)" value="${esc(ui.q)}" aria-label="Cerca ricette">
-      <div class="pantry"><label for="pantry"><b>Cosa hai in casa?</b> Scrivi gli ingredienti separati da virgola: ti mostro cosa puoi cucinare e cosa manca.</label>
-        <input id="pantry" class="search" type="text" placeholder="es. uova, spinaci, ceci, yogurt" value="${esc(ui.pantry)}" autocomplete="off"></div>
+      <div class="pantry"><label for="pantry"><b>Cosa hai in casa?</b> Scrivilo come ti viene, anche senza virgole: ti dico cosa puoi cucinare e cosa ti manca. Olio, sale, pepe e spezie li do per scontati.</label>
+        <textarea id="pantry" class="search pantry-in" rows="2" placeholder="es. ho delle uova, un po' di spinaci, pane e yogurt greco" autocomplete="off">${esc(ui.pantry)}</textarea></div>
       <div class="chips" role="group" aria-label="Pasto">${slotChips}</div>
       <div class="chips" role="group" aria-label="Filtri">${fltChips}</div>
     </div>
     <div id="cards">${cardsHTML()}</div>`;
 }
-function cardsHTML(){
-  const {list,ms} = filtered();
-  if(!list.length) return `<div class="empty">${ms?'Nessuna ricetta usa questi ingredienti. Prova a scriverne altri.':'Nessuna ricetta con questi filtri. Prova a toglierne qualcuno.'}</div>`;
-  return `<div class="cards">${list.map(r=>{ const m = ms&&ms[r.id]; return `<button class="card" data-open="${r.id}" data-x="1">
+function cardHTML(r,m){
+  return `<button class="card" data-open="${r.id}" data-x="1">
       <div class="tags">${r.m.map(s=>`<span class="tag slot" style="box-shadow:inset 3px 0 0 var(--c-${SC[s]})">${SLOT_LBL[s]}</span>`).join('')}${favs.has(r.id)?'<span class="tag" style="color:var(--tomato)">♥</span>':''}</div>
       <h3>${esc(r.n)}</h3>
       <div class="kv num"><span><b>${r.k}</b> kcal</span><span><b>${r.p}</b> g prot.</span><span><b>${r.t}</b> min</span></div>
-      ${m?`<div class="have">Hai ${m.has} ingredienti su ${m.tot}${m.miss.length?` · manca: ${esc(m.miss.slice(0,3).join(', '))}${m.miss.length>3?'…':''}`:' · hai tutto!'}</div>`:''}
+      ${m?`<div class="have">${m.miss.length?`Hai ${m.has} su ${m.tot} · manca: ${esc(m.miss.slice(0,3).join(', '))}${m.miss.length>3?'…':''}`:'Hai tutto!'}</div>`:''}
       <div class="tags">${r.tags.filter(t=>t!=='veg'||!r.tags.includes('vegan')).map(t=>`<span class="tag">${TAG_LBL[t]||t}</span>`).join('')}</div>
-    </button>`}).join('')}</div>`;
+    </button>`;
+}
+function pantryHTML(list,ms){
+  const ts=pantryTerms(), ok=ts.filter(knownTerm), ko=ts.filter(t=>!knownTerm(t));
+  const ready=list.filter(r=>!ms[r.id].miss.length), one=list.filter(r=>ms[r.id].miss.length===1), more=list.filter(r=>ms[r.id].miss.length>1).slice(0,12);
+  const sec=(t,sub,l)=>l.length?`<section class="psec"><h3>${t} <span class="muted num">(${l.length})</span></h3>${sub?`<p class="muted">${sub}</p>`:''}<div class="cards">${l.map(r=>cardHTML(r,ms[r.id])).join('')}</div></section>`:'';
+  const head=`<div class="pres">${ok.length?`<div><span class="muted">Ho capito:</span> ${ok.map(t=>`<span class="tag ok">${esc(t)}</span>`).join(' ')}</div>`:''}
+    ${ko.length?`<div class="muted" style="font-size:.85rem">Non uso in nessuna ricetta: ${ko.map(esc).join(', ')}</div>`:''}
+    <p style="margin:0">${ready.length?`Puoi preparare subito <b>${ready.length} ${ready.length===1?'ricetta':'ricette'}</b>${one.length===1?' e a un\'altra manca un solo ingrediente':one.length?` e ad altre ${one.length} manca un solo ingrediente`:''}.`:one.length?`Ti manca un solo ingrediente per <b>${one.length} ${one.length===1?'ricetta':'ricette'}</b>.`:list.length?'Con questi ingredienti ti manca ancora qualcosa: ecco le ricette più vicine.':''}</p></div>`;
+  if(!list.length) return head+`<div class="empty">Nessuna ricetta usa questi ingredienti. Prova a scriverne altri, per esempio cosa hai in frigo e in dispensa.</div>`;
+  return head+sec('Puoi farle subito','',ready)+sec('Ti manca un solo ingrediente','',one)+sec('Altre idee','Mancano più ingredienti, ma ci sei vicino.',more);
+}
+function cardsHTML(){
+  const {list,ms} = filtered();
+  if(ms) return pantryHTML(list,ms);
+  if(!list.length) return `<div class="empty">Nessuna ricetta con questi filtri. Prova a toglierne qualcuno.</div>`;
+  return `<div class="cards">${list.map(r=>cardHTML(r,null)).join('')}</div>`;
 }
 function viewConsigli(){
   const el = document.getElementById('v-consigli');

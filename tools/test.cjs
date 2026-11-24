@@ -25,6 +25,25 @@ test('[RF 1] dati vecchi non rompono l’app', async p => {
   assert(await ev(p, () => plan.days.length === 7 && plan.days.every(d => byId[d.colazione.id])), 'piano non rigenerato');
 }, { seed: { 'pp.plan': { days: [{ colazione: { id: 'non-esiste', x: 1 } }], target: 2000 }, ['pp.log']: { [keyOf(1)]: { items: [{ n: 'x', k: 100, p: 5, c: 0, f: 0, src: 'q' }], water: 2 } } } });
 
+/* ---------- Task 2: ricette ---------- */
+test('100 ricette valide', async p => {
+  const r = await ev(p, () => ({ n: R.length, bad: R.filter(r => !r.id || !r.n || !r.m.length || !r.ing.length || !r.s.length || r.k < 100 || r.k > 700 || !r.m.every(m => ['colazione', 'pranzo', 'cena', 'spuntino'].includes(m)) || !r.tags.every(t => ['veg', 'vegan', 'pesce', 'legumi', 'carne', 'gf', 'sgarro', 'mia'].includes(t)) || !r.ing.every(i => ['g', 'ml', 'pz', 'cucchiai', 'q.b.'].includes(i[2]))).map(r => r.id) }));
+  assert(r.n >= 100 && r.bad.length === 0, `ricette ${r.n}, non valide: ${r.bad.join(',')}`);
+});
+test('id unici e micronutrienti', async p => {
+  const r = await ev(p, () => ({ dup: R.length - new Set(R.map(r => r.id)).size, noMicro: R.filter(r => !r.tags.includes('mia') && !MICRO[r.id]).map(r => r.id) }));
+  assert(r.dup === 0 && r.noMicro.length === 0, JSON.stringify(r));
+});
+test('nessun maiale', async p => {
+  const bad = await ev(p, () => R.flatMap(r => r.ing.map(i => i[0]).concat(r.n)).map(x => x.replace(/senza \w+/gi, '')).filter(x => /maiale|strutto|pancetta|guanciale|prosciutto|salame|speck|mortadella|gelatina|lardo/i.test(x)));
+  assertEq(bad, []);
+});
+test('[RF 4] vegano e vegetariano hanno ≥ 6 ricette per pasto', async p => {
+  const r = await ev(p, () => { const out = {}; for (const d of ['veg', 'vegan']) { profile.dieta = d; for (const m of ['colazione', 'pranzo', 'cena', 'spuntino']) out[d + '-' + m] = pool(m).length; } return out; });
+  const low = Object.entries(r).filter(([, n]) => n < 6);
+  assert(!low.length, JSON.stringify(low));
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

@@ -165,6 +165,18 @@ test('griglia medaglie in Oggi', async p => {
   assertEq(await p.locator('.badge-card').count(), 14);
 });
 
+test('più medaglie insieme = un solo avviso', async p => {
+  const n = await ev(p, () => { toggleEaten((new Date().getDay() + 6) % 7, 'pranzo', todayKey()); celebrate(); return document.querySelectorAll('.toast').length; });
+  assertEq(n, 1);
+}, { seed: { 'pp.profile': REAL, 'pp.log': { [keyOf(1)]: it1, [keyOf(2)]: it1 }, 'pp.prog': [{ d: keyOf(9), t: 1, vita: 90 }, { d: keyOf(0), t: 2, vita: 88 }] } });
+
+test('gnocchi tra i cereali', async p => { assertEq(await ev(p, () => aisleOf('Gnocchi di patate')), 'Pane, pasta e cereali'); });
+test('anello del voto grande', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(150);
+  const w = await p.locator('.score-ring').evaluate(e => e.getBoundingClientRect().width);
+  assert(w >= 80, 'larghezza ' + w);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

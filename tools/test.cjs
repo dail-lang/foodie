@@ -299,6 +299,22 @@ test('il punteggio non viene salvato nelle ricette mie', async p => {
 });
 test('consiglio zenzero senza certezze', async p => { assert(await ev(p, () => !TIPS.some(t => t.cat === 'Antinfiammatorio' && /sicuramente/i.test(t.b)))); });
 
+/* ---------- Uova intere ---------- */
+test('nessuna ricetta con pezzi frazionari', async p => {
+  assertEq(await ev(p, () => R.flatMap(r => r.ing.filter(i => i[2] === 'pz' && !Number.isInteger(+i[1])).map(i => r.id))), []);
+});
+test('pezzi mostrati sempre interi', async p => {
+  assertEq(await ev(p, () => [qty(2.5, 'pz'), qty(1.5, 'pz'), qty(0.6, 'pz'), qty(2, 'pz')]), ['3', '2', '1', '2']);
+});
+test('nessuna dose a pezzi con la virgola, a qualsiasi porzione', async p => {
+  const bad = await ev(p, () => { const out = []; R.forEach(r => [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].forEach(x => r.ing.filter(i => i[2] === 'pz').forEach(i => { const t = qty(i[1] * x, 'pz'); if (/[.,]/.test(t)) out.push(r.id + ' x' + x + ' ' + t); }))); return out; });
+  assertEq(bad, []);
+});
+test('lista spesa: uova intere arrotondate per eccesso', async p => {
+  const r = await ev(p, () => { plan = { days: Array.from({ length: 7 }, () => ({ colazione: { id: 'v3-uova-paprika', x: 1.25 }, pranzo: { id: 'brownies-fagioli', x: 1 }, cena: { id: 'pollo-limone', x: 1 }, spuntino: { id: 'mela-mandorle', x: 1 } })), target: 2000 }; return shopList().filter(([, i]) => /^uov/i.test(i.n)).map(([, i]) => [i.n, i.u, qty(i.q, i.u)]); });
+  assertEq(r, [['Uova', 'pz', '23']]);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

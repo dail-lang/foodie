@@ -224,6 +224,12 @@ test('20 ricette ai- valide e antinfiammatorie', async p => {
   assert(r.n === 20 && !r.notAI.length && !r.slow.length && r.vegan >= 4 && r.prot30 >= 6 && !r.noMicro.length, JSON.stringify(r));
 });
 
+/* ---------- Task 2b: 40 ricette in più ---------- */
+test('40 ricette v3- valide', async p => {
+  const r = await ev(p, () => { const a = R.filter(r => r.id.startsWith('v3-')); return { n: a.length, sgarri: a.filter(r => r.tags.includes('sgarro')).length, slow: a.filter(r => r.t > 30).map(r => r.id), tot: R.filter(r => !r.tags.includes('mia')).length }; });
+  assert(r.n === 40 && r.sgarri >= 12 && !r.slow.length && r.tot >= 160, JSON.stringify(r));
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

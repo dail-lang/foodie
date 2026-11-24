@@ -677,6 +677,28 @@ test('bevanda: la riga mostra ml', async p => {
   assertEq([(await p.textContent('.qgl')).trim(), await p.inputValue('input.qg')], ['ml', '330']);
 });
 
+/* ---------- Prodotti di marca salvati ---------- */
+const OFF_BUENO = { code: '8000500121467', product_name_it: 'Kinder Bueno', brands: 'Ferrero,Kinder', serving_quantity: '21.5', serving_size: '1 barretta (21,5 g)', nutriments: { 'energy-kcal_100g': 572, proteins_100g: 9.2, carbohydrates_100g: 49.5, fat_100g: 37.3, fiber_100g: 2 } };
+test('offNorm: dati puliti e sporchi', async p => {
+  assertEq(await ev(p, B => [offNorm(B).n, offNorm(B).sv, Math.round(offNorm({ code: '1', brands: 'X', nutriments: { 'energy-kj_100g': 1000 } }).k), offNorm({ code: '1', brands: 'X', nutriments: { 'energy-kj_100g': 1000 } }).partial, offNorm({ code: '2', product_name: 'Y', nutriments: { 'energy-kcal_100g': 950 } }), offNorm({ code: '3', product_name: 'Z', nutriments: {} }), offNorm({ code: '4', nutriments: { 'energy-kcal_100g': 100 } }).n, offNorm({ code: '5', product_name: 'W', serving_quantity: 0, nutriments: { 'energy-kcal_100g': 100 } }).sv, offNorm({ code: '6', product_name: 'Cola', quantity: '330 ml', serving_quantity: 330, nutriments: { 'energy-kcal_100g': 42 } }).ml], OFF_BUENO),
+    ['Kinder Bueno', 21.5, 239, true, null, null, 'Prodotto 4', 0, true]);
+});
+test('prodotto salvato: riconosciuto offline, nel backup, non ruba "spaghetti"', async p => {
+  assertEq(await ev(p, B => { saveProduct(offNorm(B)); saveProduct(offNorm({ code: '9', product_name_it: 'Spaghetti n.5', brands: 'Barilla', serving_quantity: 80, nutriments: { 'energy-kcal_100g': 359, proteins_100g: 12, carbohydrates_100g: 71, fat_100g: 2 } }));
+    const a = analyzeFood('2 kinder bueno').items[0], s = analyzeFood('spaghetti 80 g').items[0], b = analyzeFood('spaghetti barilla 80 g').items[0];
+    return [a.food.n, Math.round(a.g), s.food.prod || false, b.food.n, store.get('products', []).length, BK_KEYS.includes('products'), importData(exportData()).ok]; }, OFF_BUENO),
+    ['Kinder Bueno', 43, false, 'Spaghetti n.5', 2, true, true]);
+});
+test('prodotto con parole scritte solo se il pezzo era sconosciuto', async p => {
+  assertEq(await ev(p, B => { const f = saveProduct(offNorm(B), 'bueno bianco'); return f.kw.split('|').includes('bueno bianco'); }, OFF_BUENO), true);
+});
+test('prodotti salvati vecchi o rotti non rompono l’avvio', async p => {
+  assertEq(await ev(p, () => [store.get('products', []).length, analyzeFood('ottimo snack').items.length]), [1, 1]);
+}, { seed: { 'pp.products': [{ code: '1', n: 'Ottimo snack', b: '', k: 100, p: 1, c: 1, f: 1, fib: 0, sv: 0, ml: false }, 'rotto', { code: 2 }] } });
+test('prodotto salvato due volte: una sola voce', async p => {
+  assertEq(await ev(p, B => { saveProduct(offNorm(B)); saveProduct(offNorm(B)); return [store.get('products', []).length, FOODS.filter(f => f.prod).length]; }, OFF_BUENO), [1, 1]);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

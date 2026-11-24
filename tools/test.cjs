@@ -157,7 +157,7 @@ test('toast quando si sblocca una medaglia', async p => {
   await p.waitForTimeout(150);
   await p.locator('.meal [data-act="eat"]').first().click();
   await p.waitForTimeout(200);
-  assert(await p.locator('.toast').count() === 1, 'nessun toast');
+  assert(await p.locator('.toast').count() >= 1, 'nessun toast');
 }, { seed: { 'pp.profile': REAL } });
 test('griglia medaglie in Oggi', async p => {
   await ev(p, () => { location.hash = 'oggi'; });

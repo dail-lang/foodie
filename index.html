@@ -24,6 +24,10 @@ img{max-width:100%}
 
 
 
+
+
+
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -35,6 +39,7 @@ img{max-width:100%}
   --saffron:#C98A12; --saffron-soft:#F7E7C2;
   --tomato:#B8442F;
   --c-col:#C98A12; --c-pra:#2E6A4C; --c-cen:#3D5A99; --c-spu:#8A5A9E;
+  --basil-text:#1F5139; --col-soft:#F8EBCB; --pra-soft:#DCEBE1; --cen-soft:#E3E9F6; --spu-soft:#F0E6F4; --accent:#F7A93B; --shadow:0 1px 2px rgb(28 38 32 / .06), 0 4px 14px rgb(28 38 32 / .06);
   --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --r:12px;
@@ -45,6 +50,7 @@ img{max-width:100%}
   --basil:#6FBF93; --basil-ink:#0E1A13; --basil-soft:#1F3829;
   --saffron:#E8B04A; --saffron-soft:#3A2E14; --tomato:#E77A63;
   --c-col:#E8B04A; --c-pra:#6FBF93; --c-cen:#8FA8E8; --c-spu:#C79BDB;
+  --basil-text:#C5EBD5; --col-soft:#3A2E14; --pra-soft:#27523C; --cen-soft:#1F2840; --spu-soft:#2C2236; --accent:#F2B04F; --shadow:0 1px 2px rgb(0 0 0 / .3), 0 4px 14px rgb(0 0 0 / .25);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
@@ -53,6 +59,7 @@ img{max-width:100%}
   --basil:#6FBF93; --basil-ink:#0E1A13; --basil-soft:#1F3829;
   --saffron:#E8B04A; --saffron-soft:#3A2E14; --tomato:#E77A63;
   --c-col:#E8B04A; --c-pra:#6FBF93; --c-cen:#8FA8E8; --c-spu:#C79BDB;
+  --basil-text:#C5EBD5; --col-soft:#3A2E14; --pra-soft:#27523C; --cen-soft:#1F2840; --spu-soft:#2C2236; --accent:#F2B04F; --shadow:0 1px 2px rgb(0 0 0 / .3), 0 4px 14px rgb(0 0 0 / .25);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -79,10 +86,13 @@ main{padding-block:20px 48px}
 section.view{display:grid;gap:20px}
 .eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 .muted{color:var(--muted)}
-.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:999px;font-weight:500}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid transparent;background:var(--pra-soft);color:var(--basil-text);padding:9px 16px;border-radius:999px;font-weight:600;line-height:1.2;text-decoration:none}
 .btn:hover{border-color:var(--basil)}
 .btn.primary{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
-.btn.small{padding:4px 10px;font-size:.85rem}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.small{padding:7px 13px;font-size:.85rem}
+.btn.big{padding:13px 22px;font-size:1rem}
+.btn svg{flex:none}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
 /* Riepilogo obiettivo */
@@ -103,14 +113,14 @@ section.view{display:grid;gap:20px}
 .day-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .day-h h3{font-size:1.1rem}
 .day-h .tot{font-size:.85rem;color:var(--muted)}
-.meal{display:grid;grid-template-columns:4px 1fr auto;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.meal{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .meal .dot{align-self:stretch;border-radius:2px}
 .meal .info{min-width:0}
 .meal .slot{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
 .meal .name{background:none;border:0;padding:0;text-align:left;font-weight:500;line-height:1.3}
 .meal .name:hover{color:var(--basil);text-decoration:underline}
 .meal .meta{font-size:.8rem;color:var(--muted)}
-.swap{border:1px solid var(--line);background:none;border-radius:8px;width:32px;height:32px;display:grid;place-items:center;color:var(--muted)}
+.swap{border:1.5px solid transparent;background:var(--pra-soft);border-radius:10px;width:34px;height:34px;display:grid;place-items:center;color:var(--basil-text)}
 .swap:hover{color:var(--basil);border-color:var(--basil)}
 .c-colazione{background:var(--c-col)} .c-pranzo{background:var(--c-pra)} .c-cena{background:var(--c-cen)} .c-spuntino{background:var(--c-spu)}
 
@@ -126,7 +136,8 @@ section.view{display:grid;gap:20px}
 .filters{display:grid;gap:10px}
 .search{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:.85rem}
+.chip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;font-size:.85rem;font-weight:500}
+.chip:hover{border-color:var(--basil)}
 .chip[aria-pressed="true"]{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;display:grid;gap:6px;align-content:start}
@@ -163,7 +174,8 @@ section.view{display:grid;gap:20px}
 .sheet{background:var(--surface);border-radius:16px;max-width:620px;width:100%;max-height:100%;overflow:auto;padding:22px;display:grid;gap:14px}
 .sheet-h{display:flex;gap:12px;align-items:start}
 .sheet-h h2{font-size:1.45rem;margin-right:auto}
-.icon-btn{border:1px solid var(--line);background:none;border-radius:999px;width:36px;height:36px;display:grid;place-items:center;flex:none;color:var(--muted)}
+.icon-btn{border:1.5px solid transparent;background:var(--sunk);border-radius:999px;width:38px;height:38px;display:grid;place-items:center;flex:none;color:var(--ink)}
+.icon-btn:hover{border-color:var(--basil)}
 .icon-btn[aria-pressed="true"]{color:var(--tomato);border-color:var(--tomato)}
 .nut{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:var(--sunk);border-radius:10px;padding:10px}
 .nut div{text-align:center}
@@ -304,6 +316,84 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
   .sheet{animation:up .18s ease-out}
   @keyframes up{from{transform:translateY(12px);opacity:.6}to{transform:none;opacity:1}}
 }
+
+/* ===== Ritocchi grafici ===== */
+main a:not(.btn){color:var(--basil-text);font-weight:600;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:2px}
+.sheet-h h2{font-size:1.3rem}
+@media (max-width:560px){ .inline .field.wide{flex-basis:100%} }
+body{background:var(--bg)}
+.brand h1{font-size:1.45rem;letter-spacing:-.02em}
+header.top{box-shadow:0 1px 0 var(--line)}
+header.top{border-bottom:0}
+nav.tabs a{display:inline-flex;align-items:center;gap:6px}
+nav.tabs a svg{flex:none}
+nav.tabs a[aria-current="page"]{color:var(--basil-text);background:var(--surface)}
+.day,.card,.panel,.goal,.tip,.wo,.shop,.cov,.form,.stat{box-shadow:var(--shadow);border-color:transparent}
+.panel .stat{box-shadow:none}
+.card{transition:transform .15s ease, box-shadow .15s ease;gap:10px;padding:14px}
+.card:hover{transform:translateY(-2px);border-color:var(--basil)}
+.card-top{display:flex;gap:12px;align-items:center}
+.card-h{min-width:0;display:grid;gap:2px}
+.card-h h3{font-size:1rem;line-height:1.3}
+.slots{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.thumb{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex:none}
+.thumb svg{width:26px;height:26px}
+.thumb.sm{width:38px;height:38px;border-radius:11px}
+.thumb.sm svg{width:21px;height:21px}
+.thumb.lg{width:58px;height:58px;border-radius:16px}
+.thumb.lg svg{width:32px;height:32px}
+.t-colazione{background:var(--col-soft);color:var(--c-col)}
+.t-pranzo{background:var(--pra-soft);color:var(--c-pra)}
+.t-cena{background:var(--cen-soft);color:var(--c-cen)}
+.t-spuntino{background:var(--spu-soft);color:var(--c-spu)}
+.day{padding:16px;gap:4px}
+.day.today{box-shadow:0 0 0 2px var(--accent), var(--shadow)}
+.badge{font-family:var(--body);font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--accent);color:#3A2600;padding:2px 8px;border-radius:999px;vertical-align:3px;margin-left:4px}
+.hello{background:linear-gradient(135deg,var(--col-soft),var(--pra-soft));border-radius:18px;padding:18px;display:grid;gap:14px}
+.hello h2{font-size:1.35rem}
+.hello .btn:not(.primary){background:var(--surface);box-shadow:var(--shadow)}
+.next{display:flex;gap:14px;align-items:center;background:var(--surface);border:1.5px solid transparent;border-radius:14px;padding:12px;text-align:left;width:100%;box-shadow:var(--shadow)}
+.next:hover{border-color:var(--basil)}
+.next-t{display:grid;gap:2px;min-width:0}
+.next-t small{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.next-t b{font-size:1.05rem;line-height:1.3}
+.next-t .num{font-size:.85rem;color:var(--muted)}
+.sheet-h{align-items:center}
+.steps li{padding-left:2px}
+.st-q{display:block;margin-top:3px;font-size:.84rem;color:var(--muted)}
+.st-q b{color:var(--ink);font-weight:600}
+.ck-top .thumb{flex:none}
+.ck-use{background:var(--col-soft);border-radius:14px;padding:14px 16px}
+.ck-use ul,.ck-all ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.ck-use li,.ck-all li{display:flex;justify-content:space-between;gap:14px;font-size:1.08rem}
+.ck-use b,.ck-all b,.ck-ing b{white-space:nowrap}
+.ck-all{border-top:1px solid var(--line);padding-top:12px}
+.ck-all summary{cursor:pointer;color:var(--basil-text);font-weight:600}
+.ck-all li{font-size:.95rem;color:var(--muted)}
+.ck-all li b{color:var(--ink)}
+.ck-ok{display:flex;gap:8px;align-items:center;margin:0;color:var(--basil-text);font-weight:600}
+#timer-dock{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:40;display:grid;gap:8px;justify-items:end;pointer-events:none}
+.tpill{pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:999px;padding:7px 7px 7px 14px;box-shadow:0 8px 24px rgb(0 0 0 / .28);max-width:min(92vw,380px)}
+.tp-t{display:grid;min-width:0;line-height:1.2}
+.tp-l{font-size:.72rem;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpill b{font-size:1.15rem}
+.tp-b{border:0;background:color-mix(in srgb, var(--bg) 22%, transparent);color:inherit;border-radius:999px;min-width:38px;height:38px;padding:0 10px;font-weight:700}
+.tp-b:hover{background:color-mix(in srgb, var(--bg) 35%, transparent)}
+.tpill.done{background:#B8442F;color:#FFFFFF;animation:ring 1s ease-in-out infinite alternate}
+.tpill.done .tp-b{background:rgb(255 255 255 / .22)}
+@keyframes ring{from{box-shadow:0 0 0 0 rgb(184 68 47 / .55), 0 8px 24px rgb(0 0 0 / .28)}to{box-shadow:0 0 0 10px rgb(184 68 47 / 0), 0 8px 24px rgb(0 0 0 / .28)}}
+@media (prefers-reduced-motion:reduce){.tpill.done{animation:none}.card{transition:none}}
+body.cooking #timer-dock{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+@media (max-width:700px){
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;width:auto;max-width:none;border-radius:0;background:var(--surface);box-shadow:0 -1px 0 var(--line), 0 -6px 18px rgb(0 0 0 / .06);
+    padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));justify-content:space-around;overflow:visible;gap:2px}
+  nav.tabs a{flex:1;flex-direction:column;gap:2px;padding:6px 2px;font-size:.66rem;font-weight:600;border-radius:12px;text-align:center}
+  nav.tabs a svg{width:22px;height:22px}
+  nav.tabs a[aria-current="page"]{background:var(--pra-soft);color:var(--basil-text);box-shadow:none}
+  main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  #timer-dock{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .top .wrap{padding-block:12px}
+}
 </style>
 </head>
 <body>
@@ -328,12 +418,12 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
       <h1>Foodie</h1>
     </div>
     <nav class="tabs" aria-label="Sezioni">
-      <a href="#piano" data-v="piano">Piano</a>
-      <a href="#oggi" data-v="oggi">Oggi</a>
-      <a href="#ricette" data-v="ricette">Ricette</a>
-      <a href="#allenamento" data-v="allenamento">Allenati</a>
-      <a href="#consigli" data-v="consigli">Consigli</a>
-      <a href="#profilo" data-v="profilo">Profilo</a>
+      <a href="#piano" data-v="piano"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Piano</span></a>
+      <a href="#oggi" data-v="oggi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 9.5"/></svg><span>Oggi</span></a>
+      <a href="#ricette" data-v="ricette"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 8c0-2 1.8-3 4-3s4 1 4 3"/></svg><span>Ricette</span></a>
+      <a href="#allenamento" data-v="allenamento"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3 10v4M21 10v4M6.5 12h11"/></svg><span>Allenati</span></a>
+      <a href="#consigli" data-v="consigli"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 1 4 10.5c-.8.8-1 1.5-1 2.5H9c0-1-.2-1.7-1-2.5A6 6 0 0 1 12 3z"/></svg><span>Consigli</span></a>
+      <a href="#profilo" data-v="profilo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><span>Profilo</span></a>
     </nav>
   </div>
 </header>
@@ -347,6 +437,7 @@ table.pt{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
   <section class="view" id="v-profilo" hidden></section>
 </main>
 <div id="overlay-root"></div>
+<div id="timer-dock" aria-live="polite"></div>
 
 <script>
 /* ---------- Dati: ricette ----------
@@ -746,6 +837,15 @@ const svgSwap = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
 const svgHeart = f => `<svg width="18" height="18" viewBox="0 0 24 24" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>`;
 
 /* ---------- Viste ---------- */
+function helloBlock(){
+  const now=new Date(), h=now.getHours(), TI=(now.getDay()+6)%7;
+  const sl = h<10?'colazione':h<15?'pranzo':h<18?'spuntino':'cena';
+  const e=plan.days[TI][sl], r=byId[e.id];
+  const greet = h<6?'Buonanotte':h<13?'Buongiorno':h<18?'Buon pomeriggio':'Buonasera';
+  return `<div class="hello"><div class="hello-h"><div><div class="eyebrow">${greet}</div><h2>${DAYS[TI]}, il prossimo pasto</h2></div></div>
+    <button class="next" data-open="${r.id}" data-x="${e.x}">${thumb(r,sl,'lg')}<span class="next-t"><small>${SLOT_LBL[sl]}</small><b>${esc(r.n)}</b><span class="num">${Math.round(r.k*e.x)} kcal · ${Math.round(r.p*e.x)} g proteine · ${r.t} min</span></span></button>
+    <div class="row"><button class="btn primary" data-act="cook" data-id="${r.id}" data-x="${e.x}">Cucina adesso</button><a class="btn" href="#oggi">Apri il diario</a></div></div>`;
+}
 function goalBlock(){
   const c = calc(profile);
   const tot = c.prot*4+c.fat*9+c.carb*4;
@@ -758,21 +858,23 @@ function goalBlock(){
 function viewPiano(){
   if(!plan) makePlan();
   const el = document.getElementById('v-piano');
+  const TI=(new Date().getDay()+6)%7;
   const days = plan.days.map((day,d)=>{
     const tot = SLOTS.reduce((s,[sl])=>s+byId[day[sl].id].k*day[sl].x,0);
     const rows = SLOTS.map(([sl])=>{
       const e=day[sl], r=byId[e.id];
-      return `<div class="meal"><span class="dot c-${sl}"></span>
+      return `<div class="meal">${thumb(r,sl,'sm')}
         <div class="info"><div class="slot">${SLOT_LBL[sl]}</div>
           <button class="name" data-open="${r.id}" data-x="${e.x}">${esc(r.n)}</button>
           <div class="meta num">${e.x!==1?fmt(e.x)+' porz. · ':''}${Math.round(r.k*e.x)} kcal · ${r.t} min</div></div>
         <button class="swap" data-swap="${d}|${sl}" aria-label="Cambia ${SLOT_LBL[sl].toLowerCase()} di ${DAYS[d]}" title="Cambia pasto">${svgSwap}</button></div>`;
     }).join('');
-    return `<article class="day"><div class="day-h"><h3>${DAYS[d]}</h3><span class="tot num">${Math.round(tot).toLocaleString('it-IT')} kcal</span></div>${rows}${profile.sf?`<div class="boost"><b>Extra superfood:</b> ${esc(BOOST[d])}</div>`:''}</article>`;
+    return `<article class="day ${d===TI?'today':''}"><div class="day-h"><h3>${DAYS[d]}${d===TI?' <span class="badge">Oggi</span>':''}</h3><span class="tot num">${Math.round(tot).toLocaleString('it-IT')} kcal</span></div>${rows}${profile.sf?`<div class="boost"><b>Extra superfood:</b> ${esc(BOOST[d])}</div>`:''}</article>`;
   }).join('');
   el.innerHTML = `
     ${profile.esempio?`<div class="note"><b>Piano di esempio</b> per un uomo di 30 anni, 72 kg, obiettivo ricomposizione. <a href="#profilo">Inserisci i tuoi dati</a> per avere le tue calorie.</div>`:''}
     <div class="row">${profile.obj==='ricomp'?'<span class="pill">Ricomposizione · skinny fat</span>':''}${profile.sf?'<span class="pill sf">Superfood attivo</span>':''}${profile.dieta==='nopork'?'<span class="pill">Senza maiale</span>':''}</div>
+    ${helloBlock()}
     ${goalBlock()}
     ${profile.obj==='ricomp'?`<p class="note"><b>Skinny fat:</b> leggero deficit (circa 10%) e proteine alte, circa 2 g per kg. Senza allenamento di forza non funziona: trovi le schede in <a href="#allenamento">Allenati</a>.</p>`:''}
     ${covBlock()}
@@ -862,9 +964,8 @@ function viewRicette(){
 }
 function cardHTML(r,m){
   return `<button class="card" data-open="${r.id}" data-x="1">
-      <div class="tags">${r.m.map(s=>`<span class="tag slot" style="box-shadow:inset 3px 0 0 var(--c-${SC[s]})">${SLOT_LBL[s]}</span>`).join('')}${favs.has(r.id)?'<span class="tag" style="color:var(--tomato)">♥</span>':''}</div>
-      <h3>${esc(r.n)}</h3>
-      <div class="kv num"><span><b>${r.k}</b> kcal</span><span><b>${r.p}</b> g prot.</span><span><b>${r.t}</b> min</span></div>
+      <div class="card-top">${thumb(r,r.m[0])}<div class="card-h"><div class="slots">${r.m.map(s=>SLOT_LBL[s]).join(' · ')}${favs.has(r.id)?' <span style="color:var(--tomato)">♥</span>':''}</div><h3>${esc(r.n)}</h3></div></div>
+      <div class="kv num"><span><b>${r.k}</b> kcal</span><span><b>${r.p}</b> g proteine</span><span><b>${r.t}</b> min</span></div>
       ${m?`<div class="have">${m.miss.length?`Hai ${m.has} su ${m.tot} · manca: ${esc(m.miss.slice(0,3).join(', '))}${m.miss.length>3?'…':''}`:'Hai tutto!'}</div>`:''}
       <div class="tags">${r.tags.filter(t=>t!=='veg'||!r.tags.includes('vegan')).map(t=>`<span class="tag">${TAG_LBL[t]||t}</span>`).join('')}</div>
     </button>`;
@@ -936,7 +1037,7 @@ function openRecipe(id,x){
   const root = document.getElementById('overlay-root');
   const draw = ()=>{
     root.innerHTML = `<div class="overlay" id="ov"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rt">
-      <div class="sheet-h"><h2 id="rt">${esc(r.n)}</h2>
+      <div class="sheet-h">${thumb(r,r.m[0],'lg')}<h2 id="rt">${esc(r.n)}</h2>
         <button class="icon-btn" id="fav" aria-pressed="${favs.has(id)}" aria-label="Aggiungi ai preferiti">${svgHeart(favs.has(id))}</button>
         <button class="icon-btn" id="close" aria-label="Chiudi"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       <div class="tags">${r.m.map(s=>`<span class="tag slot">${SLOT_LBL[s]}</span>`).join('')}${r.tags.map(t=>`<span class="tag">${TAG_LBL[t]}</span>`).join('')}<span class="tag">${r.t} min</span></div>
@@ -945,7 +1046,7 @@ function openRecipe(id,x){
       <div class="nut num"><div><b>${Math.round(r.k*px)}</b><span>kcal</span></div><div><b>${Math.round(r.p*px)} g</b><span>proteine</span></div><div><b>${Math.round(r.c*px)} g</b><span>carboidrati</span></div><div><b>${Math.round(r.f*px)} g</b><span>grassi</span></div></div>
       <div><h3 style="font-size:1rem;margin-bottom:6px">Ingredienti</h3><ul class="ing">${r.ing.map(([n,q,u])=>`<li><span>${esc(n)}</span><span class="num muted">${qty(q*px,u)}</span></li>`).join('')}</ul>
         <p class="muted" style="font-size:.8rem;margin:.4rem 0 0">Sale, pepe ed erbe a piacere. 1 cucchiaio d'olio = 10 g.</p></div>
-      <div><h3 style="font-size:1rem;margin-bottom:6px">Preparazione</h3><ol class="steps">${r.s.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></div>
+      <div><h3 style="font-size:1rem;margin-bottom:6px">Preparazione</h3><ol class="steps">${r.s.map(s=>{ const u=stepIngs(r,s); return `<li>${esc(s)}${u.length?`<span class="st-q num">${u.map(i=>`${esc(i[0])}: <b>${qty(i[1]*px,i[2])}</b>`).join(' · ')}</span>`:''}</li>`; }).join('')}</ol></div>
       <div class="row"><button class="btn primary" data-act="cook" data-id="${r.id}" data-x="${px}">Modalità cucina</button>${r.tags.includes('mia')?`<button class="btn" data-act="delmine" data-id="${r.id}">Elimina ricetta</button>`:''}</div>
       ${r.h?`<div class="hint"><b>Consiglio:</b> ${esc(r.h)}</div>`:''}
       ${r.mi.length?`<div><h3 style="font-size:1rem;margin-bottom:6px">Nutrienti chiave e come sfruttarli</h3><ul class="mic">${r.mi.map(m=>`<li><span class="tag sfm">${NUTR[m].n}</span><span>${esc(NUTR[m].why)} ${esc(NUTR[m].tip)}</span></li>`).join('')}</ul></div>`:''}
@@ -1066,7 +1167,7 @@ function viewOggi(){
     : left>0 ? `Ti restano <b>${left} kcal</b>${pl>0?` e <b>${pl} g di proteine</b>`:', e le proteine le hai già raggiunte'}.`
     : `Hai raggiunto le calorie di oggi${left<-150?` (+${-left} kcal). Nessun problema: domani riparti dal piano, senza compensare.`:'.'}`;
   const meals = SLOTS.map(([sl])=>{ const e=day[sl], r=byId[e.id], on=L.items.some(i=>i.src==='plan:'+sl);
-    return `<div class="meal"><span class="dot c-${sl}"></span><div class="info"><div class="slot">${SLOT_LBL[sl]}</div><button class="name" data-open="${r.id}" data-x="${e.x}">${esc(r.n)}</button><div class="meta num">${Math.round(r.k*e.x)} kcal · ${Math.round(r.p*e.x)} g proteine</div></div><button class="btn small ${on?'primary':''}" data-act="eat" data-sl="${sl}" aria-pressed="${on}">${on?'Mangiato':'Segna'}</button></div>`; }).join('');
+    return `<div class="meal">${thumb(r,sl,'sm')}<div class="info"><div class="slot">${SLOT_LBL[sl]}</div><button class="name" data-open="${r.id}" data-x="${e.x}">${esc(r.n)}</button><div class="meta num">${Math.round(r.k*e.x)} kcal · ${Math.round(r.p*e.x)} g proteine</div></div><button class="btn small ${on?'primary':''}" data-act="eat" data-sl="${sl}" aria-pressed="${on}">${on?'Mangiato':'Segna'}</button></div>`; }).join('');
   const extra = L.items.map((i,j)=>i.src.startsWith('plan:')?'':`<li><span>${esc(i.n)}</span><span class="num muted">${Math.round(i.k)} kcal · ${Math.round(i.p)} g P</span><button class="icon-btn sm" data-act="rmitem" data-j="${j}" aria-label="Rimuovi ${esc(i.n)}">×</button></li>`).join('');
   const opts = R.slice().sort((a,b)=>a.n.localeCompare(b.n,'it')).map(r=>`<option value="${r.id}">${esc(r.n)}</option>`).join('');
   const glasses = Array.from({length:10},(_,i)=>`<button class="glass ${i<L.water?'full':''}" data-act="water" data-w="${i+1}" aria-label="${i+1} bicchieri"><i></i></button>`).join('');
@@ -1112,37 +1213,95 @@ function viewOggi(){
     </div>`;
 }
 
+/* ---------- Miniature illustrate dei piatti ---------- */
+const GLYPH = {
+ pesce:'<path d="M2.5 12c3-5 9.5-6.5 13.5-3l5-3v12l-5-3c-4 3.5-10.5 2-13.5-3z"/><circle cx="8" cy="11" r="1" fill="currentColor"/>',
+ carne:'<path d="M4 13.5C4 8.3 8.3 4 13.5 4 17.6 4 20 6.6 20 9.8 20 15 14.8 20 9.6 20 6.3 20 4 17.3 4 13.5z"/><circle cx="14" cy="10" r="2.2"/><path d="M8 15.5c1.5.8 3.5.6 5-.6"/>',
+ legumi:'<path d="M4 16c0-6.5 6-12 12-12 2.4 0 4 1.6 4 4 0 6-6 12-12 12-2.4 0-4-1.6-4-4z"/><circle cx="9" cy="14.5" r="1.6"/><circle cx="12.3" cy="11.2" r="1.6"/><circle cx="15.6" cy="7.9" r="1.6"/>',
+ uova:'<path d="M12 3c4 0 7 6 7 11a7 7 0 0 1-14 0c0-5 3-11 7-11z"/><circle cx="12" cy="14" r="2.6"/>',
+ dolce:'<path d="M5 11h14l-2 9.5H7z"/><path d="M5.5 11a6.5 4.5 0 0 1 13 0"/><path d="M12 4.5v2"/><circle cx="12" cy="3.5" r=".9" fill="currentColor"/>',
+ tazza:'<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3.5v3M12 3.5v3"/>',
+ frutta:'<path d="M12 7.5c-3-2-8-1.2-8 4.8s4 8.7 6 8.7c1 0 1.4-.5 2-.5s1 .5 2 .5c2 0 6-2.7 6-8.7s-5-6.8-8-4.8z"/><path d="M12 7.5c0-2 1-3.8 3-4.3"/>',
+ ciotola:'<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M7 11c0-3 2-5 4-5M12 11c0-2.5 1.5-4.5 4-5"/>',
+ pasta:'<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M7 11c1-3 3-3 4-1s3 2 4-1 3-2 3 2"/>'
+};
+function glyphOf(r){
+  const n=r.n.toLowerCase();
+  if(r.tags.includes('sgarro')&&!r.tags.includes('carne')&&!/pizza|pasta|mac/.test(n)) return 'dolce';
+  if(r.tags.includes('pesce')) return 'pesce';
+  if(r.tags.includes('carne')) return 'carne';
+  if(/pasta|orzo|pizza|farro|riso/.test(n)) return 'pasta';
+  if(r.tags.includes('legumi')) return 'legumi';
+  if(/uov|frittata/.test(n)) return 'uova';
+  if(r.m[0]==='spuntino') return 'frutta';
+  if(r.m[0]==='colazione') return 'tazza';
+  return 'ciotola';
+}
+function thumb(r,slot,size=''){
+  return `<span class="thumb ${size} t-${slot||r.m[0]}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${GLYPH[glyphOf(r)]}</svg></span>`;
+}
+
+/* ---------- Ingredienti usati in ogni passaggio ---------- */
+const GENW = new Set('cotti cotto cotte cotta fresco freschi fresca fresche surgelati surgelato surgelate anche integrale integrali parz scremato scremata denocciolati sgusciati sgocciolato congelata congelate rondelle senza zucchero light precotto extravergine oliva naturale mista miste misto secchi secco corta corto perlato compatto vaccina amaro fondente istantaneo torte salate dolci minestrone tamari'.split(' '));
+function stepIngs(r,step){ const ws=words(step); return r.ing.filter(i=>words(i[0]).filter(w=>!GENW.has(w)).some(k=>ws.some(w=>stemMatch(k,w)))); }
+const stepSecs = s=>{ let m=s.match(/(\d+)(?:\s*[–-]\s*\d+)?\s*minut/i); if(m) return +m[1]*60; m=s.match(/(\d+)\s*second/i); return m?+m[1]:0; };
+const mmss = x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0');
+
+/* ---------- Timer che restano attivi (anche chiudendo la ricetta o l'app) ---------- */
+let AC=null, tIv=null, tSig='';
+let timers = store.get('timers',[]).filter(t=>t.end>Date.now()-15*60000);
+function audio(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} return AC; }
+function beep(){ const a=audio(); if(!a) return; try{ [0,.45,.9,1.35].forEach(t=>{ const o=a.createOscillator(), g=a.createGain(); o.frequency.value=t%0.9?660:880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.32,a.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.35); o.start(a.currentTime+t); o.stop(a.currentTime+t+.37); }); }catch(e){} }
+function saveTimers(){ store.set('timers',timers); }
+function addTimer(label,sec){ audio(); timers.push({id:String(Date.now()),label,end:Date.now()+sec*1000,done:false}); saveTimers(); runTimers(); }
+function runTimers(){ clearInterval(tIv); tIv = timers.length ? setInterval(drawTimers,500) : null; drawTimers(); }
+function drawTimers(){
+  const dock=$('timer-dock'); if(!dock) return; const now=Date.now(); let fired=false;
+  timers.forEach(t=>{ if(!t.done&&t.end<=now){ t.done=true; fired=true; } });
+  if(fired){ saveTimers(); beep(); try{ navigator.vibrate&&navigator.vibrate([300,150,300,150,300]); }catch(e){} }
+  const sig=timers.map(t=>t.id+(t.done?'d':'')).join(',');
+  if(sig!==tSig){ tSig=sig;
+    dock.innerHTML=timers.map(t=>`<div class="tpill ${t.done?'done':''}" data-tid="${t.id}">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9.5 2.5h5"/></svg>
+      <div class="tp-t"><span class="tp-l">${esc(t.label)}</span><b class="num" data-left></b></div>
+      ${t.done?'':`<button class="tp-b" data-act="tplus" data-t="${t.id}" aria-label="Aggiungi un minuto">+1′</button>`}
+      <button class="tp-b" data-act="tstop" data-t="${t.id}" aria-label="${t.done?'Chiudi':'Ferma il timer'}">${t.done?'OK':'×'}</button></div>`).join('');
+  }
+  dock.querySelectorAll('.tpill').forEach(el=>{ const t=timers.find(x=>x.id===el.dataset.tid); if(t) el.querySelector('[data-left]').textContent = t.done?'Tempo scaduto!':mmss(Math.max(0,Math.ceil((t.end-now)/1000))); });
+  if(!timers.length && tIv){ clearInterval(tIv); tIv=null; }
+}
+
 /* ---------- Modalità cucina ---------- */
 function cook(id,px){
-  const r=byId[id], st={i:-1,timer:null,end:0,wl:null,ac:null,chk:new Set()};
-  const root=$('overlay-root');
+  const r=byId[id], st={i:-1,wl:null,chk:new Set(),started:new Set()};
+  const root=$('overlay-root'); document.body.classList.add('cooking'); audio();
   try{ navigator.wakeLock && navigator.wakeLock.request('screen').then(w=>st.wl=w).catch(()=>{}); }catch(e){}
-  const secs=s=>{ let m=s.match(/(\d+)(?:\s*[–-]\s*\d+)?\s*minut/i); if(m) return +m[1]*60; m=s.match(/(\d+)\s*second/i); return m?+m[1]:0; };
-  const mmss=x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0');
-  const beep=()=>{ try{ const a=st.ac; if(!a) return; [0,.4,.8].forEach(t=>{ const o=a.createOscillator(), g=a.createGain(); o.frequency.value=880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.3,a.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.3); o.start(a.currentTime+t); o.stop(a.currentTime+t+.32); }); }catch(e){} };
-  const tick=()=>{ const left=Math.max(0,Math.round((st.end-Date.now())/1000)), el=$('ck-t'); if(el) el.textContent=mmss(left);
-    if(left<=0){ clearInterval(st.timer); st.timer=null; beep(); if(el){ el.textContent='Tempo scaduto'; el.classList.add('done'); } } };
-  const start=sec=>{ clearInterval(st.timer); try{ st.ac=st.ac||new (window.AudioContext||window.webkitAudioContext)(); st.ac.resume&&st.ac.resume(); }catch(e){} st.end=Date.now()+sec*1000; st.timer=setInterval(tick,250); draw(); tick(); };
-  const close=()=>{ clearInterval(st.timer); try{ st.wl&&st.wl.release(); }catch(e){} root.innerHTML=''; document.removeEventListener('keydown',onKey); };
+  const close=()=>{ try{ st.wl&&st.wl.release(); }catch(e){} root.innerHTML=''; document.body.classList.remove('cooking'); document.removeEventListener('keydown',onKey); };
   const go=d=>{ st.i=Math.max(-1,Math.min(r.s.length,st.i+d)); draw(); };
   const onKey=e=>{ if(e.key==='Escape') close(); else if(e.key==='ArrowRight') go(1); else if(e.key==='ArrowLeft') go(-1); };
   document.addEventListener('keydown',onKey);
+  const short=r.n.split(/[,(]/)[0].trim();
+  const ingRow=i=>`<li><span>${esc(i[0])}</span><b class="num">${qty(i[1]*px,i[2])}</b></li>`;
+  const clock='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9.5 2.5h5"/></svg>';
   function draw(){
     const n=r.s.length; let body;
-    if(st.i<0) body=`<div class="eyebrow">Prima di iniziare: prendi tutto</div><ul class="ck-ing">${r.ing.map((g,j)=>`<li><label><input type="checkbox" id="ck-${j}" data-j="${j}" ${st.chk.has(j)?'checked':''}><span>${esc(g[0])}</span><span class="num muted">${qty(g[1]*px,g[2])}</span></label></li>`).join('')}</ul>`;
+    if(st.i<0) body=`<div class="eyebrow">Prima di iniziare: prendi tutto${px!==1?` · ${fmt(px)} porzioni`:''}</div><ul class="ck-ing">${r.ing.map((g,j)=>`<li><label><input type="checkbox" id="ck-${j}" data-j="${j}" ${st.chk.has(j)?'checked':''}><span>${esc(g[0])}</span><b class="num">${qty(g[1]*px,g[2])}</b></label></li>`).join('')}</ul>`;
     else if(st.i>=n) body=`<div class="eyebrow">Fatto</div><p class="ck-step">Buon appetito!</p>${r.h?`<div class="hint"><b>Ricorda:</b> ${esc(r.h)}</div>`:''}`;
-    else { const s=r.s[st.i], sec=secs(s); body=`<div class="eyebrow">Passo ${st.i+1} di ${n}</div><p class="ck-step">${esc(s)}</p>${sec?`<button class="btn primary" id="ck-start">Avvia timer ${sec>=60?Math.round(sec/60)+' min':sec+' s'}</button>`:''}`; }
+    else { const s=r.s[st.i], sec=stepSecs(s), used=stepIngs(r,s);
+      body=`<div class="eyebrow">Passo ${st.i+1} di ${n}</div><p class="ck-step">${esc(s)}</p>
+        ${used.length?`<div class="ck-use"><div class="eyebrow">Ti serve in questo passaggio</div><ul>${used.map(ingRow).join('')}</ul></div>`:''}
+        ${sec?(st.started.has(st.i)?`<p class="ck-ok">${clock} Timer avviato: lo trovi in basso e resta attivo anche se chiudi la ricetta.</p>`:`<button class="btn primary big" id="ck-start">${clock} Avvia timer ${sec>=60?Math.round(sec/60)+' min':sec+' s'}</button>`):''}
+        <details class="ck-all"><summary>Tutti gli ingredienti con le dosi</summary><ul>${r.ing.map(ingRow).join('')}</ul></details>`; }
     root.innerHTML=`<div class="cook" role="dialog" aria-modal="true" aria-label="Modalità cucina: ${esc(r.n)}">
-      <div class="ck-top"><b class="ck-title">${esc(r.n)}</b>${st.timer?`<span id="ck-t" class="ck-timer num"></span>`:''}<button class="icon-btn" id="ck-x" aria-label="Esci dalla modalità cucina"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="ck-top">${thumb(r,r.m[0],'sm')}<b class="ck-title">${esc(r.n)}</b><button class="icon-btn" id="ck-x" aria-label="Esci dalla modalità cucina"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       <div class="ck-dots">${Array.from({length:n+2},(_,k)=>`<i class="${k-1<=st.i?'on':''}"></i>`).join('')}</div>
       <div class="ck-body">${body}</div>
-      <div class="ck-nav"><button class="btn" id="ck-prev" ${st.i<0?'disabled':''}>Indietro</button>${st.i>=n?`<button class="btn primary" id="ck-end">Chiudi</button>`:`<button class="btn primary" id="ck-next">${st.i<0?'Inizia':'Avanti'}</button>`}</div>
+      <div class="ck-nav"><button class="btn big" id="ck-prev" ${st.i<0?'disabled':''}>Indietro</button>${st.i>=n?`<button class="btn primary big" id="ck-end">Chiudi</button>`:`<button class="btn primary big" id="ck-next">${st.i<0?'Inizia':'Avanti'}</button>`}</div>
     </div>`;
     $('ck-x').onclick=close; $('ck-prev').onclick=()=>go(-1);
     if($('ck-next')) $('ck-next').onclick=()=>go(1); if($('ck-end')) $('ck-end').onclick=close;
-    if($('ck-start')) $('ck-start').onclick=()=>start(secs(r.s[st.i]));
+    if($('ck-start')) $('ck-start').onclick=()=>{ addTimer(`${short} · passo ${st.i+1}`, stepSecs(r.s[st.i])); st.started.add(st.i); draw(); };
     root.querySelectorAll('.ck-ing input').forEach(c=>c.onchange=()=>{ c.checked?st.chk.add(+c.dataset.j):st.chk.delete(+c.dataset.j); });
-    if(st.timer) tick();
   }
   draw();
 }
@@ -1239,6 +1398,8 @@ const HANDLERS = {
     prog.push({d:todayKey(),t:Date.now(),peso:pe>0?pe:null,vita:vi>0?vi:null}); prog=prog.slice(-60); store.set('prog',prog);
     if(pe>0 && !profile.esempio){ profile.peso=pe; store.set('profile',profile); }
     viewOggi(); },
+  tplus:t=>{ const x=timers.find(y=>y.id===t.dataset.t); if(x){ x.end=Math.max(x.end,Date.now())+60000; x.done=false; saveTimers(); runTimers(); } },
+  tstop:t=>{ timers=timers.filter(y=>y.id!==t.dataset.t); saveTimers(); runTimers(); },
   dayprev:()=>{ ui.dayOff++; viewOggi(); },
   daynext:()=>{ ui.dayOff=Math.max(0,ui.dayOff-1); viewOggi(); },
   daytoday:()=>{ ui.dayOff=0; viewOggi(); },
@@ -1274,6 +1435,7 @@ document.addEventListener('submit',e=>{
 });
 
 render();
+runTimers();
 </script>
 
 <script>

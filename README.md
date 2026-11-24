@@ -14,3 +14,8 @@ Ricette sane e veloci, piano pasti settimanale sulle tue calorie (anche ricompos
 GitHub Pages dal branch `main`, cartella `/ (root)`.
 
 Le calorie e i valori nutrizionali sono stime indicative e non sostituiscono il parere di un medico o di un dietista.
+
+## Sviluppo
+
+- Il sorgente è `src/app.html`. Dopo ogni modifica: `python3 -I tools/build.py` (genera `index.html` e aggiorna la cache di `sw.js`).
+- Test: `node tools/test.cjs` (richiede Playwright). `node tools/test.cjs voto` esegue solo i test con "voto" nel nome.

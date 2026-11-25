@@ -861,6 +861,33 @@ test('dentro un riquadro (artifact): niente fotocamera né richieste esterne, co
   assertEq([await f.locator('[data-act="scan"]').count(), /app installata/.test(await f.textContent('body')), n], [0, true, 0]);
 });
 
+/* ---------- Ho voglia di: voglie, locali, suggerimenti ---------- */
+test('voglie: 5 voglie e ricette sgarro esistenti assegnate', async p => {
+  assertEq(await ev(p, () => [VOGLIE.map(v => v.id), R.filter(r => r.v).every(r => r.tags.includes('sgarro')), ['fast', 'pizza', 'gelato', 'dolce'].filter(v => !R.some(r => r.v === v))]),
+    [['fast', 'spalma', 'pizza', 'gelato', 'dolce'], true, []]);
+});
+test('fuori: fast food solo McDonald\'s, KFC e Burger King, almeno 2 scelte ciascuno', async p => {
+  assertEq(await ev(p, () => { const f = FUORI.filter(o => o.v === 'fast'); return [[...new Set(f.map(o => o.at))].sort(), ["McDonald's", 'KFC', 'Burger King'].map(a => f.filter(o => o.at === a && !o.heavy).length >= 2)]; }),
+    [['Burger King', 'KFC', "McDonald's"], [true, true, true]]);
+});
+test('fuori: ogni voglia ha scelte e una da evitare, niente maiale', async p => {
+  assertEq(await ev(p, () => VOGLIE.map(v => [FUORI.filter(o => o.v === v.id && !o.heavy).length >= 4, FUORI.filter(o => o.v === v.id && o.heavy).length === 1]).concat([[FUORI.filter(o => /bacon|maiale|prosciutto|salame|speck|pancetta/i.test(o.n)).length, 0]])),
+    [[true, true], [true, true], [true, true], [true, true], [true, true], [0, 0]]);
+});
+test('cravingSuggest: tutto nelle calorie, più proteico prima', async p => {
+  assertEq(await ev(p, () => { const s = cravingSuggest('fast', 900, 'onni'); return [s.mode, s.home.length > 0 && s.home.every(h => h.r.k <= 900 && h.x === 1), s.home.every((h, i) => !i || h.r.p / h.r.k <= s.home[i - 1].r.p / s.home[i - 1].r.k), s.out.every(o => o.k <= 900), !!s.avoid && s.avoid.heavy, typeof s.tip]; }),
+    ['ok', true, true, true, true, 'string']);
+});
+test('cravingSuggest: mezza porzione, più leggere, calorie finite', async p => {
+  assertEq(await ev(p, () => { const minK = Math.min(...R.filter(r => r.v === 'pizza').map(r => r.k));
+    const h = cravingSuggest('pizza', Math.ceil(minK * .6), 'onni'), l = cravingSuggest('pizza', Math.floor(minK * .45), 'onni'), z = cravingSuggest('pizza', -200, 'onni');
+    return [h.mode, h.home.every(x => x.x === .5 && x.r.k * .5 <= Math.ceil(minK * .6)), l.mode === 'light' || l.mode === 'low', z.mode, z.home.length > 0, z.out.length > 0]; }),
+    ['half', true, true, 'low', true, true]);
+});
+test('cravingSuggest: vegano e vegetariano senza carne né pesce', async p => {
+  assertEq(await ev(p, () => ['veg', 'vegan'].flatMap(d => VOGLIE.map(v => { const s = cravingSuggest(v.id, 900, d); return s.home.every(h => dietOK(h.r, d)) && s.out.every(o => dietOK(o, d)) && (!s.avoid || dietOK(s.avoid, d)); })).every(Boolean)), true);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

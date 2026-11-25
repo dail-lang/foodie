@@ -1155,6 +1155,82 @@ const R = [
   h:'Uno spuntino salato e leggero con 17 g di proteine.'}
 ];
 R.forEach(r=>{r.k=Math.round(r.p*4+r.c*4+r.f*9)});
+/* ---------- Voglie: sgarri fatti in casa e scelte da locale ---------- */
+const VOGLIE=[{id:'fast',n:'Fast food'},{id:'spalma',n:'Pane e Nutella'},{id:'pizza',n:'Pizza'},{id:'gelato',n:'Gelato'},{id:'dolce',n:'Dolce'}];
+// voglia degli sgarri già presenti (quelli senza una voglia chiara restano senza)
+const VOGLIA={'crocchette-pollo':'fast','v3-hamburger-casa':'fast','v3-nuggets-ceci':'fast','v3-patatine-patate-dolci':'fast',
+  'pizza-yogurt':'pizza','v3-pizza-cavolfiore':'pizza',
+  'gelato-banana':'gelato','frozen-yogurt':'gelato','v3-gelato-pistacchio':'gelato','v3-bocconcini-yogurt':'gelato',
+  'mug-cake':'dolce','cheesecake-barattolo':'dolce','tiramisu-barattolo':'dolce','brownies-fagioli':'dolce','mousse-cioccolato':'dolce','panna-cotta-yogurt':'dolce',
+  'ai-cioccolata-cacao-cannella':'dolce','v3-cheesecake-tazza':'dolce','v3-brownie-tazza':'dolce','v3-tartellette-avena':'dolce','v3-banana-bread-tazza':'dolce',
+  'cookies-proteici':'dolce','muffin-banana-mirtilli':'dolce','v3-crumble-mele':'dolce'};
+R.forEach(r=>{ if(!r.v&&VOGLIA[r.id]) r.v=VOGLIA[r.id]; });
+// valori indicativi per porzione; bibite zero = 0 kcal; niente prodotti con maiale o bacon
+const FO=(v,at,n,k,p,c,f,tags,heavy)=>({id:(at+' '+n).toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),v,at,n,k,p,c,f,tags:tags||[],...(heavy?{heavy:true}:{})});
+const FUORI=[
+  FO('fast',"McDonald's",'McChicken + insalata + bibita zero',461,22,48,19),
+  FO('fast',"McDonald's",'Chicken McNuggets 6 pezzi + insalata + bibita zero',275,16,18,15),
+  FO('fast',"McDonald's",'Hamburger + Chicken McNuggets 6 pezzi + bibita zero',518,28,47,24),
+  FO('fast',"McDonald's",'Filet-O-Fish + insalata + bibita zero',342,16,38,14),
+  FO('fast',"McDonald's",'Big Mac + bibita zero, senza patatine',544,27,42,29),
+  FO('fast',"McDonald's",'Cheeseburger + patatine piccole + bibita zero',536,19,61,24),
+  FO('fast','KFC','3 filetti croccanti + bibita zero',292,24,18,14),
+  FO('fast','KFC','Bocconcini di filetto 6 pezzi + bibita zero',345,28,22,16),
+  FO('fast','KFC','2 pezzi di pollo Original Recipe + pannocchia',510,36,28,27),
+  FO('fast','KFC','Zinger burger + bibita zero',450,27,41,20),
+  FO('fast','Burger King','Whopper Junior + bibita zero',330,15,29,17),
+  FO('fast','Burger King','Chicken nuggets 6 pezzi + insalata',275,14,17,16),
+  FO('fast','Burger King','4 Chicken Strips + bibita zero',378,24,26,20),
+  FO('fast','Burger King','Cheeseburger + patatine piccole + bibita zero',522,18,58,24),
+  FO('fast','Burger King','Whopper Plant-Based + bibita zero',620,26,51,34,['veg']),
+  FO('fast',"McDonald's",'Patatine piccole + insalata + bibita zero',245,3,31,11,['veg','vegan']),
+  FO('fast',"McDonald's",'Menu Big Mac con patatine grandi e Coca-Cola media',1184,32,143,50,[],1),
+  FO('pizza','Pizzeria','Mezza margherita + insalata mista',440,18,52,15,['veg']),
+  FO('pizza','Pizzeria','1 trancio di margherita + insalata',354,13,45,12,['veg']),
+  FO('pizza','Pizzeria','Pizza marinara intera',690,17,105,20,['veg','vegan']),
+  FO('pizza','Pizzeria','Pizza ortolana intera',760,28,100,26,['veg']),
+  FO('pizza','Pizzeria','Margherita intera',825,36,102,30,['veg']),
+  FO('pizza','Pizzeria','Pizza quattro formaggi + birra media',1220,50,130,50,['veg'],1),
+  FO('gelato','Gelateria','Coppetta piccola, 2 gusti alla frutta',130,1,30,1,['veg','vegan']),
+  FO('gelato','Gelateria','Granita al limone',200,0,50,0,['veg','vegan']),
+  FO('gelato','Gelateria','Cono piccolo crema e cioccolato',270,5,37,12,['veg']),
+  FO('gelato','Gelateria','Coppetta media, 1 frutta e 1 crema',255,3,42,9,['veg']),
+  FO('gelato',"McDonald's",'Sundae al caramello',330,6,55,9,['veg']),
+  FO('gelato','Gelateria','Coppa grande con panna e biscotti',650,9,75,35,['veg'],1),
+  FO('dolce','Bar','4 quadratini di cioccolato fondente',110,2,8,8,['veg','vegan']),
+  FO('dolce','Bar','Crostatina',172,2,26,6,['veg']),
+  FO('dolce','Bar','Cornetto vuoto',245,5,30,12,['veg']),
+  FO('dolce','Bar','2 pasticcini mignon',200,3,22,11,['veg']),
+  FO('dolce','Bar','Cornetto alla crema + cioccolata calda con panna',650,12,85,30,['veg'],1),
+  FO('spalma','Supermercato','Yogurt greco 0% + 10 g di Nutella',151,18,13,4,['veg']),
+  FO('spalma','Supermercato','2 fette biscottate + 15 g di Nutella',155,3,22,6,['veg']),
+  FO('spalma','Supermercato','1 fetta di pane + 15 g di Nutella',176,4,26,6,['veg']),
+  FO('spalma','Supermercato','1 fetta di pane + 15 g di crema di nocciole 100%',193,5,20,10,['veg','vegan']),
+  FO('spalma','Supermercato','Panino da 100 g con 50 g di Nutella',540,11,84,17,['veg'],1)];
+const FUORI_SRC={"McDonald's":"tabelle nutrizionali di McDonald's Italia",KFC:'tabelle nutrizionali di KFC',"Burger King":'tabelle nutrizionali di Burger King',Pizzeria:'tabelle CREA',Gelateria:'tabelle CREA',Bar:'tabelle CREA',Supermercato:'etichette dei prodotti'};
+const VOGLIA_TIP={
+  fast:'Scegli pollo o un panino singolo, sostituisci le patatine con l\'insalata e prendi la bibita zero: è lì che si risparmiano 300–500 kcal.',
+  spalma:'La porzione vera è un cucchiaino colmo (15 g, circa 80 kcal): spalmala su una fetta, non mangiarla dal barattolo.',
+  pizza:'Pizza sì, ma con un\'insalata prima: sazia e ti fa fermare prima. Se la vuoi intera, a pranzo e pasti leggeri il resto del giorno.',
+  gelato:'Coppetta piccola, gusti alla frutta o un solo gusto alla crema: la panna e le salse raddoppiano le calorie.',
+  dolce:'Mangialo seduto, con calma, dopo un pasto con proteine: la voglia si calma prima e la glicemia sale meno.'};
+const bySh=(a,b)=>b.p/b.k-a.p/a.k, light=(a,b)=>a.k-b.k;
+// cosa proporre per una voglia con le calorie rimaste (left) e la dieta del profilo
+function cravingSuggest(v,left,dieta){
+  const homeAll=R.filter(r=>r.tags.includes('sgarro')&&r.v===v&&dietOK(r,dieta));
+  const outAll=FUORI.filter(o=>o.v===v&&!o.heavy&&dietOK(o,dieta));
+  const lightest=(a)=>a.slice().sort(light).slice(0,3);
+  let mode, home;
+  if(left<150){ mode='low'; home=lightest(homeAll).map(r=>({r,x:1})); }
+  else if(homeAll.some(r=>r.k<=left)){ mode='ok'; home=homeAll.filter(r=>r.k<=left).sort(bySh).slice(0,3).map(r=>({r,x:1})); }
+  else if(homeAll.some(r=>r.k*.5<=left)){ mode='half'; home=homeAll.filter(r=>r.k*.5<=left).sort(bySh).slice(0,3).map(r=>({r,x:.5})); }
+  else { mode='light'; home=lightest(homeAll).map(r=>({r,x:1})); }
+  const fit=outAll.filter(o=>o.k<=left);
+  const out=(mode==='ok'||mode==='half')&&fit.length ? fit.sort(bySh).slice(0,3) : lightest(outAll);
+  const avoid=FUORI.find(o=>o.v===v&&o.heavy&&dietOK(o,dieta))||null;
+  return {mode,home,out,avoid,tip:VOGLIA_TIP[v]||''};
+}
+
 
 /* ---------- Micronutrienti (modalità Superfood) ----------
    w = pasti a settimana che ne sono una buona fonte (obiettivo indicativo) */

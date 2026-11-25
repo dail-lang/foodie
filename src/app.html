@@ -76,6 +76,15 @@ section.view{display:grid;gap:20px}
 .macro .val{font-weight:600}
 .bar{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;margin-top:4px}
 .bar i{display:block;height:100%}
+.vg .chips{margin:6px 0 10px}
+.vg-res{display:grid;gap:10px}
+.vg-res h4{margin:4px 0 0;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.vg-list{display:grid;gap:8px}
+.vg-item{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--surface)}
+.vg-item .name{background:none;border:0;padding:0;text-align:left;font-weight:600;color:var(--ink)}
+.vg-btns{display:flex;gap:6px;flex:none}
+.vg-avoid{margin:0;font-size:.88rem;color:var(--tomato)}
+.vg-tip{margin:0;font-size:.9rem}
 .note{font-size:.85rem;color:var(--muted);background:var(--sunk);border-radius:8px;padding:8px 12px}
 .note b{color:var(--ink)}
 
@@ -1334,7 +1343,9 @@ function cravingSuggest(v,left,dieta){
   else if(homeAll.some(r=>r.k*.5<=left)){ mode='half'; home=homeAll.filter(r=>r.k*.5<=left).sort(bySh).slice(0,3).map(r=>({r,x:.5})); }
   else { mode='light'; home=lightest(homeAll).map(r=>({r,x:1})); }
   const fit=outAll.filter(o=>o.k<=left);
-  const out=(mode==='ok'||mode==='half')&&fit.length ? fit.sort(bySh).slice(0,3) : lightest(outAll);
+  // prima la scelta migliore di ogni locale, poi le altre: così si vedono McDonald's, KFC e Burger King
+  const spread=a=>{ const first=[], rest=[], seen=new Set(); a.forEach(o=>{ (seen.has(o.at)?rest:first).push(o); seen.add(o.at); }); return first.concat(rest).slice(0,3); };
+  const out=(mode==='ok'||mode==='half')&&fit.length ? spread(fit.sort(bySh)) : spread(outAll.slice().sort(light));
   const avoid=FUORI.find(o=>o.v===v&&o.heavy&&dietOK(o,dieta))||null;
   return {mode,home,out,avoid,tip:VOGLIA_TIP[v]||''};
 }
@@ -1652,7 +1663,7 @@ function badgesBlock(){
 }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
-const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
+const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,voglia:null,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
 
 /* ---------- Calcoli ---------- */
 const ACT = {sed:[1.2,'Sedentario'],leggero:[1.375,'Leggero (1–3 allenamenti/sett.)'],moderato:[1.55,'Moderato (3–5/sett.)'],intenso:[1.725,'Intenso (6–7/sett.)']};
@@ -2990,6 +3001,34 @@ function weekBlock(c){
       <div class="stat"><div class="v num">${ok}/${reg.length||0}</div><div class="l">giorni in obiettivo (calorie ±10% e proteine)</div></div>
     </div></div>`;
 }
+/* ---------- "Ho voglia di…": cosa prendere per uno sgarro ---------- */
+function oggiLeft(){ const L=peekLog(selDate()); return Math.round(calc(profile).target-L.items.reduce((s,i)=>s+(+i.k||0),0)); }
+function vogliaHTML(){
+  return `<h3 style="font-size:1.1rem">Ho voglia di…</h3>
+    <div class="chips" role="group" aria-label="Voglie">${VOGLIE.map(v=>`<button class="chip" data-act="voglia" data-v="${v.id}" aria-pressed="${ui.voglia===v.id}">${esc(v.n)}</button>`).join('')}</div>
+    <div id="vg-res" aria-live="polite">${ui.voglia?vgRes(oggiLeft()):''}</div>`;
+}
+function vgRes(left){
+  const s=cravingSuggest(ui.voglia,left,profile.dieta), L=Math.max(0,left), R1=Math.round;
+  const head = s.mode==='low' ? '<p class="note" style="margin:0">Oggi le calorie sono quasi finite: se proprio ti va, scegli la più leggera e domani riparti normale, senza saltare pasti.</p>'
+    : s.mode==='light' ? `<p style="margin:0">Ti restano <b class="num">${L} kcal</b>: queste sono le scelte più leggere.</p>`
+    : `<p style="margin:0">Ti restano <b class="num">${L} kcal</b> oggi.</p>`;
+  const home = s.home.length ? s.home.map(({r,x})=>`<div class="vg-item"><div><button class="name" data-open="${r.id}" data-x="${x}">${esc(r.n)}</button>
+      <div class="muted num" style="font-size:.85rem">${R1(r.k*x)} kcal · ${R1(r.p*x)} g proteine${x!==1?' · ½ porzione':''}</div></div>
+      <div class="vg-btns"><button class="btn small" data-open="${r.id}" data-x="${x}">Ricetta</button><button class="btn small primary" data-act="vgadd" data-id="${r.id}" data-x="${x}">Segna</button></div></div>`).join('')
+    : '<p class="muted" style="margin:0">Nessuno sgarro fatto in casa adatto alla tua dieta per questa voglia.</p>';
+  const out = s.out.length ? s.out.map(o=>`<div class="vg-item"><div><b>${esc(o.at)}</b>: ${esc(o.n)}
+      <div class="muted num" style="font-size:.85rem">${R1(o.k)} kcal · ${R1(o.p)} g proteine</div></div>
+      <div class="vg-btns"><button class="btn small primary" data-act="vgout" data-o="${o.id}">Segna</button></div></div>`).join('')
+    : '<p class="muted" style="margin:0">Nessuna scelta adatta alla tua dieta qui.</p>';
+  const places=[...new Set(s.out.concat(s.avoid?[s.avoid]:[]).map(o=>o.at))];
+  return `<div class="vg-res">${head}
+    <h4>Fatto in casa</h4><div class="vg-list">${home}</div>
+    <h4>Se esci</h4><div class="vg-list">${out}</div>
+    ${s.avoid?`<p class="vg-avoid">Da evitare: <b>${esc(s.avoid.at)}</b>, ${esc(s.avoid.n)} (<span class="num">${R1(s.avoid.k)} kcal</span>).</p>`:''}
+    <p class="vg-tip"><b>Consiglio:</b> ${esc(s.tip)}</p>
+    ${places.length?`<p class="muted" style="margin:0;font-size:.78rem">Valori indicativi: ${places.map(a=>esc(FUORI_SRC[a]||a)).join('; ')}.</p>`:''}</div>`;
+}
 function viewOggi(){
   if(!plan) makePlan();
   const el=$('v-oggi'), c=calc(profile), D=selDate(), L=peekLog(D), off=ui.dayOff;
@@ -3017,6 +3056,7 @@ function viewOggi(){
       <div class="macros">${bar('Proteine',tot.p,c.prot,'g','var(--c-cen)')}${bar('Carboidrati',tot.c,c.carb,'g','var(--c-col)')}${bar('Grassi',tot.f,c.fat,'g','var(--c-pra)')}</div>
       <p style="margin:0">${msg}</p>
     </div>
+    <div class="panel vg" id="vg">${vogliaHTML()}</div>
     <div class="two">
       <div class="panel"><h3 style="font-size:1.1rem">Dal piano${off?' di '+DAYS[di].toLowerCase():' di oggi'}</h3>${meals}
         ${SLOTS_IDS.every(sl=>L.items.some(i=>i.src==='plan:'+sl))?'<p class="ck-ok" style="font-size:.9rem">Tutti i pasti del piano sono segnati.</p>':'<button class="btn primary" data-act="eatall">Ho mangiato tutto come da piano</button>'}</div>
@@ -3241,6 +3281,11 @@ const HANDLERS = {
   recent:t=>{ const e=store.get('recent',[])[+t.dataset.i]; if(!e) return;
     const its=Array.isArray(e.items)?e.items.filter(x=>x&&typeof x.n==='string'&&x.k>=0).map(x=>({...x,src:'q'})) : e.t?rowsToItems(calcRows(e.t,{},[])) : [{n:e.n,k:e.k,p:e.p,c:e.c||0,f:e.f||0,src:'q'}];
     if(!its.length) return; dayLog().items.push(...its); pushRecent(e); saveLog(); viewOggi(); },
+  voglia:t=>{ ui.voglia = ui.voglia===t.dataset.v ? null : t.dataset.v; const el=$('vg'); if(el) el.innerHTML=vogliaHTML(); },
+  vgadd:t=>{ const r=byId[t.dataset.id], x=+t.dataset.x||1; if(!r) return;
+    dayLog().items.push({n:r.n+(x!==1?' (½ porz.)':''),rid:r.id,k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); ui.voglia=null; saveLog(); viewOggi(); },
+  vgout:t=>{ const o=FUORI.find(x=>x.id===t.dataset.o); if(!o) return;
+    dayLog().items.push({n:`${o.at}: ${o.n}`,k:o.k,p:o.p,c:o.c,f:o.f,src:'q'}); ui.voglia=null; saveLog(); viewOggi(); },
   addr:()=>{ const r=byId[$('add-r').value], x=+$('add-x').value||1; if(!r) return;
     dayLog().items.push({n:r.n+(x!==1?` (${fmt(x)} porz.)`:''),rid:r.id,k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); saveLog(); viewOggi(); },
   addtxt:()=>{ const rows=curRows(); if(!rows.length) return; const items=rowsToItems(rows); dayLog().items.push(...items);

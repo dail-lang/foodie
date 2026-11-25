@@ -898,6 +898,45 @@ test('25 sgarri fit v4-', async p => {
   assert(r.n >= 25 && !r.notSgarro.length && !r.slow.length && r.fast >= 8 && r.spalma >= 5 && r.pizza >= 4 && r.gelato >= 3 && r.dolce >= 3 && r.pasto >= 10 && r.vegFast >= 2 && r.vegPizza >= 2 && !r.noMicro.length, JSON.stringify(r));
 });
 
+/* ---------- Riquadro Ho voglia di ---------- */
+test('ho voglia: suggerimenti, segna fatto in casa e da locale', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(150);
+  await p.click('[data-act="voglia"][data-v="fast"]'); await p.waitForTimeout(80);
+  const txt = await p.textContent('#vg-res');
+  await p.locator('[data-act="vgadd"]').first().click(); await p.waitForTimeout(80);
+  await p.click('[data-act="voglia"][data-v="fast"]'); await p.waitForTimeout(80);
+  await p.locator('[data-act="vgout"]').first().click(); await p.waitForTimeout(80);
+  assertEq([/Ti restano \d+ kcal/.test(txt), /Da evitare/.test(txt), /Valori indicativi/.test(txt), await ev(p, () => dayLog().items.map(i => i.src))], [true, true, true, ['r', 'q']]);
+});
+test('ho voglia: stessa voglia di nuovo chiude', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(150);
+  await p.click('[data-act="voglia"][data-v="pizza"]'); await p.click('[data-act="voglia"][data-v="pizza"]'); await p.waitForTimeout(80);
+  assertEq(await p.locator('#vg-res [data-act="vgadd"]').count(), 0);
+});
+test('ho voglia: calorie superate, frase gentile, niente numeri negativi', async p => {
+  await ev(p, () => { location.hash = 'oggi'; dayLog().items.push({ n: 'Pranzo grande', k: 5000, p: 0, c: 0, f: 0, src: 'q' }); saveLog(); viewOggi(); }); await p.waitForTimeout(150);
+  await p.click('[data-act="voglia"][data-v="dolce"]'); await p.waitForTimeout(80);
+  const t = await p.textContent('#vg-res');
+  assert(/quasi finite/.test(t) && !/-\d+ kcal/.test(t) && await p.locator('#vg-res [data-act="vgadd"]').count() > 0, t);
+});
+test('ho voglia: mezza porzione segnata a metà', async p => {
+  await ev(p, () => { location.hash = 'oggi'; const c = calc(profile), minK = Math.min(...R.filter(r => r.v === 'pizza' && dietOK(r, profile.dieta)).map(r => r.k));
+    dayLog().items.push({ n: 'Pasti', k: c.target - Math.ceil(minK * .6), p: 0, c: 0, f: 0, src: 'q' }); saveLog(); viewOggi(); }); await p.waitForTimeout(150);
+  await p.click('[data-act="voglia"][data-v="pizza"]'); await p.waitForTimeout(80);
+  const id = await p.locator('[data-act="vgadd"]').first().getAttribute('data-id');
+  await p.locator('[data-act="vgadd"]').first().click(); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => { const i = dayLog().items.slice(-1)[0]; return [Math.round(i.k), /½/.test(i.n)]; }), [await ev(p, id => Math.round(byId[id].k / 2), id), true]);
+});
+test('ho voglia: conta il giorno selezionato', async p => {
+  await ev(p, () => { location.hash = 'oggi'; ui.dayOff = 1; dayLog().items.push({ n: 'Ieri', k: 5000, p: 0, c: 0, f: 0, src: 'q' }); saveLog(); viewOggi(); }); await p.waitForTimeout(150);
+  await p.click('[data-act="voglia"][data-v="gelato"]'); await p.waitForTimeout(80);
+  assert(/quasi finite/.test(await p.textContent('#vg-res')));
+});
+
+test('cravingSuggest: se esci, una scelta per locale prima di ripetere', async p => {
+  assertEq(await ev(p, () => [...new Set(cravingSuggest('fast', 900, 'onni').out.map(o => o.at))].sort()), ['Burger King', 'KFC', "McDonald's"]);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

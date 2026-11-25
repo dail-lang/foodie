@@ -937,6 +937,14 @@ test('cravingSuggest: se esci, una scelta per locale prima di ripetere', async p
   assertEq(await ev(p, () => [...new Set(cravingSuggest('fast', 900, 'onni').out.map(o => o.at))].sort()), ['Burger King', 'KFC', "McDonald's"]);
 });
 
+test('consigli voglie e sgarri', async p => {
+  const r = await ev(p, () => TIPS.filter(t => t.cat === 'Voglie e sgarri').map(t => !!(t.t && t.b && t.src)));
+  assert(r.length >= 10 && r.every(Boolean), JSON.stringify(r));
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await p.click('[data-cat="Voglie e sgarri"]'); await p.waitForTimeout(80);
+  assert(await p.locator('#v-consigli article.tip').count() >= 10);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

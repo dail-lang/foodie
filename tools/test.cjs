@@ -71,7 +71,7 @@ test('reparti', async p => {
   assertEq(r, ['Carne e pesce', 'Latticini e uova', 'Latticini e uova', 'Frutta e verdura', 'Pane, pasta e cereali', 'Legumi e conserve', 'Frutta secca e semi', 'Dispensa e condimenti', 'Carne e pesce']);
 });
 test('in Dispensa finiscono solo condimenti', async p => {
-  const odd = await ev(p, () => [...new Set(R.flatMap(r => r.ing).filter(i => i[2] !== 'q.b.').map(i => i[0]))].filter(n => aisleOf(n) === 'Dispensa e condimenti' && !/olio|miele|cacao|lievito|salsa|tahina|agar|brodo|aceto|curry|cannella|zucchero|granola|cioccolato|burro d|burro di|cocco|caff|curcuma|tè verde/i.test(n)));
+  const odd = await ev(p, () => [...new Set(R.flatMap(r => r.ing).filter(i => i[2] !== 'q.b.').map(i => i[0]))].filter(n => aisleOf(n) === 'Dispensa e condimenti' && !/olio|miele|cacao|lievito|salsa|tahina|agar|brodo|aceto|curry|cannella|zucchero|granola|cioccolato|burro d|burro di|cocco|caff|curcuma|tè verde|senape/i.test(n)));
   assertEq(odd, []);
 });
 test('lista spesa raggruppata', async p => {
@@ -886,6 +886,16 @@ test('cravingSuggest: mezza porzione, più leggere, calorie finite', async p => 
 });
 test('cravingSuggest: vegano e vegetariano senza carne né pesce', async p => {
   assertEq(await ev(p, () => ['veg', 'vegan'].flatMap(d => VOGLIE.map(v => { const s = cravingSuggest(v.id, 900, d); return s.home.every(h => dietOK(h.r, d)) && s.out.every(o => dietOK(o, d)) && (!s.avoid || dietOK(s.avoid, d)); })).every(Boolean)), true);
+});
+
+/* ---------- 25 sgarri fit ---------- */
+test('25 sgarri fit v4-', async p => {
+  const r = await ev(p, () => { const a = R.filter(r => r.id.startsWith('v4-')), by = v => a.filter(r => r.v === v);
+    return { n: a.length, notSgarro: a.filter(r => !r.tags.includes('sgarro') || !r.v).map(r => r.id), slow: a.filter(r => r.t > 30).map(r => r.id),
+      fast: by('fast').length, spalma: by('spalma').length, pizza: by('pizza').length, gelato: by('gelato').length, dolce: by('dolce').length,
+      pasto: a.filter(r => r.m.some(m => m === 'pranzo' || m === 'cena')).length,
+      vegFast: by('fast').filter(r => dietOK(r, 'veg')).length, vegPizza: by('pizza').filter(r => dietOK(r, 'veg')).length, noMicro: a.filter(r => !MICRO[r.id]).map(r => r.id) }; });
+  assert(r.n >= 25 && !r.notSgarro.length && !r.slow.length && r.fast >= 8 && r.spalma >= 5 && r.pizza >= 4 && r.gelato >= 3 && r.dolce >= 3 && r.pasto >= 10 && r.vegFast >= 2 && r.vegPizza >= 2 && !r.noMicro.length, JSON.stringify(r));
 });
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };

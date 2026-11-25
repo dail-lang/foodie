@@ -24,7 +24,7 @@ Le voglie della persona sono due: **fast food tipo McDonald's** (burger, patatin
 5. **Consigli "Voglie e sgarri"**: circa 10 schede nuove nella sezione Consigli, nello stesso formato delle altre (titolo, testo, fonte): la voglia passa in 15–20 minuti, fame o voglia, proteine prima, lo sgarro pianificato batte il "tutto o niente", sonno e voglie, porzionare nel piatto, la porzione vera della crema spalmabile, non compensare saltando pasti, cibi zucchero+grasso iperappetibili, mangiare con calma.
 
 ## Non obiettivi
-- Nessuno sgarro programmato nel piano settimanale (strada B scartata dalla persona).
+- Nessuno sgarro programmato in un giorno fisso (strada B scartata dalla persona); gli sgarri restano normali candidati del piano.
 - Nessun ordine, consegna o posizione dei locali; nessuna altra catena oltre a McDonald's.
 - Nessuna modifica al calcolatore "Fuori piano".
 
@@ -53,7 +53,7 @@ Le voglie della persona sono due: **fast food tipo McDonald's** (burger, patatin
 - Soglia "calorie quasi finite": 150 kcal.
 
 ## Domande chiuse con la verifica del costruttore
-- **Correzione di una premessa:** oggi gli sgarri **entrano già nel piano settimanale** come le altre ricette (`pool` filtra solo per pasto e dieta). Domanda alla persona: i nuovi sgarri fit (burger, pizza, tenders…) devono poter comparire nel piano o restare solo in Ricette e in "Ho voglia di…"?
+- **Correzione di una premessa:** oggi gli sgarri **entrano già nel piano settimanale** come le altre ricette (`pool` filtra solo per pasto e dieta). **Risposta della persona: "mettili nel piano quando rientrano"** — i nuovi sgarri entrano nel piano come quelli di oggi, scelti solo se rispettano calorie, proteine e regole del piano (nessun limite settimanale aggiunto).
 - Calorie rimaste ≥ 150 ma nessuna ricetta intera ci sta: mezza porzione, poi le più leggere (decisione di Claude, sopra).
 - Sgarri esistenti senza voglia chiara: restano senza (decisione di Claude, sopra).
 

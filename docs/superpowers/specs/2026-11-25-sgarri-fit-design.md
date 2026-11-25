@@ -13,19 +13,20 @@ Le voglie della persona sono due: **fast food tipo McDonald's** (burger, patatin
    - Se non basta nemmeno così, si mostrano le 3 opzioni più leggere con "Ti restano X kcal: queste sono le scelte più leggere." (decisione di Claude).
    - Se le calorie rimaste sono poche (< 150) o finite: si mostrano comunque le 3 opzioni più leggere con la frase "Oggi le calorie sono quasi finite: se proprio ti va, scegli la più leggera e domani riparti normale, senza saltare pasti." Niente toni colpevolizzanti.
 2. **Scelte da locale** (valori indicativi, scritti come tali in pagina con la fonte):
-   - **McDonald's** per Fast food e per Gelato/Dolce (McFlurry, Sundae): panini, nuggets, patatine, insalata, bibite zero, combinazioni sensate (es. "McChicken + insalata + Coca-Cola Zero"). **Niente prodotti con maiale o bacon.**
+   - **Fast food: solo McDonald's, KFC e Burger King** (scelta della persona), con scelte da tutte e tre le catene. McDonald's anche per Gelato/Dolce (McFlurry, Sundae).
+   - **McDonald's**: panini, nuggets, patatine, insalata, bibite zero, combinazioni sensate (es. "McChicken + insalata + Coca-Cola Zero"). **Niente prodotti con maiale o bacon.**
    - **Pizzeria** per Pizza (margherita, marinara, ortolana, mezza pizza + insalata…).
    - **Gelateria** per Gelato (coppetta piccola 2 gusti alla frutta, cono piccolo…).
    - **Bar/pasticceria** per Dolce (cornetto vuoto, crostatina, quadratini di fondente…).
    - **Supermercato** per Pane e Nutella: la porzione vera (es. 1 fetta di pane + 15 g di crema = 1 cucchiaino colmo) e alternative.
-   I valori McDonald's si prendono dalle tabelle ufficiali di McDonald's Italia; gli altri dalle voci già presenti nel calcolatore (CREA/USDA).
+   I valori di McDonald's, KFC e Burger King si prendono dalle loro tabelle nutrizionali ufficiali italiane (o, se irraggiungibili, da fonti che le riportano, annotandolo); gli altri dalle voci già presenti nel calcolatore (CREA/USDA).
 3. **~25 nuovi sgarri fit** (tag `sgarro`), senza maiale, ≤ 30 minuti, con voce in `MICRO` e la loro **voglia** (una delle 5). Almeno 10 adatti a pranzo o cena. Copertura minima per voglia: Fast food ≥ 8, Pane e Nutella ≥ 5, Pizza ≥ 4, Gelato ≥ 3, Dolce ≥ 3; almeno 2 vegetariani per Fast food e Pizza. Esempi: smash burger fit, cheeseburger fit, burger con salsa "big" leggera, chicken burger croccante al forno, wrap di pollo croccante, crispy chicken tenders in friggitrice ad aria, fish burger, patatine in friggitrice ad aria, "McFlurry" fit con yogurt greco, milkshake proteico, crema spalmabile nocciole e cacao fatta in casa, toast crema e banana, crêpe con crema fit, pizza in padella integrale, pizza su tortilla, calzone fit, mozzarelline al forno.
 4. **Le ricette sgarro esistenti** ricevono la loro voglia quando ne hanno una chiara (es. pizze → Pizza, mousse e brownie → Dolce, gelati → Gelato), così compaiono anche loro nei suggerimenti. Quelle che non corrispondono a nessuna voglia (es. popcorn al cacao, palline energetiche) restano senza (decisione di Claude: forzarle peggiorerebbe i suggerimenti).
 5. **Consigli "Voglie e sgarri"**: circa 10 schede nuove nella sezione Consigli, nello stesso formato delle altre (titolo, testo, fonte): la voglia passa in 15–20 minuti, fame o voglia, proteine prima, lo sgarro pianificato batte il "tutto o niente", sonno e voglie, porzionare nel piatto, la porzione vera della crema spalmabile, non compensare saltando pasti, cibi zucchero+grasso iperappetibili, mangiare con calma.
 
 ## Non obiettivi
 - Nessuno sgarro programmato in un giorno fisso (strada B scartata dalla persona); gli sgarri restano normali candidati del piano.
-- Nessun ordine, consegna o posizione dei locali; nessuna altra catena oltre a McDonald's.
+- Nessun ordine, consegna o posizione dei locali; nessuna catena di fast food oltre a McDonald's, KFC e Burger King.
 - Nessuna modifica al calcolatore "Fuori piano".
 
 ## Anti-obiettivi

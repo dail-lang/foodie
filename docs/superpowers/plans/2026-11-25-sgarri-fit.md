@@ -41,8 +41,9 @@
 - Produces:
   - `VOGLIE: Array<{id:'fast'|'spalma'|'pizza'|'gelato'|'dolce', n:string}>` nell'ordine sopra.
   - Campo `r.v` sulle ricette sgarro; per le esistenti da una mappa `VOGLIA = {'<id ricetta>':'<voglia>'}` applicata all'avvio (prima di `prep`). Ricette senza voglia chiara: nessun `v`.
-  - `FUORI: Array<{id:string, v:string, at:"McDonald's"|'Pizzeria'|'Gelateria'|'Bar'|'Supermercato', n:string, k, p, c, f, tags:string[], heavy?:true}>` — `tags` come le ricette (`veg`, `vegan`) per riusare `dietOK`; almeno 4 scelte leggere per ogni voglia più 1 `heavy` per voglia ("Da evitare").
-  - `FUORI_SRC = {"McDonald's":'tabelle nutrizionali di McDonald's Italia', Pizzeria:'tabelle CREA', Gelateria:'tabelle CREA', Bar:'tabelle CREA', Supermercato:'etichette dei prodotti'}`.
+  - `FUORI: Array<{id:string, v:string, at:"McDonald's"|'KFC'|'Burger King'|'Pizzeria'|'Gelateria'|'Bar'|'Supermercato', n:string, k, p, c, f, tags:string[], heavy?:true}>` — `tags` come le ricette (`veg`, `vegan`) per riusare `dietOK`; almeno 4 scelte leggere per ogni voglia più 1 `heavy` per voglia ("Da evitare").
+  - Per la voglia `fast` solo `at` in McDonald's, KFC, Burger King, con almeno 2 scelte leggere per catena.
+  - `FUORI_SRC = {"McDonald's":'tabelle nutrizionali di McDonald's Italia', KFC:'tabelle nutrizionali di KFC Italia', 'Burger King':'tabelle nutrizionali di Burger King Italia', Pizzeria:'tabelle CREA', Gelateria:'tabelle CREA', Bar:'tabelle CREA', Supermercato:'etichette dei prodotti'}`.
   - `VOGLIA_TIP = {fast:string, spalma:string, pizza:string, gelato:string, dolce:string}` (una frase pratica ciascuno).
   - `cravingSuggest(v: string, left: number, dieta: string) -> {mode:'ok'|'half'|'light'|'low', home: Array<{r, x:1|0.5}>, out: Array<object>, avoid: object|null, tip: string}`:
     - `home` da `R` con tag `sgarro`, `r.v===v`, `dietOK(r,dieta)`; `out` da `FUORI` con `o.v===v`, non `heavy`, `dietOK(o,dieta)`.
@@ -53,9 +54,9 @@
     - `out`: in `ok`/`half` le scelte con `k ≤ left` per `p/k`, max 3; se nessuna sta (o in `low`/`light`) le 3 più leggere.
     - `avoid`: la `heavy` della voglia (adatta alla dieta) o `null`.
 
-- [ ] **Step 1: Verifica i valori McDonald's Italia**
+- [ ] **Step 1: Verifica i valori di McDonald's, KFC e Burger King Italia**
 
-Per ogni prodotto usato in `FUORI` (es. Big Mac, Cheeseburger, Hamburger, McChicken, Chicken McNuggets 6 e 9, Filet-O-Fish, patatine piccole/medie/grandi, insalata, McFlurry, Sundae, Coca-Cola Zero; niente bacon) cerca kcal, proteine, carboidrati, grassi dalle tabelle ufficiali di McDonald's Italia (sito, PDF o pagine prodotto). Se il sito non si raggiunge, usa i valori riportati da fonti che citano la tabella ufficiale e annota nel ledger quali valori non sono stati letti dalla fonte ufficiale. Big Mac ufficiale: 544 kcal, 27 p, 42 c, 29 f.
+Per ogni prodotto usato in `FUORI` (es. Big Mac, Cheeseburger, Hamburger, McChicken, Chicken McNuggets 6 e 9, Filet-O-Fish, patatine piccole/medie/grandi, insalata, McFlurry, Sundae, Coca-Cola Zero; niente bacon) cerca kcal, proteine, carboidrati, grassi dalle tabelle ufficiali di McDonald's Italia (sito, PDF o pagine prodotto). Lo stesso per KFC (es. pezzi di pollo, tenders/strips, popcorn chicken, panini, patatine, insalata; niente bacon) e Burger King (es. Whopper, Whopper Jr, cheeseburger, chicken burger, nuggets, patatine; niente bacon). Se il sito non si raggiunge, usa i valori riportati da fonti che citano la tabella ufficiale e annota nel ledger quali valori non sono stati letti dalla fonte ufficiale. Big Mac ufficiale: 544 kcal, 27 p, 42 c, 29 f.
 
 - [ ] **Step 2: Write the failing tests**
 
@@ -63,6 +64,10 @@ Per ogni prodotto usato in `FUORI` (es. Big Mac, Cheeseburger, Hamburger, McChic
 test('voglie: 5 voglie e ricette sgarro esistenti assegnate', async p => {
   assertEq(await ev(p, () => [VOGLIE.map(v => v.id), R.filter(r => r.v).every(r => r.tags.includes('sgarro')), ['fast', 'spalma', 'pizza', 'gelato', 'dolce'].filter(v => !R.some(r => r.v === v))]),
     [['fast', 'spalma', 'pizza', 'gelato', 'dolce'], true, []]);
+});
+test('fuori: fast food solo McDonald\'s, KFC e Burger King, almeno 2 scelte ciascuno', async p => {
+  assertEq(await ev(p, () => { const f = FUORI.filter(o => o.v === 'fast'); return [[...new Set(f.map(o => o.at))].sort(), ["McDonald's", 'KFC', 'Burger King'].map(a => f.filter(o => o.at === a && !o.heavy).length >= 2)]; }),
+    [['Burger King', 'KFC', "McDonald's"], [true, true, true]]);
 });
 test('fuori: ogni voglia ha scelte e una da evitare, niente maiale', async p => {
   assertEq(await ev(p, () => VOGLIE.map(v => [FUORI.filter(o => o.v === v.id && !o.heavy).length >= 4, FUORI.filter(o => o.v === v.id && o.heavy).length === 1]).concat([[FUORI.filter(o => /bacon|maiale|prosciutto|salame|speck|pancetta/i.test(o.n)).length, 0]])),

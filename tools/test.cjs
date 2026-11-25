@@ -972,6 +972,15 @@ test('[RF 7] le proteine dichiarate nel testo corrispondono alla ricetta', async
   assertEq(await ev(p, () => R.filter(r => r.id.startsWith('v4-')).filter(r => { const m = (r.h || '').match(/(\d+) g di proteine/); return m && +m[1] !== r.p; }).map(r => r.id)), []);
 });
 
+/* ---------- Consigli a righe ---------- */
+const OLD_TIPS = ["Pesce azzurro 2–3 volte a settimana", "Olio extravergine come grasso principale", "Verdure a foglia e crucifere ogni giorno", "Legumi e cereali integrali per le fibre", "Una manciata di frutta secca", "Curcuma sempre con pepe nero e un grasso", "Zenzero fresco", "Frutti di bosco e cacao amaro", "Fermentati ogni giorno", "Erbe e spezie al posto del sale", "Cosa limitare", "Cos'è lo skinny fat", "Ricomposizione: perdere grasso e mettere muscolo", "Proteine alte: circa 2 g per kg", "Pesi prima del cardio", "Misura il giro vita, non solo il peso", "Ordine nel piatto: prima verdure e proteine", "Cammina 10 minuti dopo mangiato", "Pasta al dente, pane integrale vero", "Frutta intera, non succhi", "Il piatto sano in tre parti", "Legumi almeno 3 volte a settimana", "Pesce 2 volte a settimana", "Fibre: 25–30 grammi al giorno", "Carne rossa con moderazione", "Deficit moderato, non drastico", "Proteine a ogni pasto", "Attenzione all'olio: è sano ma calorico", "Dormi 7–9 ore", "La voglia passa in 15–20 minuti", "Fame o voglia?", "Prima le proteine", "Lo sgarro pianificato batte il \"tutto o niente\"", "Dormire poco fa venire voglia di schifezze", "Porziona nel piatto, mai dal sacchetto", "La porzione vera della crema spalmabile", "Dopo uno sgarro non compensare saltando pasti", "Zucchero + grasso: la combinazione che non sazia", "Mangia lo sgarro seduto e con calma", "Al fast food: pollo, panino singolo, bibita zero", "Bevi soprattutto acqua", "Zuccheri aggiunti sotto il 10%", "Meno di 5 g di sale al giorno", "Pochi cibi ultra-processati", "Leggi l'etichetta al contrario", "Meal prep: cucina una volta, mangia tre", "Surgelati e scatolame sono alleati", "Cuoci, raffredda, poi mangia"];
+test('consigli: 6 categorie, quantità e niente persi', async p => {
+  const r = await ev(p, O => { const by = c => TIPS.filter(t => t.cat === c).length;
+    return { cats: TIP_CATS, tot: TIPS.length, min: Math.min(...TIP_CATS.map(by)), sf: by('Skinny fat e muscoli'), bad: TIPS.filter(t => !TIP_CATS.includes(t.cat) || !(t.t && t.b && t.src)).map(t => t.t), lost: O.filter(o => !TIPS.some(t => t.t === o)), table: TIPS.filter(t => t.table).map(t => t.cat) }; }, OLD_TIPS);
+  assertEq([r.cats, r.tot >= 85, r.min >= 10, r.sf >= 18, r.bad, r.lost, r.table],
+    [['Skinny fat e muscoli', 'Alimentazione', 'Antinfiammatorio', 'Voglie e sgarri', 'Allenamento e sonno', 'Spesa e cucina'], true, true, true, [], [], ['Skinny fat e muscoli']]);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

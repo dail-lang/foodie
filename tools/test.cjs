@@ -980,6 +980,55 @@ test('consigli: 6 categorie, quantità e niente persi', async p => {
   assertEq([r.cats, r.tot >= 85, r.min >= 10, r.sf >= 18, r.bad, r.lost, r.table],
     [['Skinny fat e muscoli', 'Alimentazione', 'Antinfiammatorio', 'Voglie e sgarri', 'Allenamento e sonno', 'Spesa e cucina'], true, true, true, [], [], ['Skinny fat e muscoli']]);
 });
+test('consigli a righe: prima lo skinny fat, Tutti N, niente scroll laterale', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  assertEq(await ev(p, () => [document.querySelector('.trow h3').textContent, document.querySelectorAll('.trow').length, document.querySelectorAll('.trow [data-cat]').length, !document.querySelector('.myth'), document.documentElement.scrollWidth <= 400]),
+    ['Skinny fat e muscoli', 6, 6, true, true]);
+});
+test('consigli: una scheda si apre per intero e si chiude', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  const i = +(await p.locator('.trow .tcard').nth(1).getAttribute('data-tip'));
+  await p.locator('.trow .tcard').nth(1).click(); await p.waitForTimeout(60);
+  const txt = await p.textContent('#tipd');
+  await p.click('[data-act="tipclose"]');
+  assertEq([txt.includes(await ev(p, i => TIPS[i].b, i)), /Fonte/.test(txt), await ev(p, () => !!document.querySelector('#tipd.on'))], [true, true, false]);
+});
+test('consigli: tastiera, Esc e il fuoco torna alla scheda', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await p.locator('.trow .tcard').first().focus(); await p.keyboard.press('Enter'); await p.waitForTimeout(60);
+  const open = await ev(p, () => !!document.querySelector('#tipd.on'));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(60);
+  assertEq([open, ...await ev(p, () => [!!document.querySelector('#tipd.on'), document.activeElement.classList.contains('tcard')])], [true, false, true]);
+});
+test('consigli: cambiare pagina chiude il pannello', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await p.locator('.trow .tcard').first().click(); await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(120);
+  assertEq(await ev(p, () => !!document.querySelector('#tipd.on')), false);
+});
+test('consiglio del giorno: fisso per data, Un altro lo cambia', async p => {
+  assertEq(await ev(p, () => { const a = new Date(2026, 10, 25, 8), b = new Date(2026, 10, 25, 23), c = new Date(2026, 10, 26, 8);
+    return [tipOfDay(a) === tipOfDay(b), [0, 1, 2, 3, 4, 5, 6].map(k => tipOfDay(new Date(2026, 10, 20 + k))).some(x => x !== tipOfDay(a)), !TIPS[tipOfDay(c)].table]; }), [true, true, true]);
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  const t1 = await p.textContent('.tday h3'); let changed = false;
+  for (let k = 0; k < 5 && !changed; k++) { await p.click('[data-act="tipnext"]'); changed = (await p.textContent('.tday h3')) !== t1; }
+  assert(changed);
+});
+test('consigli: Tutti apre la categoria e si torna indietro', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await p.click('[data-cat="Voglie e sgarri"]'); await p.waitForTimeout(60);
+  const n = await p.locator('#v-consigli article.tip').count();
+  await p.click('[data-cat=""]'); await p.waitForTimeout(60);
+  assertEq([n, await ev(p, () => TIPS.filter(t => t.cat === 'Voglie e sgarri').length), await p.locator('.trow').count()], [n, n, 6]);
+});
+test('consigli: la scheda della tabella proteine apre la tabella', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await ev(p, () => document.querySelector(`.tcard[data-tip="${TIPS.findIndex(t => t.table)}"]`).click()); await p.waitForTimeout(60);
+  assert(await p.locator('#tipd table').count() === 1);
+});
+test('consigli: testi lunghi restano dentro la scheda', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  assertEq(await ev(p, () => [...document.querySelectorAll('.tcard')].filter(c => c.scrollWidth > c.clientWidth + 1 || c.getBoundingClientRect().height > 260).length), 0);
+});
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 

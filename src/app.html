@@ -373,6 +373,18 @@ label.btn{cursor:pointer}
 .qalts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem}
 .qoff{margin:0;font-size:.85rem}
 .scanbtn{justify-self:start}
+.tday{background:var(--saffron-soft);border-radius:16px;padding:14px 16px;display:grid;gap:6px}
+.tday h3{margin:0;font-size:1.15rem}.tday p{margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.trow{display:grid;gap:6px;min-width:0}
+.trow-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.trow-h h3{margin:0;font-size:1.1rem}
+.trow-h .linkbtn{margin:0;flex:none}
+.tscroll{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 8px;margin:0 -16px 0 0;padding-right:16px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.tcard{flex:0 0 min(78%,280px);scroll-snap-align:start;display:grid;align-content:start;gap:6px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--ink);min-height:132px;max-height:220px;overflow:hidden}
+.tcard:hover,.tcard:focus-visible{border-color:var(--basil)}
+.tcard .tag{justify-self:start}.tcard b{font-size:1rem;line-height:1.3}
+.tprev{font-size:.86rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tipbox{width:min(100%,560px)}.tipbox .tag{justify-self:start}
+@media (min-width:900px){ .tcard{flex-basis:260px} }
 .scan{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:none;place-items:center;padding:16px}
 .scan.on{display:grid}
 .scan-box{background:var(--surface);color:var(--ink);border-radius:16px;padding:14px;width:min(100%,420px);display:grid;gap:10px;max-height:calc(100vh - 32px);overflow:auto}
@@ -1526,7 +1538,7 @@ const TIPS = [
  {cat:'Spesa e cucina',t:'Leggi l\'etichetta al contrario',b:'Gli ingredienti sono in ordine di quantità: se lo zucchero è tra i primi tre, lascialo sullo scaffale. Per confrontare due prodotti usa sempre i valori per 100 g.',src:'Regolamento UE 1169/2011 sull\'etichettatura'},
  {cat:'Spesa e cucina',t:'Meal prep: cucina una volta, mangia tre',b:'La domenica cuoci cereali e legumi in quantità, rassoda qualche uovo e lava le verdure. Bonus: cereali e patate cotti e conservati in frigo hanno più amido resistente.',src:'Consiglio pratico'},
  {cat:'Spesa e cucina',t:'Surgelati e scatolame sono alleati',b:'Verdure e pesce surgelati mantengono i nutrienti e non si sprecano. Legumi in barattolo e tonno al naturale salvano la cena in 10 minuti.',src:'Linee guida CREA'},
- {cat:'Skinny fat e muscoli',t:'Quante proteine ci sono in…',b:'La tabella con i grammi di proteine per porzione dei cibi più comuni: ti aiuta a costruire pasti da 25–40 g di proteine.',src:'Tabelle di composizione degli alimenti CREA',table:true},
+ {cat:'Skinny fat e muscoli',t:'Quante proteine ci sono in…',b:'La tabella dei cibi più comuni con i grammi di proteine ogni 100 g e ogni 100 kcal: ti aiuta a costruire pasti da 25–40 g di proteine con meno calorie.',src:'Tabelle di composizione degli alimenti CREA',table:true},
  {cat:'Skinny fat e muscoli',t:'Non tagliare troppo le calorie',b:'Mangiare pochissimo fa perdere anche muscolo e peggiora lo skinny fat. Meglio il mantenimento o un deficit leggero (200–300 kcal) mentre ti alleni con i pesi.',src:'Studi sulla ricomposizione corporea (Barakat et al., 2020)'},
  {cat:'Skinny fat e muscoli',t:'Sovraccarico progressivo',b:'Il muscolo cresce se lo sforzo aumenta piano piano: ogni settimana prova ad aggiungere una ripetizione o un po\' di peso. Segna gli allenamenti nell\'app per vedere i progressi.',src:'ACSM, modelli di progressione nell\'allenamento di forza (2009)'},
  {cat:'Skinny fat e muscoli',t:'Pesi 3 volte a settimana',b:'Tre allenamenti total body bastano: ogni muscolo lavora 2 volte a settimana, con 10 o più serie settimanali per gruppo muscolare.',src:'Meta-analisi di Schoenfeld su volume e frequenza (2016, 2017)'},
@@ -1714,7 +1726,7 @@ function badgesBlock(){
 }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
-const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,voglia:null,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
+const ui = {tipPick:null,q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,voglia:null,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
 
 /* ---------- Calcoli ---------- */
 const ACT = {sed:[1.2,'Sedentario'],leggero:[1.375,'Leggero (1–3 allenamenti/sett.)'],moderato:[1.55,'Moderato (3–5/sett.)'],intenso:[1.725,'Intenso (6–7/sett.)']};
@@ -2041,22 +2053,39 @@ function cardsHTML(){
   if(!list.length) return `<div class="empty">Nessuna ricetta con questi filtri. Prova a toglierne qualcuno.</div>`;
   return `<div class="cards">${list.map(r=>cardHTML(r,null)).join('')}</div>`;
 }
+// consiglio del giorno: lo stesso per tutta la data, mai la scheda della tabella
+function tipOfDay(d){ const key=todayKey(d||new Date()); let h=0; for(const ch of key) h=(h*31+ch.charCodeAt(0))>>>0;
+  const ok=TIPS.map((t,i)=>i).filter(i=>!TIPS[i].table); return ok[h%ok.length]; }
+const tipLv=t=>t.lv?`<span class="tag lv lv-${t.lv}">${LV_LBL[t.lv]}</span>`:'';
 function viewConsigli(){
   const el = document.getElementById('v-consigli');
-  const cats = ['Tutti',...new Set(TIPS.map(t=>t.cat))];
-  const list = TIPS.filter(t=>ui.cat==='Tutti'||t.cat===ui.cat);
+  if(ui.cat&&!TIP_CATS.includes(ui.cat)) ui.cat=null;
+  if(ui.cat){
+    const list=TIPS.map((t,i)=>[t,i]).filter(([t])=>t.cat===ui.cat);
+    el.innerHTML = `<div><button class="linkbtn" data-cat="" style="margin:0">‹ Tutte le categorie</button><h2 style="font-size:1.6rem">${esc(ui.cat)}</h2><p class="muted" style="margin:0">${list.length} consigli</p></div>
+      <div class="tips">${list.map(([t,i])=>t.table?`<article class="tip"><h3>${esc(t.t)}</h3><p>${esc(t.b)}</p><button class="btn small" data-tip="${i}">Apri la tabella</button></article>`
+        :`<article class="tip"><div class="row" style="gap:6px">${tipLv(t)}</div><h3>${esc(t.t)}</h3><p>${esc(t.b)}</p><span class="src">Fonte: ${esc(t.src)}</span></article>`).join('')}</div>`;
+    return;
+  }
+  const di=ui.tipPick!=null&&TIPS[ui.tipPick]?ui.tipPick:tipOfDay(new Date()), d=TIPS[di];
   el.innerHTML = `
-    <div><div class="eyebrow">Dalle linee guida e dagli studi più solidi</div><h2 style="font-size:1.6rem">Consigli</h2></div>
-    <div class="myth">
-      <div class="eyebrow">Lo sapevi? · Patate, riso e pasta</div>
-      <h2>Cuoci, raffredda, poi mangia</h2>
-      <p style="margin:0">Non conta l'ora in cui cuoci le patate, conta il <b>raffreddamento</b>. Patate, riso e pasta cotti e lasciati in frigo per almeno 12–24 ore trasformano parte dell'amido in <b>amido resistente</b>, che si comporta come una fibra: la glicemia sale meno e nutre i batteri buoni dell'intestino. L'effetto resta anche se poi li riscaldi. Quindi il trucco è cuocerle la sera e mangiarle il giorno dopo.</p>
-      <p class="src muted" style="margin:0;font-size:.8rem">È un aiuto moderato, non una cura: le porzioni e il resto del pasto contano di più. Fonti: studi sull'amido retrogradato (es. Sonia et al., 2015; Robertson et al., 2018).</p>
-    </div>
-    <div class="chips" role="group" aria-label="Categorie">${cats.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${ui.cat===c}">${c}</button>`).join('')}</div>
-    <div class="tips">${list.map(t=>`<article class="tip"><div class="row" style="gap:6px"><span class="eyebrow">${t.cat}</span>${t.lv?`<span class="tag lv lv-${t.lv}">${LV_LBL[t.lv]}</span>`:''}</div><h3>${esc(t.t)}</h3><p>${esc(t.b)}</p><span class="src">Fonte: ${esc(t.src)}</span></article>`).join('')}</div>
-    ${proteinTable()}`;
+    <div><div class="eyebrow">Dalle linee guida e dagli studi</div><h2 style="font-size:1.6rem">Consigli</h2></div>
+    <div class="tday"><div class="eyebrow">${ui.tipPick!=null?'Un altro consiglio':'Consiglio del giorno'} · ${esc(d.cat)}</div><h3>${esc(d.t)}</h3><p>${esc(d.b)}</p>
+      <div class="row" style="gap:8px"><button class="btn small primary" data-tip="${di}">Leggi</button><button class="btn small" data-act="tipnext">Un altro</button></div></div>
+    ${TIP_CATS.map(c=>{ const list=TIPS.map((t,i)=>[t,i]).filter(([t])=>t.cat===c);
+      return `<section class="trow" aria-label="${esc(c)}"><div class="trow-h"><h3>${esc(c)}</h3><button class="linkbtn" data-cat="${esc(c)}">Tutti ${list.length} ›</button></div>
+        <div class="tscroll">${list.map(([t,i])=>`<button class="tcard" data-tip="${i}">${tipLv(t)}<b>${esc(t.t)}</b><span class="tprev">${esc(t.b)}</span></button>`).join('')}</div></section>`; }).join('')}`;
 }
+let tipFrom=null;
+function openTip(i,from){
+  const t=TIPS[i]; if(!t) return; tipFrom=from||null;
+  let d=$('tipd'); if(!d){ d=document.createElement('div'); d.id='tipd'; d.className='scan'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true'); document.body.appendChild(d); }
+  d.setAttribute('aria-label',t.t);
+  d.innerHTML=`<div class="scan-box tipbox"><div class="scan-h"><span class="eyebrow">${esc(t.cat)}</span><button class="icon-btn" data-act="tipclose" aria-label="Chiudi">×</button></div>
+    ${tipLv(t)}<h3 style="margin:0">${esc(t.t)}</h3><p style="margin:0">${esc(t.b)}</p>${t.table?proteinTable():''}<span class="src muted" style="font-size:.8rem">Fonte: ${esc(t.src)}</span></div>`;
+  d.classList.add('on'); const x=d.querySelector('[data-act="tipclose"]'); if(x) x.focus();
+}
+function closeTip(){ const d=$('tipd'); if(!d||!d.classList.contains('on')) return; d.classList.remove('on'); if(tipFrom&&document.contains(tipFrom)) tipFrom.focus(); tipFrom=null; }
 /* ---------- Backup ---------- */
 const BK_KEYS = ['profile','plan','favs','shop','mine','log','prog','timers','recent','badges','cooked','wlog','myfoods','products'];
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -3379,6 +3408,8 @@ const HANDLERS = {
   scanclose:()=>closeScan(),
   scancode:()=>onBarcode($('scan-code').value),
   scanmanual:()=>{ closeScan(); const d=document.querySelector('details.manual'); if(!d) return; d.open=true; $('q-n').focus(); d.scrollIntoView({block:'center'}); },
+  tipnext:()=>{ const cur=ui.tipPick!=null?ui.tipPick:tipOfDay(new Date()), ok=TIPS.map((x,i)=>i).filter(i=>!TIPS[i].table&&i!==cur); ui.tipPick=ok[Math.floor(Math.random()*ok.length)]; viewConsigli(); },
+  tipclose:()=>closeTip(),
   qdel:t=>{ ui.qscan=ui.qscan.filter(x=>x.key!==t.dataset.key); refreshQ(); },
   addq:()=>{ const v=id=>{ const x=$(id).value.trim(); return x===''?null:Math.max(0,parseFloat(x.replace(',','.'))||0); };
     const it=manualItem($('q-n').value.trim()||'Altro', v('q-k'), v('q-p'), v('q-c'), v('q-f')); if(!it){ $('q-k').focus(); return; }
@@ -3411,8 +3442,9 @@ const HANDLERS = {
   train:t=>{ const k=t.dataset.k, cur=log[k]&&log[k].train; setTrain(k, cur===t.dataset.v?null:t.dataset.v); render(); },
   rmprog:t=>{ prog=prog.filter(x=>String(x.t)!==t.dataset.d); store.set('prog',prog); viewOggi(); }
 };
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('scan')&&$('scan').classList.contains('on')) closeScan(); if(e.key==='Enter'&&e.target.id==='scan-code') onBarcode(e.target.value); });
-window.addEventListener('hashchange',()=>closeScan());
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('tipd')&&$('tipd').classList.contains('on')) closeTip(); if(e.key==='Escape'&&$('scan')&&$('scan').classList.contains('on')) closeScan(); if(e.key==='Enter'&&e.target.id==='scan-code') onBarcode(e.target.value); });
+window.addEventListener('hashchange',()=>{ closeScan(); closeTip(); });
+document.addEventListener('click',e=>{ if(e.target.id==='tipd') closeTip(); });
 document.addEventListener('click',e=>{
   const t = e.target.closest('button'); if(!t) return;
   if(t.dataset.act && HANDLERS[t.dataset.act]){ HANDLERS[t.dataset.act](t); celebrate(); return; }
@@ -3422,7 +3454,8 @@ document.addEventListener('click',e=>{
   if(t.id==='toggle-shop'){ui.showShop=!ui.showShop;render();return}
   if(t.dataset.slot){ui.slot=t.dataset.slot;viewRicette();return}
   if(t.dataset.flt){const f=t.dataset.flt;ui.flt.has(f)?ui.flt.delete(f):ui.flt.add(f);viewRicette();return}
-  if(t.dataset.cat){ui.cat=t.dataset.cat;viewConsigli();return}
+  if(t.dataset.cat!==undefined){ui.cat=t.dataset.cat||null;viewConsigli();window.scrollTo(0,0);return}
+  if(t.dataset.tip!==undefined){openTip(+t.dataset.tip,t);return}
   if(t.dataset.wk){ui.wk=t.dataset.wk;viewAllenamento();return}
 });
 document.addEventListener('input',e=>{

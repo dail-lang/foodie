@@ -1225,7 +1225,7 @@ const R = [
  {id:"v4-yogurt-crema-nocciole",n:"Yogurt greco con crema cacao e nocciole e fragole",m:["spuntino", "colazione"],t:5,p:20,c:20,f:7,tags:["veg", "gf", "sgarro"],v:"spalma",
   ing:[["Yogurt greco 0%", 170, "g"], ["Cacao amaro", 5, "g"], ["Nocciole", 10, "g"], ["Miele", 5, "g"], ["Fragole", 100, "g"]],
   s:["Mescola metà yogurt con cacao e miele: è la tua crema al cacao.", "Metti a strati yogurt bianco, crema al cacao e fragole a pezzi.", "Finisci con le nocciole tritate."],
-  h:"Il gusto della crema alle nocciole con 17 g di proteine: quando la voglia arriva di sera."},
+  h:"Il gusto della crema alle nocciole con 20 g di proteine: quando la voglia arriva di sera."},
  {id:"v4-fette-crema-proteica",n:"Fette biscottate integrali con crema proteica al cacao",m:["colazione", "spuntino"],t:5,p:10,c:23,f:11,tags:["veg", "sgarro"],v:"spalma",
   ing:[["Fette biscottate integrali", 24, "g"], ["Ricotta", 60, "g"], ["Cacao amaro", 5, "g"], ["Miele", 5, "g"], ["Nocciole", 5, "g"]],
   s:["Mescola la ricotta con cacao e miele fino a una crema.", "Spalmala sulle fette biscottate.", "Finisci con le nocciole tritate."],
@@ -1249,7 +1249,7 @@ const R = [
  {id:"v4-mcflurry-fit",n:"Gelato allo yogurt con biscotto sbriciolato (tipo McFlurry)",m:["spuntino"],t:10,p:17,c:23,f:2,tags:["veg", "sgarro"],v:"gelato",
   ing:[["Yogurt greco 0%", 150, "g"], ["Biscotti secchi integrali", 15, "g"], ["Cacao amaro", 3, "g"], ["Miele", 8, "g"]],
   s:["Mescola lo yogurt con il miele e mettilo in freezer in una tazza per 1 ora (o usa yogurt già messo in freezer la sera prima e lasciato ammorbidire 10 minuti).", "Sbriciola i biscotti e mescolali al cacao.", "Mescola lo yogurt semi-congelato con i biscotti e servi subito."],
-  h:"Cremoso come il gelato del fast food, con 16 g di proteine e la metà degli zuccheri."},
+  h:"Cremoso come il gelato del fast food, con 17 g di proteine e la metà degli zuccheri."},
  {id:"v4-milkshake-proteico",n:"Milkshake proteico alla fragola",m:["spuntino"],t:5,p:18,c:40,f:4,tags:["veg", "gf", "sgarro"],v:"gelato",
   ing:[["Latte parz. scremato", 200, "ml"], ["Yogurt greco 0%", 100, "g"], ["Fragole", 100, "g"], ["Banana congelata a rondelle", 60, "g"], ["Miele", 5, "g"]],
   s:["Metti tutto nel frullatore.", "Frulla 1 minuto finché è denso e schiumoso.", "Servi subito, con una cannuccia larga."],
@@ -1324,7 +1324,7 @@ const FUORI=[
   FO('spalma','Supermercato','1 fetta di pane + 15 g di Nutella',176,4,26,6,['veg']),
   FO('spalma','Supermercato','1 fetta di pane + 15 g di crema di nocciole 100%',193,5,20,10,['veg','vegan']),
   FO('spalma','Supermercato','Panino da 100 g con 50 g di Nutella',540,11,84,17,['veg'],1)];
-const FUORI_SRC={"McDonald's":"tabelle nutrizionali di McDonald's Italia",KFC:'tabelle nutrizionali di KFC',"Burger King":'tabelle nutrizionali di Burger King',Pizzeria:'tabelle CREA',Gelateria:'tabelle CREA',Bar:'tabelle CREA',Supermercato:'etichette dei prodotti'};
+const FUORI_SRC={"McDonald's":"schede prodotto di McDonald's Italia e database nutrizionali",KFC:'database nutrizionali (FatSecret, Yazio, leCalorie)',"Burger King":'database nutrizionali (FatSecret)',Pizzeria:'tabelle CREA',Gelateria:'tabelle CREA',Bar:'tabelle CREA',Supermercato:'etichette dei prodotti'};
 const VOGLIA_TIP={
   fast:'Scegli pollo o un panino singolo, sostituisci le patatine con l\'insalata e prendi la bibita zero: è lì che si risparmiano 300–500 kcal.',
   spalma:'La porzione vera è un cucchiaino colmo (15 g, circa 80 kcal): spalmala su una fetta, non mangiarla dal barattolo.',
@@ -1345,9 +1345,10 @@ function cravingSuggest(v,left,dieta){
   const fit=outAll.filter(o=>o.k<=left);
   // prima la scelta migliore di ogni locale, poi le altre: così si vedono McDonald's, KFC e Burger King
   const spread=a=>{ const first=[], rest=[], seen=new Set(); a.forEach(o=>{ (seen.has(o.at)?rest:first).push(o); seen.add(o.at); }); return first.concat(rest).slice(0,3); };
-  const out=(mode==='ok'||mode==='half')&&fit.length ? spread(fit.sort(bySh)) : spread(outAll.slice().sort(light));
+  const outFits=(mode==='ok'||mode==='half')&&fit.length>0;
+  const out=outFits ? spread(fit.sort(bySh)) : lightest(outAll);
   const avoid=FUORI.find(o=>o.v===v&&o.heavy&&dietOK(o,dieta))||null;
-  return {mode,home,out,avoid,tip:VOGLIA_TIP[v]||''};
+  return {mode,home,out,outFits,avoid,tip:VOGLIA_TIP[v]||''};
 }
 
 
@@ -1708,6 +1709,29 @@ function coverage(days){ const c={}; Object.keys(NUTR).forEach(k=>c[k]=0); days.
 /* ---------- Proteine del piano ---------- */
 function dayTotals(day){ return SLOTS_IDS.reduce((t,sl)=>{ const e=day[sl], r=byId[e.id]; return {k:t.k+r.k*e.x, p:t.p+r.p*e.x}; },{k:0,p:0}); }
 function weekCount(days,tag){ return days.reduce((n,d)=>n+['pranzo','cena'].filter(sl=>byId[d[sl].id].tags.includes(tag)).length,0); }
+// nutrienti coperti dal piano Superfood ma che la correzione delle proteine può sacrificare (abbondanti nei cibi comuni)
+const SF_SOFT=['potassio','magnesio','fibre'];
+// dopo la correzione delle proteine: copre potassio, magnesio e fibre solo con piatti che non abbassano le proteine
+function coverSoft(days,T,prot,used){
+  const allSlots=SLOTS.map(s=>s[0]);
+  for(const m of SF_SOFT){
+    for(let i=0;i<30;i++){
+      if(coverage(days)[m]>=NUTR[m].w) break;
+      const d=Math.floor(Math.random()*7), sl=pick(allSlots), day=days[d], cur=byId[day[sl].id];
+      if(cur.mi.includes(m)) continue;
+      const cov=coverage(days), inDay=SLOTS_IDS.map(x=>day[x].id), share=SLOTS.find(s=>s[0]===sl)[1];
+      const keeps=r=>Object.keys(NUTR).every(n=>{ const w=NUTR[n].w; if(cov[n]<w) return true; return cov[n]-(cur.mi.includes(n)?1:0)+(r.mi.includes(n)?1:0)>=w; });
+      const tag=t=>(sl==='pranzo'||sl==='cena')&&cur.tags.includes(t);
+      const opts=pool(sl).filter(r=>r.mi.includes(m)&&(used[r.id]||0)<2&&!inDay.includes(r.id)&&r.p/r.k>=cur.p/cur.k&&keeps(r)
+        &&(!tag('pesce')||r.tags.includes('pesce'))&&(!tag('legumi')||r.tags.includes('legumi')));
+      if(!opts.length) continue;
+      const r=pickW(opts), old=day[sl], before=dayTotals(day).p;
+      day[sl]={id:r.id,x:portion(r,T*share)};
+      if(dayTotals(day).p<Math.min(before,.9*prot)){ day[sl]=old; continue; }
+      used[cur.id]=Math.max(0,(used[cur.id]||1)-1); used[r.id]=(used[r.id]||0)+1;
+    }
+  }
+}
 function fixProtein(days,T,prot,used){
   const share=Object.fromEntries(SLOTS.map(s=>[s[0],s[1]]));
   days.forEach((day,di)=>{
@@ -1716,7 +1740,7 @@ function fixProtein(days,T,prot,used){
       const cur=byId[day[sl].id], inDay=SLOTS_IDS.map(x=>day[x].id), main=sl==='pranzo'||sl==='cena';
       const near=[days[di-1],days[di+1]].filter(Boolean).map(d=>d[sl].id);
       const cov=profile.sf?coverage(days):null;
-      const keepsCoverage=r=>!cov||Object.keys(NUTR).every(m=>{ const w=NUTR[m].w; if(cov[m]<w) return true; return cov[m]-(cur.mi.includes(m)?1:0)+(r.mi.includes(m)?1:0)>=w; });
+      const keepsCoverage=r=>!cov||Object.keys(NUTR).filter(m=>!SF_SOFT.includes(m)).every(m=>{ const w=NUTR[m].w; if(cov[m]<w) return true; return cov[m]-(cur.mi.includes(m)?1:0)+(r.mi.includes(m)?1:0)>=w; });
       const keepTag=tag=>main&&cur.tags.includes(tag)&&weekCount(days,tag)<=(tag==='pesce'?2:3);
       let c=pool(sl).filter(r=>!inDay.includes(r.id)&&!near.includes(r.id)&&keepsCoverage(r)&&(used[r.id]||0)<2&&r.p/r.k>cur.p/cur.k+.02
         &&(!keepTag('pesce')||r.tags.includes('pesce'))&&(!keepTag('legumi')||r.tags.includes('legumi')));
@@ -1760,7 +1784,7 @@ function makePlan(){
   // Superfood: copri i micronutrienti più spesso carenti
   if(profile.sf){
     const allSlots = SLOTS.map(s=>s[0]);
-    for(const m of ['omega3','vitD','ferro','calcio','probiotici','iodio','zinco','vitC','folati','potassio','magnesio','fibre']){
+    for(const m of ['omega3','vitD','ferro','calcio','probiotici','iodio','zinco','vitC','folati']){
       for(let i=0;i<30;i++){
         if(coverage(days)[m]>=NUTR[m].w) break;
         const d=Math.floor(Math.random()*7), sl=pick(allSlots), cur=byId[days[d][sl].id];
@@ -1774,6 +1798,7 @@ function makePlan(){
   }
   ensure('pesce',2); ensure('legumi',3);
   fixProtein(days,T,calc(profile).prot,used);
+  if(profile.sf) coverSoft(days,T,calc(profile).prot,used);
   plan={days,target:T,created:Date.now()};
   shopDone=new Set(); store.set('shop',[]);
   store.set('plan',plan);
@@ -3020,10 +3045,10 @@ function vogliaHTML(){
     <div id="vg-res" aria-live="polite">${ui.voglia?vgRes(oggiLeft()):''}</div>`;
 }
 function vgRes(left){
-  const s=cravingSuggest(ui.voglia,left,profile.dieta), L=Math.max(0,left), R1=Math.round;
-  const head = s.mode==='low' ? '<p class="note" style="margin:0">Oggi le calorie sono quasi finite: se proprio ti va, scegli la più leggera e domani riparti normale, senza saltare pasti.</p>'
-    : s.mode==='light' ? `<p style="margin:0">Ti restano <b class="num">${L} kcal</b>: queste sono le scelte più leggere.</p>`
-    : `<p style="margin:0">Ti restano <b class="num">${L} kcal</b> oggi.</p>`;
+  const s=cravingSuggest(ui.voglia,left,profile.dieta), L=Math.max(0,left), R1=Math.round, past=ui.dayOff>0;
+  const head = s.mode==='low' ? `<p class="note" style="margin:0">${past?'Quel giorno le calorie erano':'Oggi le calorie sono'} quasi finite: se proprio ti va, scegli la più leggera e ${past?'il giorno dopo':'domani'} riparti normale, senza saltare pasti.</p>`
+    : s.mode==='light' ? `<p style="margin:0">${past?'Restavano':'Ti restano'} <b class="num">${L} kcal</b>: queste sono le scelte più leggere.</p>`
+    : `<p style="margin:0">${past?'Restavano':'Ti restano'} <b class="num">${L} kcal</b> ${past?'quel giorno':'oggi'}.</p>`;
   const home = s.home.length ? s.home.map(({r,x})=>`<div class="vg-item"><div><button class="name" data-open="${r.id}" data-x="${x}">${esc(r.n)}</button>
       <div class="muted num" style="font-size:.85rem">${R1(r.k*x)} kcal · ${R1(r.p*x)} g proteine${x!==1?' · ½ porzione':''}</div></div>
       <div class="vg-btns"><button class="btn small" data-open="${r.id}" data-x="${x}">Ricetta</button><button class="btn small primary" data-act="vgadd" data-id="${r.id}" data-x="${x}">Segna</button></div></div>`).join('')
@@ -3035,7 +3060,7 @@ function vgRes(left){
   const places=[...new Set(s.out.concat(s.avoid?[s.avoid]:[]).map(o=>o.at))];
   return `<div class="vg-res">${head}
     <h4>Fatto in casa</h4><div class="vg-list">${home}</div>
-    <h4>Se esci</h4><div class="vg-list">${out}</div>
+    <h4>Se esci</h4>${!s.outFits&&s.out.length&&(s.mode==='ok'||s.mode==='half')?'<p class="muted" style="margin:0;font-size:.88rem">Nessuna scelta da locale sta nelle calorie rimaste: ecco le più leggere.</p>':''}<div class="vg-list">${out}</div>
     ${s.avoid?`<p class="vg-avoid">Da evitare: <b>${esc(s.avoid.at)}</b>, ${esc(s.avoid.n)} (<span class="num">${R1(s.avoid.k)} kcal</span>).</p>`:''}
     <p class="vg-tip"><b>Consiglio:</b> ${esc(s.tip)}</p>
     ${places.length?`<p class="muted" style="margin:0;font-size:.78rem">Valori indicativi: ${places.map(a=>esc(FUORI_SRC[a]||a)).join('; ')}.</p>`:''}</div>`;

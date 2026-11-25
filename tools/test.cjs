@@ -945,6 +945,33 @@ test('consigli voglie e sgarri', async p => {
   assert(await p.locator('#v-consigli article.tip').count() >= 10);
 });
 
+/* ---------- Revisione finale sgarri ---------- */
+test('[RF 1] se esci: se niente sta nelle calorie lo dice', async p => {
+  assertEq(await ev(p, () => { const s = cravingSuggest('pizza', 320, 'onni'); return [s.mode, s.outFits, s.out.length > 0]; }), ['ok', false, true]);
+  await ev(p, () => { location.hash = 'oggi'; const c = calc(profile); dayLog().items.push({ n: 'Pasti', k: c.target - 320, p: 0, c: 0, f: 0, src: 'q' }); saveLog(); viewOggi(); }); await p.waitForTimeout(150);
+  await p.click('[data-act="voglia"][data-v="pizza"]'); await p.waitForTimeout(80);
+  assert(/Nessuna scelta da locale sta nelle calorie rimaste/.test(await p.textContent('#vg-res')));
+});
+test('[RF 2] vegetariano + Superfood: proteine come prima', async p => {
+  const r = await ev(p, () => { profile.sf = true; profile.dieta = 'veg'; const c = calc(profile); let low = 0; for (let k = 0; k < 60; k++) { makePlan(); low += plan.days.filter(d => dayTotals(d).p < .9 * c.prot).length; } return low / 60; });
+  assert(r <= .35, 'giorni con poche proteine per piano ' + r);
+}, { seed: { 'pp.profile': REAL } });
+test('[RF 3] calorie finite: le 3 scelte da locale più leggere', async p => {
+  assertEq(await ev(p, () => { const s = cravingSuggest('gelato', 50, 'onni'), all = FUORI.filter(o => o.v === 'gelato' && !o.heavy).map(o => o.k).sort((a, b) => a - b).slice(0, 3); return [s.mode, s.out.map(o => o.k).sort((a, b) => a - b)]; }),
+    ['low', [130, 200, 255]]);
+});
+test('[RF 4] giorno passato: niente "oggi" né "domani"', async p => {
+  await ev(p, () => { location.hash = 'oggi'; ui.dayOff = 1; dayLog().items.push({ n: 'Ieri', k: 5000, p: 0, c: 0, f: 0, src: 'q' }); saveLog(); viewOggi(); }); await p.waitForTimeout(150);
+  await p.click('[data-act="voglia"][data-v="gelato"]'); await p.waitForTimeout(80);
+  const t = await p.textContent('#vg-res'); assert(!/oggi|domani/i.test(t), t);
+});
+test('[RF 6] fonte dei valori da locale onesta', async p => {
+  assert(await ev(p, () => Object.values(FUORI_SRC).every(v => !/^tabelle nutrizionali di/.test(v))));
+});
+test('[RF 7] le proteine dichiarate nel testo corrispondono alla ricetta', async p => {
+  assertEq(await ev(p, () => R.filter(r => r.id.startsWith('v4-')).filter(r => { const m = (r.h || '').match(/(\d+) g di proteine/); return m && +m[1] !== r.p; }).map(r => r.id)), []);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

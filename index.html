@@ -95,6 +95,15 @@ section.view{display:grid;gap:20px}
 .macro .val{font-weight:600}
 .bar{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;margin-top:4px}
 .bar i{display:block;height:100%}
+.vg .chips{margin:6px 0 10px}
+.vg-res{display:grid;gap:10px}
+.vg-res h4{margin:4px 0 0;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.vg-list{display:grid;gap:8px}
+.vg-item{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--surface)}
+.vg-item .name{background:none;border:0;padding:0;text-align:left;font-weight:600;color:var(--ink)}
+.vg-btns{display:flex;gap:6px;flex:none}
+.vg-avoid{margin:0;font-size:.88rem;color:var(--tomato)}
+.vg-tip{margin:0;font-size:.9rem}
 .note{font-size:.85rem;color:var(--muted);background:var(--sunk);border-radius:8px;padding:8px 12px}
 .note b{color:var(--ink)}
 
@@ -1173,9 +1182,195 @@ const R = [
  {id:'v3-toast-segale-fiocchi',n:'Toast di segale con fiocchi di latte ed erba cipollina',m:['spuntino','colazione'],t:4,p:17,c:28,f:5,tags:['veg'],
   ing:[['Pane di segale',50,'g'],['Fiocchi di latte',100,'g'],['Cetriolo',50,'g'],['Erba cipollina','0','q.b.']],
   s:['Tosta il pane di segale.','Spalma i fiocchi di latte mescolati con erba cipollina e pepe.','Completa con fettine di cetriolo.'],
-  h:'Uno spuntino salato e leggero con 17 g di proteine.'}
+  h:'Uno spuntino salato e leggero con 17 g di proteine.'},
+ {id:"v4-smash-burger",n:"Smash burger fit con cipolla caramellata",m:["pranzo", "cena"],t:15,p:36,c:38,f:13,tags:["carne", "sgarro"],v:"fast",
+  ing:[["Macinato di manzo magro", 120, "g"], ["Panino integrale", 70, "g"], ["Formaggio a fette light", 20, "g"], ["Cipolla", 40, "g"], ["Lattuga", 20, "g"], ["Pomodori", 50, "g"], ["Senape", 10, "g"]],
+  s:["Affetta sottile la cipolla e cuocila in padella antiaderente con un cucchiaio d'acqua per 5 minuti, finché è morbida e dorata.", "Dividi la carne in due palline. Scalda bene una padella di ghisa o antiaderente senza olio.", "Metti le palline e schiacciale subito con una spatola fino a 1 cm: cuoci 2 minuti, gira, aggiungi la fetta di formaggio e cuoci 1 minuto.", "Scalda il panino, spalma la senape e componi con lattuga, pomodoro, i due hamburger e la cipolla."],
+  h:"Due hamburger sottili schiacciati in padella rovente: crosticina da fast food, carne magra e niente olio."},
+ {id:"v4-cheeseburger-salsa",n:"Cheeseburger fit con salsa \"big\" leggera",m:["pranzo", "cena"],t:15,p:37,c:37,f:12,tags:["carne", "sgarro"],v:"fast",
+  ing:[["Macinato di manzo magro", 110, "g"], ["Panino integrale", 70, "g"], ["Formaggio a fette light", 20, "g"], ["Yogurt greco 0%", 40, "g"], ["Senape", 5, "g"], ["Cetriolo", 30, "g"], ["Cipolla", 15, "g"], ["Lattuga", 20, "g"], ["Paprika", "0", "q.b."]],
+  s:["Prepara la salsa: yogurt greco, senape, un pizzico di paprika e il cetriolo tritato fine con la cipolla.", "Forma l'hamburger sottile e cuocilo in padella ben calda 3 minuti per lato; nell'ultimo minuto metti sopra il formaggio.", "Scalda il panino, spalma abbondante salsa e componi con lattuga e hamburger."],
+  h:"La salsa rosa dei panini famosi rifatta con yogurt greco: stesso gusto, un terzo delle calorie."},
+ {id:"v4-chicken-burger",n:"Chicken burger croccante al forno",m:["pranzo", "cena"],t:25,p:45,c:52,f:4,tags:["carne", "sgarro"],v:"fast",
+  ing:[["Petto di pollo", 130, "g"], ["Corn flakes senza zucchero", 20, "g"], ["Albume", 30, "g"], ["Panino integrale", 70, "g"], ["Lattuga", 20, "g"], ["Pomodori", 40, "g"], ["Yogurt greco 0%", 30, "g"], ["Paprika", "0", "q.b."]],
+  s:["Accendi il forno a 220 °C. Batti il petto di pollo a 1,5 cm di spessore.", "Sbriciola i corn flakes con le mani e mescolali con la paprika.", "Passa il pollo nell'albume e poi nei corn flakes, premendo bene.", "Cuoci su carta forno 15–18 minuti, girandolo a metà.", "Scalda il panino e componi con yogurt, lattuga, pomodoro e pollo."],
+  h:"La panatura di corn flakes al forno è croccante come la frittura, con un decimo dell'olio."},
+ {id:"v4-tenders-airfryer",n:"Tenders di pollo croccanti in friggitrice ad aria con salsa allo yogurt",m:["pranzo", "cena"],t:20,p:50,c:20,f:9,tags:["carne", "sgarro"],v:"fast",
+  ing:[["Petto di pollo", 150, "g"], ["Pangrattato integrale", 25, "g"], ["Uova", 1, "pz"], ["Yogurt greco 0%", 60, "g"], ["Paprika", "0", "q.b."], ["Aglio in polvere", "0", "q.b."]],
+  s:["Taglia il pollo a strisce larghe 2 cm.", "Sbatti l'uovo; mescola il pangrattato con paprika e aglio in polvere.", "Passa le strisce nell'uovo e poi nel pangrattato.", "Cuoci in friggitrice ad aria a 200 °C per 10–12 minuti, girando a metà.", "Servi con lo yogurt condito con sale, pepe e un pizzico di paprika."],
+  h:"Le strisce di pollo dei fast food, ma croccanti in friggitrice ad aria e con il doppio delle proteine."},
+ {id:"v4-wrap-pollo-croccante",n:"Wrap di pollo croccante",m:["pranzo", "cena"],t:20,p:39,c:47,f:6,tags:["carne", "sgarro"],v:"fast",
+  ing:[["Petto di pollo", 110, "g"], ["Corn flakes senza zucchero", 15, "g"], ["Albume", 30, "g"], ["Tortillas integrali", 1, "pz"], ["Lattuga", 30, "g"], ["Pomodori", 50, "g"], ["Yogurt greco 0%", 30, "g"]],
+  s:["Taglia il pollo a strisce, passale nell'albume e nei corn flakes sbriciolati.", "Cuoci in friggitrice ad aria a 200 °C per 10 minuti (o in forno a 220 °C per 15).", "Scalda la tortilla in padella 30 secondi per lato.", "Spalma lo yogurt, aggiungi lattuga, pomodoro e pollo e arrotola stretto."],
+  h:"Il wrap croccante da fast food, pronto in 20 minuti, con pollo al forno."},
+ {id:"v4-fish-burger",n:"Fish burger fatto in casa",m:["pranzo", "cena"],t:20,p:39,c:48,f:4,tags:["pesce", "sgarro"],v:"fast",
+  ing:[["Merluzzo (anche surgelato)", 150, "g"], ["Pangrattato integrale", 20, "g"], ["Panino integrale", 70, "g"], ["Lattuga", 20, "g"], ["Yogurt greco 0%", 30, "g"], ["Cetriolo", 20, "g"], ["Limone", "0", "q.b."]],
+  s:["Asciuga bene il merluzzo e taglialo in un rettangolo come il panino.", "Passalo nel pangrattato premendo bene e cuocilo in friggitrice ad aria a 200 °C per 10 minuti (o in forno a 220 °C per 15).", "Mescola yogurt, cetriolo tritato e qualche goccia di limone.", "Scalda il panino e componi con salsa, lattuga e pesce."],
+  h:"Il panino col pesce impanato, ma con merluzzo vero e salsa allo yogurt."},
+ {id:"v4-patatine-airfryer",n:"Patatine in friggitrice ad aria con salsa allo yogurt",m:["spuntino"],t:25,p:11,c:45,f:7,tags:["veg", "gf", "sgarro"],v:"fast",
+  ing:[["Patate", 250, "g"], ["Olio extravergine d'oliva", 0.5, "cucchiai"], ["Yogurt greco 0%", 60, "g"], ["Paprika", "0", "q.b."]],
+  s:["Taglia le patate a bastoncini di 1 cm e tienile in acqua fredda 10 minuti, poi asciugale bene.", "Condiscile con l'olio, sale e paprika.", "Cuoci in friggitrice ad aria a 200 °C per 18–20 minuti, scuotendo il cestello due volte.", "Servi con lo yogurt salato e pepato."],
+  h:"Croccanti fuori e morbide dentro con mezzo cucchiaio d'olio invece di una friggitrice piena."},
+ {id:"v4-burger-ceci",n:"Burger di ceci e patate dolci",m:["pranzo", "cena"],t:30,p:26,c:102,f:7,tags:["veg", "legumi", "sgarro"],v:"fast",
+  ing:[["Ceci cotti", 150, "g"], ["Patata dolce", 80, "g"], ["Pangrattato integrale", 15, "g"], ["Panino integrale", 70, "g"], ["Lattuga", 20, "g"], ["Pomodori", 40, "g"], ["Yogurt greco 0%", 30, "g"], ["Cumino", "0", "q.b."]],
+  s:["Cuoci la patata dolce a cubetti al microonde per 5 minuti.", "Schiaccia ceci e patata con una forchetta, aggiungi cumino, sale e pangrattato e forma un burger.", "Cuocilo in padella antiaderente o in friggitrice ad aria 5 minuti per lato.", "Componi il panino con yogurt, lattuga, pomodoro e burger."],
+  h:"Il burger vegetariano che sazia: fibre dei ceci e dolcezza della patata dolce."},
+ {id:"v4-nuggets-tofu",n:"Nuggets di tofu croccanti con salsa al pomodoro",m:["cena", "spuntino"],t:25,p:27,c:28,f:14,tags:["veg", "vegan", "sgarro"],v:"fast",
+  ing:[["Tofu", 180, "g"], ["Corn flakes senza zucchero", 25, "g"], ["Bevanda di soia", 30, "ml"], ["Passata di pomodoro", 60, "g"], ["Paprika", "0", "q.b."]],
+  s:["Asciuga bene il tofu e taglialo a bocconcini.", "Bagnali nella bevanda di soia e passali nei corn flakes sbriciolati con paprika e sale.", "Cuoci in friggitrice ad aria a 200 °C per 12 minuti (o in forno a 220 °C per 18).", "Scalda la passata con un pizzico di sale e origano: è la salsa per intingere."],
+  h:"Nuggets 100% vegetali: croccanti, proteici e senza frittura."},
+ {id:"v4-pollo-fritto-airfryer",n:"Cosce di pollo \"fritte\" in friggitrice ad aria con insalata",m:["pranzo", "cena"],t:30,p:44,c:19,f:12,tags:["carne", "sgarro"],v:"fast",
+  ing:[["Sovracosce di pollo senza pelle", 200, "g"], ["Corn flakes senza zucchero", 20, "g"], ["Albume", 30, "g"], ["Insalata mista", 80, "g"], ["Paprika", "0", "q.b."], ["Aglio in polvere", "0", "q.b."]],
+  s:["Sbriciola i corn flakes e mescolali con paprika, aglio in polvere e sale.", "Passa le sovracosce nell'albume e poi nella panatura.", "Cuoci in friggitrice ad aria a 190 °C per 20–22 minuti, girando a metà.", "Servi con l'insalata condita con limone."],
+  h:"Il pollo fritto delle catene americane, senza pelle e senza olio: croccante e succoso."},
+ {id:"v4-mozzarelline-forno",n:"Mozzarelline panate al forno con sugo",m:["spuntino", "cena"],t:20,p:30,c:19,f:15,tags:["veg", "sgarro"],v:"fast",
+  ing:[["Mozzarella light", 100, "g"], ["Pangrattato integrale", 20, "g"], ["Uova", 1, "pz"], ["Passata di pomodoro", 60, "g"]],
+  s:["Taglia la mozzarella a bastoncini e asciugala bene con carta da cucina.", "Passa i bastoncini nell'uovo e nel pangrattato, due volte per una crosta che non si apre.", "Metti in freezer 10 minuti, poi cuoci a 220 °C per 8 minuti (o in friggitrice ad aria a 200 °C per 6).", "Scalda la passata con origano e servila per intingere."],
+  h:"Le mozzarelline fritte da fast food: doppia panatura e un passaggio in freezer per non farle colare."},
+ {id:"v4-pane-crema-nocciole",n:"Pane integrale con crema nocciole e cacao fatta in casa",m:["colazione", "spuntino"],t:10,p:7,c:31,f:8,tags:["veg", "sgarro"],v:"spalma",
+  ing:[["Pane integrale", 50, "g"], ["Nocciole", 10, "g"], ["Cacao amaro", 4, "g"], ["Datteri denocciolati", 8, "g"], ["Latte parz. scremato", 15, "ml"]],
+  s:["Frulla le nocciole (anche tostate) finché diventano una pasta.", "Aggiungi cacao, datteri e latte e frulla ancora fino a una crema liscia.", "Tosta il pane e spalma la crema.", "Se ne prepari di più, tienila in frigo in un vasetto fino a 5 giorni."],
+  h:"La crema spalmabile con nocciole vere, cacao e datteri al posto di zucchero e olio di palma."},
+ {id:"v4-toast-crema-banana",n:"Toast con crema di nocciole e banana",m:["colazione", "spuntino"],t:10,p:8,c:42,f:9,tags:["veg", "vegan", "sgarro"],v:"spalma",
+  ing:[["Pane integrale", 50, "g"], ["Nocciole", 12, "g"], ["Cacao amaro", 3, "g"], ["Banana", 80, "g"], ["Cannella", "0", "q.b."]],
+  s:["Frulla le nocciole con il cacao e un cucchiaio d'acqua fino a una crema.", "Tosta il pane.", "Spalma la crema, aggiungi la banana a rondelle e un pizzico di cannella."],
+  h:"Pane e \"Nutella\" in versione fit: dolce di banana, cremoso di nocciole."},
+ {id:"v4-crepe-crema",n:"Crêpe proteica con crema al cacao",m:["colazione", "spuntino"],t:15,p:28,c:27,f:13,tags:["veg", "sgarro"],v:"spalma",
+  ing:[["Uova", 1, "pz"], ["Albume", 60, "g"], ["Farina d'avena", 25, "g"], ["Latte parz. scremato", 40, "ml"], ["Yogurt greco 0%", 80, "g"], ["Cacao amaro", 6, "g"], ["Nocciole", 8, "g"], ["Miele", 5, "g"]],
+  s:["Frulla uovo, albume, farina d'avena e latte fino a una pastella liscia.", "Cuoci in padella antiaderente calda 1–2 minuti per lato.", "Mescola yogurt, cacao e miele fino a una crema; trita le nocciole.", "Spalma la crema sulla crêpe, cospargi di nocciole e chiudi a ventaglio."],
+  h:"La crêpe alla Nutella della fiera, con una crema al cacao proteica."},
+ {id:"v4-pancake-crema",n:"Pancake con crema nocciole e cacao",m:["colazione"],t:15,p:26,c:38,f:14,tags:["veg", "sgarro"],v:"spalma",
+  ing:[["Uova", 1, "pz"], ["Albume", 60, "g"], ["Farina d'avena", 35, "g"], ["Banana", 50, "g"], ["Yogurt greco 0%", 50, "g"], ["Cacao amaro", 5, "g"], ["Nocciole", 8, "g"], ["Lievito per dolci", 3, "g"]],
+  s:["Frulla uovo, albume, farina d'avena, banana e lievito.", "Cuoci 3–4 pancake in padella antiaderente, 2 minuti per lato.", "Mescola yogurt e cacao, trita le nocciole.", "Impila i pancake con la crema e le nocciole sopra."],
+  h:"Una pila di pancake con la crema al cacao: colazione da sgarro che tiene sazi fino a pranzo."},
+ {id:"v4-yogurt-crema-nocciole",n:"Yogurt greco con crema cacao e nocciole e fragole",m:["spuntino", "colazione"],t:5,p:20,c:20,f:7,tags:["veg", "gf", "sgarro"],v:"spalma",
+  ing:[["Yogurt greco 0%", 170, "g"], ["Cacao amaro", 5, "g"], ["Nocciole", 10, "g"], ["Miele", 5, "g"], ["Fragole", 100, "g"]],
+  s:["Mescola metà yogurt con cacao e miele: è la tua crema al cacao.", "Metti a strati yogurt bianco, crema al cacao e fragole a pezzi.", "Finisci con le nocciole tritate."],
+  h:"Il gusto della crema alle nocciole con 17 g di proteine: quando la voglia arriva di sera."},
+ {id:"v4-fette-crema-proteica",n:"Fette biscottate integrali con crema proteica al cacao",m:["colazione", "spuntino"],t:5,p:10,c:23,f:11,tags:["veg", "sgarro"],v:"spalma",
+  ing:[["Fette biscottate integrali", 24, "g"], ["Ricotta", 60, "g"], ["Cacao amaro", 5, "g"], ["Miele", 5, "g"], ["Nocciole", 5, "g"]],
+  s:["Mescola la ricotta con cacao e miele fino a una crema.", "Spalmala sulle fette biscottate.", "Finisci con le nocciole tritate."],
+  h:"Le fette biscottate con la crema al cacao come da piccoli, ma con la ricotta."},
+ {id:"v4-pizza-padella",n:"Pizza in padella integrale con mozzarella",m:["pranzo", "cena"],t:25,p:33,c:60,f:16,tags:["veg", "sgarro"],v:"pizza",
+  ing:[["Farina integrale", 80, "g"], ["Yogurt greco 0%", 60, "g"], ["Lievito istantaneo per torte salate", 4, "g"], ["Passata di pomodoro", 80, "g"], ["Mozzarella light", 80, "g"], ["Olio extravergine d'oliva", 0.5, "cucchiai"], ["Basilico", "0", "q.b."]],
+  s:["Impasta farina, yogurt, lievito, un pizzico di sale e 1–2 cucchiai d'acqua fino a una palla morbida.", "Stendila sottile e cuocila in padella antiaderente con coperchio, 4 minuti a fuoco medio.", "Gira la base, condisci con passata, mozzarella a pezzi e olio.", "Copri e cuoci altri 5–6 minuti finché la mozzarella fonde. Finisci con basilico."],
+  h:"Senza lievitazione e senza forno: la pizza pronta in 25 minuti."},
+ {id:"v4-pizza-tortilla",n:"Pizza su tortilla ai funghi pronta in 10 minuti",m:["pranzo", "cena"],t:10,p:20,c:36,f:10,tags:["veg", "sgarro"],v:"pizza",
+  ing:[["Tortillas integrali", 1, "pz"], ["Passata di pomodoro", 60, "g"], ["Mozzarella light", 60, "g"], ["Funghi champignon", 60, "g"], ["Rucola", 20, "g"], ["Origano", "0", "q.b."]],
+  s:["Accendi il forno a 220 °C (o usa la friggitrice ad aria a 190 °C).", "Spalma la passata sulla tortilla, aggiungi funghi affettati e mozzarella a pezzi.", "Cuoci 7–8 minuti finché il bordo è croccante.", "Aggiungi la rucola e l'origano."],
+  h:"La voglia di pizza risolta in 10 minuti con base sottile e croccante."},
+ {id:"v4-calzone-fit",n:"Calzone fit con ricotta e spinaci",m:["cena"],t:30,p:33,c:57,f:14,tags:["veg", "sgarro"],v:"pizza",
+  ing:[["Farina integrale", 70, "g"], ["Yogurt greco 0%", 60, "g"], ["Lievito istantaneo per torte salate", 4, "g"], ["Ricotta", 80, "g"], ["Spinaci freschi", 80, "g"], ["Mozzarella light", 40, "g"], ["Passata di pomodoro", 40, "g"]],
+  s:["Accendi il forno a 220 °C. Impasta farina, yogurt, lievito e sale.", "Scotta gli spinaci in padella 2 minuti e strizzali; mescolali con ricotta e mozzarella a pezzi.", "Stendi l'impasto a disco, metti il ripieno su metà, chiudi a mezzaluna premendo i bordi.", "Spennella con la passata e cuoci 15–18 minuti."],
+  h:"Il calzone ripieno e filante, con l'impasto allo yogurt e un ripieno ricco di proteine."},
+ {id:"v4-pizza-tortilla-pollo",n:"Pizza su tortilla con pollo e peperoni",m:["pranzo", "cena"],t:15,p:35,c:37,f:10,tags:["carne", "sgarro"],v:"pizza",
+  ing:[["Tortillas integrali", 1, "pz"], ["Passata di pomodoro", 60, "g"], ["Mozzarella light", 50, "g"], ["Petto di pollo", 80, "g"], ["Peperoni", 50, "g"], ["Origano", "0", "q.b."]],
+  s:["Taglia il pollo a straccetti e cuocilo in padella 4 minuti con sale e origano.", "Spalma la passata sulla tortilla, aggiungi peperoni a listarelle, pollo e mozzarella.", "Cuoci in forno a 220 °C per 7–8 minuti."],
+  h:"Pizza proteica in un quarto d'ora: la base è una tortilla, il condimento sazia."},
+ {id:"v4-mcflurry-fit",n:"Gelato allo yogurt con biscotto sbriciolato (tipo McFlurry)",m:["spuntino"],t:10,p:17,c:23,f:2,tags:["veg", "sgarro"],v:"gelato",
+  ing:[["Yogurt greco 0%", 150, "g"], ["Biscotti secchi integrali", 15, "g"], ["Cacao amaro", 3, "g"], ["Miele", 8, "g"]],
+  s:["Mescola lo yogurt con il miele e mettilo in freezer in una tazza per 1 ora (o usa yogurt già messo in freezer la sera prima e lasciato ammorbidire 10 minuti).", "Sbriciola i biscotti e mescolali al cacao.", "Mescola lo yogurt semi-congelato con i biscotti e servi subito."],
+  h:"Cremoso come il gelato del fast food, con 16 g di proteine e la metà degli zuccheri."},
+ {id:"v4-milkshake-proteico",n:"Milkshake proteico alla fragola",m:["spuntino"],t:5,p:18,c:40,f:4,tags:["veg", "gf", "sgarro"],v:"gelato",
+  ing:[["Latte parz. scremato", 200, "ml"], ["Yogurt greco 0%", 100, "g"], ["Fragole", 100, "g"], ["Banana congelata a rondelle", 60, "g"], ["Miele", 5, "g"]],
+  s:["Metti tutto nel frullatore.", "Frulla 1 minuto finché è denso e schiumoso.", "Servi subito, con una cannuccia larga."],
+  h:"Il milkshake denso da fast food, fatto con la banana congelata invece del gelato."},
+ {id:"v4-gelato-cioccolato-mandorle",n:"Gelato al cioccolato e burro di mandorle senza gelatiera",m:["spuntino"],t:5,p:13,c:34,f:7,tags:["veg", "gf", "sgarro"],v:"gelato",
+  ing:[["Banana congelata a rondelle", 120, "g"], ["Cacao amaro", 6, "g"], ["Yogurt greco 0%", 80, "g"], ["Burro di mandorle", 10, "g"]],
+  s:["Frulla la banana congelata con il cacao finché diventa cremosa.", "Aggiungi lo yogurt e frulla ancora pochi secondi.", "Servi con il burro di mandorle a filo sopra."],
+  h:"Gelato al cioccolato vero in 5 minuti: la banana congelata fa la cremosità."},
+ {id:"v4-cookie-padella",n:"Cookie gigante in padella con gocce di cioccolato",m:["spuntino"],t:15,p:14,c:38,f:12,tags:["veg", "sgarro"],v:"dolce",
+  ing:[["Farina d'avena", 40, "g"], ["Albume", 50, "g"], ["Banana", 40, "g"], ["Cioccolato fondente 85%", 10, "g"], ["Burro di mandorle", 8, "g"], ["Lievito per dolci", 2, "g"]],
+  s:["Schiaccia la banana e mescolala con albume, burro di mandorle, farina d'avena e lievito.", "Aggiungi il cioccolato a pezzetti.", "Versa in un padellino antiaderente da 16 cm, copri e cuoci a fuoco basso 8–10 minuti.", "Lascia intiepidire 2 minuti: il centro resta morbido."],
+  h:"Il cookie gigante da forno americano, cotto in padella e mangiato col cucchiaio."},
+ {id:"v4-tortino-cioccolato",n:"Tortino al cioccolato dal cuore morbido in tazza",m:["spuntino"],t:5,p:18,c:24,f:13,tags:["veg", "sgarro"],v:"dolce",
+  ing:[["Uova", 1, "pz"], ["Yogurt greco 0%", 50, "g"], ["Cacao amaro", 10, "g"], ["Farina d'avena", 20, "g"], ["Cioccolato fondente 85%", 10, "g"], ["Miele", 8, "g"]],
+  s:["In una tazza mescola uovo, yogurt, miele, cacao e farina d'avena.", "Infila al centro il cioccolato in un pezzo unico.", "Cuoci al microonde a 800 W per 60–70 secondi: il centro deve restare cremoso."],
+  h:"Il tortino col cuore che cola, pronto in 5 minuti."},
+ {id:"v4-barrette-cocco",n:"Barrette cocco e cioccolato tipo Bounty",m:["spuntino"],t:15,p:11,c:15,f:20,tags:["veg", "gf", "sgarro"],v:"dolce",
+  ing:[["Cocco rapè", 20, "g"], ["Yogurt greco 0%", 80, "g"], ["Cioccolato fondente 85%", 15, "g"], ["Miele", 5, "g"]],
+  s:["Mescola cocco, yogurt e miele e forma due barrette su carta forno.", "Metti in freezer 10 minuti.", "Sciogli il cioccolato al microonde (20 secondi alla volta) e ricopri le barrette.", "Rimetti in freezer 5 minuti finché il cioccolato si indurisce."],
+  h:"Il cioccolatino al cocco, ripieno allo yogurt: dolce vero in porzione controllata."}
 ];
 R.forEach(r=>{r.k=Math.round(r.p*4+r.c*4+r.f*9)});
+/* ---------- Voglie: sgarri fatti in casa e scelte da locale ---------- */
+const VOGLIE=[{id:'fast',n:'Fast food'},{id:'spalma',n:'Pane e Nutella'},{id:'pizza',n:'Pizza'},{id:'gelato',n:'Gelato'},{id:'dolce',n:'Dolce'}];
+// voglia degli sgarri già presenti (quelli senza una voglia chiara restano senza)
+const VOGLIA={'crocchette-pollo':'fast','v3-hamburger-casa':'fast','v3-nuggets-ceci':'fast','v3-patatine-patate-dolci':'fast',
+  'pizza-yogurt':'pizza','v3-pizza-cavolfiore':'pizza',
+  'gelato-banana':'gelato','frozen-yogurt':'gelato','v3-gelato-pistacchio':'gelato','v3-bocconcini-yogurt':'gelato',
+  'mug-cake':'dolce','cheesecake-barattolo':'dolce','tiramisu-barattolo':'dolce','brownies-fagioli':'dolce','mousse-cioccolato':'dolce','panna-cotta-yogurt':'dolce',
+  'ai-cioccolata-cacao-cannella':'dolce','v3-cheesecake-tazza':'dolce','v3-brownie-tazza':'dolce','v3-tartellette-avena':'dolce','v3-banana-bread-tazza':'dolce',
+  'cookies-proteici':'dolce','muffin-banana-mirtilli':'dolce','v3-crumble-mele':'dolce'};
+R.forEach(r=>{ if(!r.v&&VOGLIA[r.id]) r.v=VOGLIA[r.id]; });
+// valori indicativi per porzione; bibite zero = 0 kcal; niente prodotti con maiale o bacon
+const FO=(v,at,n,k,p,c,f,tags,heavy)=>({id:(at+' '+n).toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),v,at,n,k,p,c,f,tags:tags||[],...(heavy?{heavy:true}:{})});
+const FUORI=[
+  FO('fast',"McDonald's",'McChicken + insalata + bibita zero',461,22,48,19),
+  FO('fast',"McDonald's",'Chicken McNuggets 6 pezzi + insalata + bibita zero',275,16,18,15),
+  FO('fast',"McDonald's",'Hamburger + Chicken McNuggets 6 pezzi + bibita zero',518,28,47,24),
+  FO('fast',"McDonald's",'Filet-O-Fish + insalata + bibita zero',342,16,38,14),
+  FO('fast',"McDonald's",'Big Mac + bibita zero, senza patatine',544,27,42,29),
+  FO('fast',"McDonald's",'Cheeseburger + patatine piccole + bibita zero',536,19,61,24),
+  FO('fast','KFC','3 filetti croccanti + bibita zero',292,24,18,14),
+  FO('fast','KFC','Bocconcini di filetto 6 pezzi + bibita zero',345,28,22,16),
+  FO('fast','KFC','2 pezzi di pollo Original Recipe + pannocchia',510,36,28,27),
+  FO('fast','KFC','Zinger burger + bibita zero',450,27,41,20),
+  FO('fast','Burger King','Whopper Junior + bibita zero',330,15,29,17),
+  FO('fast','Burger King','Chicken nuggets 6 pezzi + insalata',275,14,17,16),
+  FO('fast','Burger King','4 Chicken Strips + bibita zero',378,24,26,20),
+  FO('fast','Burger King','Cheeseburger + patatine piccole + bibita zero',522,18,58,24),
+  FO('fast','Burger King','Whopper Plant-Based + bibita zero',620,26,51,34,['veg']),
+  FO('fast',"McDonald's",'Patatine piccole + insalata + bibita zero',245,3,31,11,['veg','vegan']),
+  FO('fast',"McDonald's",'Menu Big Mac con patatine grandi e Coca-Cola media',1184,32,143,50,[],1),
+  FO('pizza','Pizzeria','Mezza margherita + insalata mista',440,18,52,15,['veg']),
+  FO('pizza','Pizzeria','1 trancio di margherita + insalata',354,13,45,12,['veg']),
+  FO('pizza','Pizzeria','Pizza marinara intera',690,17,105,20,['veg','vegan']),
+  FO('pizza','Pizzeria','Pizza ortolana intera',760,28,100,26,['veg']),
+  FO('pizza','Pizzeria','Margherita intera',825,36,102,30,['veg']),
+  FO('pizza','Pizzeria','Pizza quattro formaggi + birra media',1220,50,130,50,['veg'],1),
+  FO('gelato','Gelateria','Coppetta piccola, 2 gusti alla frutta',130,1,30,1,['veg','vegan']),
+  FO('gelato','Gelateria','Granita al limone',200,0,50,0,['veg','vegan']),
+  FO('gelato','Gelateria','Cono piccolo crema e cioccolato',270,5,37,12,['veg']),
+  FO('gelato','Gelateria','Coppetta media, 1 frutta e 1 crema',255,3,42,9,['veg']),
+  FO('gelato',"McDonald's",'Sundae al caramello',330,6,55,9,['veg']),
+  FO('gelato','Gelateria','Coppa grande con panna e biscotti',650,9,75,35,['veg'],1),
+  FO('dolce','Bar','4 quadratini di cioccolato fondente',110,2,8,8,['veg','vegan']),
+  FO('dolce','Bar','Crostatina',172,2,26,6,['veg']),
+  FO('dolce','Bar','Cornetto vuoto',245,5,30,12,['veg']),
+  FO('dolce','Bar','2 pasticcini mignon',200,3,22,11,['veg']),
+  FO('dolce','Bar','Cornetto alla crema + cioccolata calda con panna',650,12,85,30,['veg'],1),
+  FO('spalma','Supermercato','Yogurt greco 0% + 10 g di Nutella',151,18,13,4,['veg']),
+  FO('spalma','Supermercato','2 fette biscottate + 15 g di Nutella',155,3,22,6,['veg']),
+  FO('spalma','Supermercato','1 fetta di pane + 15 g di Nutella',176,4,26,6,['veg']),
+  FO('spalma','Supermercato','1 fetta di pane + 15 g di crema di nocciole 100%',193,5,20,10,['veg','vegan']),
+  FO('spalma','Supermercato','Panino da 100 g con 50 g di Nutella',540,11,84,17,['veg'],1)];
+const FUORI_SRC={"McDonald's":"tabelle nutrizionali di McDonald's Italia",KFC:'tabelle nutrizionali di KFC',"Burger King":'tabelle nutrizionali di Burger King',Pizzeria:'tabelle CREA',Gelateria:'tabelle CREA',Bar:'tabelle CREA',Supermercato:'etichette dei prodotti'};
+const VOGLIA_TIP={
+  fast:'Scegli pollo o un panino singolo, sostituisci le patatine con l\'insalata e prendi la bibita zero: è lì che si risparmiano 300–500 kcal.',
+  spalma:'La porzione vera è un cucchiaino colmo (15 g, circa 80 kcal): spalmala su una fetta, non mangiarla dal barattolo.',
+  pizza:'Pizza sì, ma con un\'insalata prima: sazia e ti fa fermare prima. Se la vuoi intera, a pranzo e pasti leggeri il resto del giorno.',
+  gelato:'Coppetta piccola, gusti alla frutta o un solo gusto alla crema: la panna e le salse raddoppiano le calorie.',
+  dolce:'Mangialo seduto, con calma, dopo un pasto con proteine: la voglia si calma prima e la glicemia sale meno.'};
+const bySh=(a,b)=>b.p/b.k-a.p/a.k, light=(a,b)=>a.k-b.k;
+// cosa proporre per una voglia con le calorie rimaste (left) e la dieta del profilo
+function cravingSuggest(v,left,dieta){
+  const homeAll=R.filter(r=>r.tags.includes('sgarro')&&r.v===v&&dietOK(r,dieta));
+  const outAll=FUORI.filter(o=>o.v===v&&!o.heavy&&dietOK(o,dieta));
+  const lightest=(a)=>a.slice().sort(light).slice(0,3);
+  let mode, home;
+  if(left<150){ mode='low'; home=lightest(homeAll).map(r=>({r,x:1})); }
+  else if(homeAll.some(r=>r.k<=left)){ mode='ok'; home=homeAll.filter(r=>r.k<=left).sort(bySh).slice(0,3).map(r=>({r,x:1})); }
+  else if(homeAll.some(r=>r.k*.5<=left)){ mode='half'; home=homeAll.filter(r=>r.k*.5<=left).sort(bySh).slice(0,3).map(r=>({r,x:.5})); }
+  else { mode='light'; home=lightest(homeAll).map(r=>({r,x:1})); }
+  const fit=outAll.filter(o=>o.k<=left);
+  // prima la scelta migliore di ogni locale, poi le altre: così si vedono McDonald's, KFC e Burger King
+  const spread=a=>{ const first=[], rest=[], seen=new Set(); a.forEach(o=>{ (seen.has(o.at)?rest:first).push(o); seen.add(o.at); }); return first.concat(rest).slice(0,3); };
+  const out=(mode==='ok'||mode==='half')&&fit.length ? spread(fit.sort(bySh)) : spread(outAll.slice().sort(light));
+  const avoid=FUORI.find(o=>o.v===v&&o.heavy&&dietOK(o,dieta))||null;
+  return {mode,home,out,avoid,tip:VOGLIA_TIP[v]||''};
+}
+
 
 /* ---------- Micronutrienti (modalità Superfood) ----------
    w = pasti a settimana che ne sono una buona fonte (obiettivo indicativo) */
@@ -1221,6 +1416,7 @@ const MICRO = {
  'ai-golden-milk':['antiox','fibre','omega3'],'ai-porridge-bosco-lino':['fibre','antiox','probiotici','omega3','calcio'],'ai-yogurt-mirtilli-noci':['calcio','probiotici','antiox','omega3'],'ai-smoothie-zenzero-kefir':['probiotici','calcio','folati','potassio'],'ai-salmone-curcuma':['omega3','vitD','B12','folati','fibre'],'ai-sardine-pomodoro':['omega3','vitD','B12','calcio','antiox'],'ai-zuppa-lenticchie-cavolo':['fibre','ferro','folati','antiox','vitC'],'ai-bowl-quinoa-broccoli':['fibre','vitC','folati','magnesio','potassio'],'ai-sgombro-farro':['omega3','vitD','B12','fibre'],'ai-pollo-curcuma-orzo':['B12','fibre','vitC','antiox'],'ai-ceci-spinaci-curry':['fibre','ferro','folati','antiox','magnesio'],'ai-minestra-orzo-fagioli':['fibre','ferro','folati','potassio'],'ai-insalata-salmone-spinaci':['omega3','vitD','folati','antiox','potassio'],'ai-frittata-spinaci-curcuma':['B12','vitD','folati','ferro','antiox'],'ai-vellutata-broccoli-zenzero':['vitC','folati','fibre','ferro'],'ai-te-verde-zenzero':['antiox','vitC','magnesio'],'ai-cioccolata-cacao-cannella':['magnesio','antiox','fibre'],'ai-barrette-noci-datteri':['fibre','magnesio','omega3','antiox'],'ai-mirtilli-yogurt-chia':['calcio','probiotici','antiox','omega3'],'ai-hummus-curcuma':['fibre','ferro','antiox','vitC'],
  'toast-ricotta-pera':['calcio','fibre','omega3'],'porridge-cacao-lamponi':['fibre','magnesio','antiox','calcio'],'chia-pudding':['fibre','omega3','vitC','magnesio'],'omelette-spinaci-feta':['B12','vitD','folati','calcio','ferro'],'yogurt-bowl-granola':['calcio','probiotici','vitC','fibre','magnesio'],'crepes-albumi':['antiox','vitC','calcio'],'muffin-uova-verdure':['B12','vitD','vitC','folati','calcio'],'segale-salmone-avocado':['omega3','vitD','B12','fibre','potassio'],'frullato-proteico':['potassio','magnesio','fibre','calcio'],'bruschetta-fiocchi':['calcio','antiox','fibre'],'pancake-avena-mirtilli':['fibre','antiox','magnesio'],'skyr-mela-cotta':['calcio','probiotici','fibre'],'poke-salmone':['omega3','vitD','B12','fibre','potassio','folati'],'pollo-curry-yogurt':['antiox','B12','calcio','fibre'],'tacos-tacchino':['fibre','ferro','zinco','B12','folati'],'burger-ceci':['fibre','ferro','folati','magnesio'],'spaghetti-gamberi':['iodio','zinco','B12','fibre','vitC'],'polpette-tacchino':['B12','zinco','potassio','antiox'],'insalata-lenticchie-feta':['ferro','fibre','folati','calcio','magnesio'],'salmone-pistacchi':['omega3','vitD','B12','vitC','folati'],'chili-manzo':['ferro','zinco','fibre','B12','antiox'],'frittata-albumi':['vitC','B12','fibre'],'couscous-pollo':['B12','vitC','fibre','potassio'],'zuppa-farro-fagioli':['fibre','ferro','magnesio','folati'],'tagliata-manzo':['ferro','zinco','B12','calcio','vitC'],'orzotto-funghi':['fibre','folati','magnesio','calcio'],'bowl-greca':['calcio','probiotici','B12','fibre','antiox'],'pesce-spada-siciliana':['omega3','B12','potassio','antiox','iodio'],'pasta-ceci':['fibre','ferro','folati','magnesio'],'insalata-nizzarda':['B12','vitD','potassio','folati','fibre'],'tofu-agrodolce':['calcio','ferro','vitC','magnesio'],'vellutata-zucca-lenticchie':['antiox','fibre','ferro','potassio','magnesio'],'sformato-zucchine':['calcio','B12','vitD','potassio'],'spiedini-pollo':['vitC','antiox','B12','fibre'],'orata-cartoccio':['iodio','B12','omega3','potassio'],'lasagna-leggera':['calcio','folati','ferro','vitC'],'wrap-tonno-hummus':['B12','fibre','antiox'],'gnocchi-pesto-rucola':['calcio','B12','vitC','potassio'],'pad-thai':['B12','folati','antiox'],'merluzzo-erbe':['iodio','B12','fibre','folati'],'fajitas-pollo':['vitC','B12','fibre','antiox'],'caesar-leggera':['calcio','B12','folati','vitC'],'cookies-proteici':['fibre','magnesio','potassio'],'barrette-avena-pb':['fibre','magnesio','omega3'],'frozen-yogurt':['calcio','vitC','probiotici'],'mousse-cioccolato':['calcio','magnesio','antiox'],'muffin-banana-mirtilli':['antiox','fibre','potassio'],'ceci-croccanti':['fibre','ferro','folati'],'toast-pb-banana':['potassio','magnesio','fibre'],'frullato-verde':['vitC','folati','calcio','omega3'],'crackers-tonno':['B12','iodio'],'popcorn-cacao':['fibre','antiox'],'panna-cotta-yogurt':['calcio','antiox'],'mela-forno':['fibre','omega3','antiox'],'hummus-barbabietola':['fibre','ferro','folati','antiox']
 };
+Object.assign(MICRO,{"v4-smash-burger": ["ferro", "zinco", "B12", "calcio"], "v4-cheeseburger-salsa": ["ferro", "zinco", "B12", "calcio"], "v4-chicken-burger": ["B12", "zinco", "calcio"], "v4-tenders-airfryer": ["B12", "zinco", "vitD"], "v4-wrap-pollo-croccante": ["B12", "zinco", "fibre"], "v4-fish-burger": ["iodio", "B12", "fibre"], "v4-patatine-airfryer": ["potassio", "calcio"], "v4-burger-ceci": ["fibre", "folati", "ferro", "potassio"], "v4-nuggets-tofu": ["calcio", "ferro", "magnesio"], "v4-pollo-fritto-airfryer": ["zinco", "B12", "ferro"], "v4-mozzarelline-forno": ["calcio", "B12"], "v4-pane-crema-nocciole": ["fibre", "magnesio", "antiox"], "v4-toast-crema-banana": ["fibre", "potassio", "magnesio"], "v4-crepe-crema": ["calcio", "B12", "magnesio"], "v4-pancake-crema": ["fibre", "B12", "magnesio"], "v4-yogurt-crema-nocciole": ["calcio", "probiotici", "vitC"], "v4-fette-crema-proteica": ["calcio", "fibre", "magnesio"], "v4-pizza-padella": ["calcio", "fibre", "antiox"], "v4-pizza-tortilla": ["calcio", "fibre", "folati"], "v4-calzone-fit": ["calcio", "ferro", "folati", "fibre"], "v4-pizza-tortilla-pollo": ["vitC", "B12", "calcio"], "v4-mcflurry-fit": ["calcio", "probiotici"], "v4-milkshake-proteico": ["calcio", "vitC", "potassio"], "v4-gelato-cioccolato-mandorle": ["potassio", "magnesio", "calcio"], "v4-cookie-padella": ["fibre", "magnesio"], "v4-tortino-cioccolato": ["magnesio", "B12", "antiox"], "v4-barrette-cocco": ["magnesio", "calcio", "fibre"]});
 R.forEach(r=>{r.mi=MICRO[r.id]||[]});
 /* ---------- Antinfiammatorio: cibi, livello di prova, punteggio ricette ---------- */
 const ANTI = [
@@ -1331,6 +1527,17 @@ const TIPS = [
  {cat:'Dimagrimento',t:'Proteine a ogni pasto',b:'Quando dimagrisci, circa 1,2–1,6 g di proteine per kg di peso al giorno aiutano a conservare la massa muscolare e a sentire meno fame. Distribuiscile tra colazione, pranzo e cena.',src:'Position stand ISSN; revisioni sulla perdita di peso'},
  {cat:'Dimagrimento',t:'Attenzione all\'olio: è sano ma calorico',b:'L\'extravergine è il grasso migliore, ma un cucchiaio sono circa 90 kcal. Misuralo con il cucchiaio invece di versarlo a occhio.',src:'Tabelle di composizione degli alimenti CREA'},
  {cat:'Dimagrimento',t:'Dormi 7–9 ore',b:'Dormire poco aumenta l\'ormone della fame (grelina) e riduce quello della sazietà (leptina). Chi dorme meno di 6 ore tende a mangiare di più il giorno dopo.',src:'Studi sul sonno e l\'appetito (Spiegel et al., Annals of Internal Medicine 2004)'},
+ {cat:'Voglie e sgarri',t:'La voglia passa in 15–20 minuti',b:'Una voglia forte sale e poi scende come un\'onda. Bevi un bicchiere d\'acqua, fai altro per un quarto d\'ora: se dopo ti va ancora, mangiala con calma e senza sensi di colpa.',src:'Studi sul "craving" e la tecnica dell\'urge surfing'},
+ {cat:'Voglie e sgarri',t:'Fame o voglia?',b:'La fame arriva piano e si accontenta di un pasto qualsiasi; la voglia arriva di colpo e chiede un cibo preciso. Se mangeresti volentieri anche un piatto di pollo e verdure, è fame: mangia un pasto vero.',src:'Linee guida sull\'alimentazione consapevole (mindful eating)'},
+ {cat:'Voglie e sgarri',t:'Prima le proteine',b:'Un pasto con 25–30 g di proteine riduce le voglie nelle ore dopo. Se sai che la sera ti viene voglia di dolce, metti più proteine a pranzo e a cena.',src:'Studi su proteine, sazietà e voglie serali'},
+ {cat:'Voglie e sgarri',t:'Lo sgarro pianificato batte il "tutto o niente"',b:'Vietarsi del tutto un cibo lo rende più desiderabile. Decidere prima quando e quanto ("pizza sabato sera") aiuta a non perdere il controllo e a non buttare via la giornata dopo.',src:'Studi sulla restrizione flessibile e rigida'},
+ {cat:'Voglie e sgarri',t:'Dormire poco fa venire voglia di schifezze',b:'Dopo una notte corta aumentano grelina e voglia di cibi dolci e grassi. Se hai dormito male, tieni pronto uno sgarro fit e cerca di andare a letto prima la sera dopo.',src:'Studi su sonno, grelina e leptina'},
+ {cat:'Voglie e sgarri',t:'Porziona nel piatto, mai dal sacchetto',b:'Si mangia di più da confezioni grandi e da ciotole che si riempiono. Metti la tua porzione nel piatto, chiudi la confezione e mettila via.',src:'Revisione Cochrane su porzioni e dimensioni delle confezioni (Hollands et al., 2015)'},
+ {cat:'Voglie e sgarri',t:'La porzione vera della crema spalmabile',b:'Un cucchiaino colmo è circa 15 g e 80 kcal; un cucchiaio pieno sono 40 g e oltre 200. Spalmala su una fetta di pane integrale con della frutta: soddisfa la voglia con meno della metà.',src:'Etichetta nutrizionale del prodotto'},
+ {cat:'Voglie e sgarri',t:'Dopo uno sgarro non compensare saltando pasti',b:'Saltare la cena o digiunare il giorno dopo porta più fame e altri sgarri. Riprendi semplicemente dal pasto successivo del piano: un pasto non cambia i risultati della settimana.',src:'Studi sul ciclo restrizione-abbuffata'},
+ {cat:'Voglie e sgarri',t:'Zucchero + grasso: la combinazione che non sazia',b:'Patatine, merendine e creme spalmabili mettono insieme zucchero, grasso e sale in dosi che in natura non esistono: per questo non ci si ferma. Le versioni fatte in casa ne usano meno e saziano di più.',src:'Studio di Kevin Hall sugli ultra-processati (Cell Metabolism, 2019)'},
+ {cat:'Voglie e sgarri',t:'Mangia lo sgarro seduto e con calma',b:'Davanti a uno schermo si mangia di più e ci si sente meno soddisfatti. Siediti, mangia piano e goditelo: basta una porzione più piccola per togliere la voglia.',src:'Studi sul mangiare distratto e la sazietà'},
+ {cat:'Voglie e sgarri',t:'Al fast food: pollo, panino singolo, bibita zero',b:'Il menu grande con patatine e bibita supera spesso le 1.100 kcal. Un panino di pollo o un panino singolo con insalata e bibita zero sta sotto le 500 e ti lascia soddisfatto.',src:'Tabelle nutrizionali delle catene di fast food'},
  {cat:'Abitudini',t:'Bevi soprattutto acqua',b:'Circa 2 litri al giorno per le donne e 2,5 per gli uomini, compresa l\'acqua dei cibi. Bibite e succhi sono calorie che non saziano.',src:'EFSA, valori di riferimento per l\'acqua'},
  {cat:'Abitudini',t:'Zuccheri aggiunti sotto il 10%',b:'Meglio ancora sotto il 5% delle calorie, circa 25 g al giorno. Occhio a yogurt alla frutta, cereali da colazione e salse pronte.',src:'Organizzazione Mondiale della Sanità'},
  {cat:'Abitudini',t:'Meno di 5 g di sale al giorno',b:'È circa un cucchiaino raso, contando quello già presente in pane, formaggi e salumi. Insaporisci con erbe, spezie, limone e aglio.',src:'Organizzazione Mondiale della Sanità'},
@@ -1488,7 +1695,7 @@ function badgesBlock(){
 }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
-const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
+const ui = {q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,voglia:null,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
 
 /* ---------- Calcoli ---------- */
 const ACT = {sed:[1.2,'Sedentario'],leggero:[1.375,'Leggero (1–3 allenamenti/sett.)'],moderato:[1.55,'Moderato (3–5/sett.)'],intenso:[1.725,'Intenso (6–7/sett.)']};
@@ -1574,7 +1781,7 @@ function makePlan(){
   // Superfood: copri i micronutrienti più spesso carenti
   if(profile.sf){
     const allSlots = SLOTS.map(s=>s[0]);
-    for(const m of ['omega3','vitD','ferro','calcio','probiotici','iodio','zinco','vitC','folati']){
+    for(const m of ['omega3','vitD','ferro','calcio','probiotici','iodio','zinco','vitC','folati','potassio','magnesio','fibre']){
       for(let i=0;i<30;i++){
         if(coverage(days)[m]>=NUTR[m].w) break;
         const d=Math.floor(Math.random()*7), sl=pick(allSlots), cur=byId[days[d][sl].id];
@@ -1702,9 +1909,9 @@ const AISLES = [
  ['Frutta e verdura', /pesca|cavolf|zenzero|cavolo|bietola|zucchin|pomodor|spinaci|rucola|lattuga|insalata|carot|sedano|cipolla|peperon|melanzan|broccol|funghi|fagiolini|cetriolo|zucca|patat|barbabietola|germogli|verdur|avocado|banan|mela|pera|kiwi|fragol|frutti di bosco|lampon|mirtill|mango|ananas|frutta|limone|lime/i],
  ['Carne e pesce', /branzino|polpo|bresaola|sardine|pollo|tacchino|manzo|macinato|salmone|tonno|merluzzo|orata|pesce|gamber|sgombro|fesa|controfiletto/i],
  ['Latticini e uova', /formaggio|yogurt|skyr|kefir|latte|ricotta|feta|mozzarella|parmigiano|grana|uova|albume|bevanda/i],
- ['Pane, pasta e cereali', /bagel|panino|grissini|muesli|pane|pasta|spaghetti|riso|farro|orzo|quinoa|cous|avena|farina|piadina|tortilla|gnocchi|noodles|cracker|gallette|biscotti|savoiardi|corn flakes|sfoglie|popcorn|granola/i],
+ ['Pane, pasta e cereali', /bagel|panino|grissini|muesli|pane|pasta|spaghetti|riso|farro|orzo|quinoa|cous|avena|farina|piadina|tortilla|gnocchi|noodles|cracker|gallette|biscotti|biscottate|savoiardi|corn flakes|sfoglie|popcorn|granola/i],
  ['Legumi e conserve', /ceci|lenticchie|fagioli|edamame|hummus|passata|pomodori secchi|olive|tofu|piselli|capperi/i],
- ['Frutta secca e semi', /noci|mandorle|pistacchi|arachidi|semi |datteri/i],
+ ['Frutta secca e semi', /noci|nocciole|mandorle|pistacchi|arachidi|semi |datteri/i],
  ['Dispensa e condimenti', /./]
 ];
 const AISLE_FIRST = [ ['Dispensa e condimenti', /^olio|salsa|tahina|burro d|burro di|cocco|cacao|miele|cioccolato|lievito|agar/i], ['Legumi e conserve', /pomodori secchi|passata/i], ['Frutta secca e semi', /^semi|datteri/i], ['Latticini e uova', /fiocchi di latte/i], ['Pane, pasta e cereali', /fiocchi d.avena|pangrattato|gnocchi/i] ];
@@ -2826,6 +3033,34 @@ function weekBlock(c){
       <div class="stat"><div class="v num">${ok}/${reg.length||0}</div><div class="l">giorni in obiettivo (calorie ±10% e proteine)</div></div>
     </div></div>`;
 }
+/* ---------- "Ho voglia di…": cosa prendere per uno sgarro ---------- */
+function oggiLeft(){ const L=peekLog(selDate()); return Math.round(calc(profile).target-L.items.reduce((s,i)=>s+(+i.k||0),0)); }
+function vogliaHTML(){
+  return `<h3 style="font-size:1.1rem">Ho voglia di…</h3>
+    <div class="chips" role="group" aria-label="Voglie">${VOGLIE.map(v=>`<button class="chip" data-act="voglia" data-v="${v.id}" aria-pressed="${ui.voglia===v.id}">${esc(v.n)}</button>`).join('')}</div>
+    <div id="vg-res" aria-live="polite">${ui.voglia?vgRes(oggiLeft()):''}</div>`;
+}
+function vgRes(left){
+  const s=cravingSuggest(ui.voglia,left,profile.dieta), L=Math.max(0,left), R1=Math.round;
+  const head = s.mode==='low' ? '<p class="note" style="margin:0">Oggi le calorie sono quasi finite: se proprio ti va, scegli la più leggera e domani riparti normale, senza saltare pasti.</p>'
+    : s.mode==='light' ? `<p style="margin:0">Ti restano <b class="num">${L} kcal</b>: queste sono le scelte più leggere.</p>`
+    : `<p style="margin:0">Ti restano <b class="num">${L} kcal</b> oggi.</p>`;
+  const home = s.home.length ? s.home.map(({r,x})=>`<div class="vg-item"><div><button class="name" data-open="${r.id}" data-x="${x}">${esc(r.n)}</button>
+      <div class="muted num" style="font-size:.85rem">${R1(r.k*x)} kcal · ${R1(r.p*x)} g proteine${x!==1?' · ½ porzione':''}</div></div>
+      <div class="vg-btns"><button class="btn small" data-open="${r.id}" data-x="${x}">Ricetta</button><button class="btn small primary" data-act="vgadd" data-id="${r.id}" data-x="${x}">Segna</button></div></div>`).join('')
+    : '<p class="muted" style="margin:0">Nessuno sgarro fatto in casa adatto alla tua dieta per questa voglia.</p>';
+  const out = s.out.length ? s.out.map(o=>`<div class="vg-item"><div><b>${esc(o.at)}</b>: ${esc(o.n)}
+      <div class="muted num" style="font-size:.85rem">${R1(o.k)} kcal · ${R1(o.p)} g proteine</div></div>
+      <div class="vg-btns"><button class="btn small primary" data-act="vgout" data-o="${o.id}">Segna</button></div></div>`).join('')
+    : '<p class="muted" style="margin:0">Nessuna scelta adatta alla tua dieta qui.</p>';
+  const places=[...new Set(s.out.concat(s.avoid?[s.avoid]:[]).map(o=>o.at))];
+  return `<div class="vg-res">${head}
+    <h4>Fatto in casa</h4><div class="vg-list">${home}</div>
+    <h4>Se esci</h4><div class="vg-list">${out}</div>
+    ${s.avoid?`<p class="vg-avoid">Da evitare: <b>${esc(s.avoid.at)}</b>, ${esc(s.avoid.n)} (<span class="num">${R1(s.avoid.k)} kcal</span>).</p>`:''}
+    <p class="vg-tip"><b>Consiglio:</b> ${esc(s.tip)}</p>
+    ${places.length?`<p class="muted" style="margin:0;font-size:.78rem">Valori indicativi: ${places.map(a=>esc(FUORI_SRC[a]||a)).join('; ')}.</p>`:''}</div>`;
+}
 function viewOggi(){
   if(!plan) makePlan();
   const el=$('v-oggi'), c=calc(profile), D=selDate(), L=peekLog(D), off=ui.dayOff;
@@ -2853,6 +3088,7 @@ function viewOggi(){
       <div class="macros">${bar('Proteine',tot.p,c.prot,'g','var(--c-cen)')}${bar('Carboidrati',tot.c,c.carb,'g','var(--c-col)')}${bar('Grassi',tot.f,c.fat,'g','var(--c-pra)')}</div>
       <p style="margin:0">${msg}</p>
     </div>
+    <div class="panel vg" id="vg">${vogliaHTML()}</div>
     <div class="two">
       <div class="panel"><h3 style="font-size:1.1rem">Dal piano${off?' di '+DAYS[di].toLowerCase():' di oggi'}</h3>${meals}
         ${SLOTS_IDS.every(sl=>L.items.some(i=>i.src==='plan:'+sl))?'<p class="ck-ok" style="font-size:.9rem">Tutti i pasti del piano sono segnati.</p>':'<button class="btn primary" data-act="eatall">Ho mangiato tutto come da piano</button>'}</div>
@@ -3077,6 +3313,11 @@ const HANDLERS = {
   recent:t=>{ const e=store.get('recent',[])[+t.dataset.i]; if(!e) return;
     const its=Array.isArray(e.items)?e.items.filter(x=>x&&typeof x.n==='string'&&x.k>=0).map(x=>({...x,src:'q'})) : e.t?rowsToItems(calcRows(e.t,{},[])) : [{n:e.n,k:e.k,p:e.p,c:e.c||0,f:e.f||0,src:'q'}];
     if(!its.length) return; dayLog().items.push(...its); pushRecent(e); saveLog(); viewOggi(); },
+  voglia:t=>{ ui.voglia = ui.voglia===t.dataset.v ? null : t.dataset.v; const el=$('vg'); if(el) el.innerHTML=vogliaHTML(); },
+  vgadd:t=>{ const r=byId[t.dataset.id], x=+t.dataset.x||1; if(!r) return;
+    dayLog().items.push({n:r.n+(x!==1?' (½ porz.)':''),rid:r.id,k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); ui.voglia=null; saveLog(); viewOggi(); },
+  vgout:t=>{ const o=FUORI.find(x=>x.id===t.dataset.o); if(!o) return;
+    dayLog().items.push({n:`${o.at}: ${o.n}`,k:o.k,p:o.p,c:o.c,f:o.f,src:'q'}); ui.voglia=null; saveLog(); viewOggi(); },
   addr:()=>{ const r=byId[$('add-r').value], x=+$('add-x').value||1; if(!r) return;
     dayLog().items.push({n:r.n+(x!==1?` (${fmt(x)} porz.)`:''),rid:r.id,k:r.k*x,p:r.p*x,c:r.c*x,f:r.f*x,src:'r'}); saveLog(); viewOggi(); },
   addtxt:()=>{ const rows=curRows(); if(!rows.length) return; const items=rowsToItems(rows); dayLog().items.push(...items);

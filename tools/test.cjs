@@ -1110,6 +1110,31 @@ test('[RF 2] indietro del telefono conserva il punto della sezione lasciata', as
   assertEq([r, await ev(p, y => Math.abs(scrollY - y) < 60, y)], [['#ricette', true], true]);
 });
 
+/* ---------- Piano: menù di oggi subito visibile ---------- */
+test('piano: il menù di oggi si vede nella prima schermata', async p => {
+  await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
+  assertEq(await ev(p, () => { const t = document.querySelector('.day.today'); const vis = [...document.querySelectorAll('.day')].filter(d => !d.hidden); return [!!t && !t.hidden, vis.length, t.getBoundingClientRect().top < innerHeight - 150]; }), [true, 1, true]);
+});
+test('piano: la striscia dei giorni cambia giorno e Settimana li mostra tutti', async p => {
+  await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
+  const other = await ev(p, () => ((new Date().getDay() + 6) % 7 + 1) % 7);
+  await p.click(`[data-pday="${other}"]`); await p.waitForTimeout(60);
+  const shown = await ev(p, () => [...document.querySelectorAll('.day')].filter(d => !d.hidden).map(d => d.querySelector('h3').textContent));
+  await p.click('[data-act="pweek"]'); await p.waitForTimeout(60);
+  assertEq([shown.length, shown[0].startsWith(await ev(p, o => DAYS[o], other)), await ev(p, () => [...document.querySelectorAll('.day')].filter(d => !d.hidden).length)], [1, true, 7]);
+});
+test('piano: scorrere di lato sul menù passa al giorno dopo', async p => {
+  await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
+  const before = await ev(p, () => ui.pday);
+  await ev(p, () => { const el = document.querySelector('.day:not([hidden])'), mk = (t, x) => { const e = new Event(t, { bubbles: true }); e.changedTouches = [{ clientX: x, clientY: 300 }]; e.touches = e.changedTouches; return e; }; el.dispatchEvent(mk('touchstart', 300)); el.dispatchEvent(mk('touchend', 150)); });
+  await p.waitForTimeout(60);
+  assertEq(await ev(p, () => ui.pday), (before + 1) % 7);
+});
+test('piano: obiettivo e note stanno sotto il menù', async p => {
+  await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
+  assert(await ev(p, () => { const d = document.querySelector('.days').getBoundingClientRect().top, g = document.querySelector('#v-piano .goal, #v-piano [data-goal]'); return !g || g.getBoundingClientRect().top > d; }));
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

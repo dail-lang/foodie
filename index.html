@@ -109,6 +109,15 @@ section.view{display:grid;gap:20px}
 
 /* Piano */
 .days{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.days.one{grid-template-columns:minmax(0,640px)}
+.day[hidden]{display:none}
+.dstrip-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.dstrip-h h2{font-size:1.2rem;margin:0}.dstrip-h .linkbtn{margin:0}
+.dstrip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.dchip{min-width:0;min-height:44px;display:grid;place-items:center;align-content:center;gap:0;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:4px 8px;font-weight:600;font-size:.88rem;color:var(--ink)}
+.dchip small{font-size:.62rem;font-weight:700;color:var(--basil-text);line-height:1}
+.dchip[aria-pressed="true"]{background:var(--basil);border-color:var(--basil);color:var(--basil-ink)}
+.dchip[aria-pressed="true"] small{color:var(--basil-ink)}
+
 .day{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:8px;align-content:start}
 .day-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .day-h h3{font-size:1.1rem}
@@ -1750,7 +1759,7 @@ function badgesBlock(){
 }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
-const ui = {tipPick:null,view:null,scroll:{},catScroll:0,q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,voglia:null,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
+const ui = {tipPick:null,pday:null,pdayKey:null,pweek:false,view:null,scroll:{},catScroll:0,q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,voglia:null,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
 
 /* ---------- Calcoli ---------- */
 const ACT = {sed:[1.2,'Sedentario'],leggero:[1.375,'Leggero (1–3 allenamenti/sett.)'],moderato:[1.55,'Moderato (3–5/sett.)'],intenso:[1.725,'Intenso (6–7/sett.)']};
@@ -1930,6 +1939,11 @@ function viewPiano(){
   if(!plan) makePlan();
   const el = document.getElementById('v-piano');
   const TI=(new Date().getDay()+6)%7;
+  // si apre su oggi; il giorno scelto resta finché non cambia la data
+  const dk=todayKey(); if(ui.pday==null||ui.pdayKey!==dk){ ui.pday=TI; ui.pdayKey=dk; }
+  const SHORT=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  const strip=`<div class="dstrip-h"><h2>Il tuo menù</h2><button class="linkbtn" data-act="pweek" aria-pressed="${!!ui.pweek}">${ui.pweek?'Un giorno alla volta':'Tutta la settimana'}</button></div>
+    <div class="dstrip" role="group" aria-label="Giorni della settimana">${SHORT.map((n,d)=>`<button class="dchip ${d===TI?'is-today':''}" data-pday="${d}" aria-pressed="${!ui.pweek&&d===ui.pday}" aria-label="${DAYS[d]}${d===TI?', oggi':''}">${n}${d===TI?'<small>oggi</small>':''}</button>`).join('')}</div>`;
   const days = plan.days.map((day,d)=>{
     const tot = SLOTS.reduce((s,[sl])=>s+byId[day[sl].id].k*day[sl].x,0);
     const rows = SLOTS.map(([sl])=>{
@@ -1940,22 +1954,23 @@ function viewPiano(){
           <div class="meta num">${e.x!==1?fmt(e.x)+' porz. · ':''}${Math.round(r.k*e.x)} kcal · ${r.t} min</div></div>
         <div class="mbtns">${d===TI?`<button class="tick ${isEaten(todayKey(),sl)?'on':''}" data-act="eatplan" data-sl="${sl}" aria-pressed="${isEaten(todayKey(),sl)}" aria-label="${isEaten(todayKey(),sl)?'Togli':'Segna'} ${SLOT_LBL[sl].toLowerCase()} come mangiato">${CHECK}</button>`:''}<button class="swap" data-swap="${d}|${sl}" aria-label="Cambia ${SLOT_LBL[sl].toLowerCase()} di ${DAYS[d]}" title="Cambia pasto">${svgSwap}</button></div></div>`;
     }).join('');
-    return `<article class="day ${d===TI?'today':''}"><div class="day-h"><h3>${DAYS[d]}${d===TI?' <span class="badge">Oggi</span>':''}</h3><span class="tot num">${Math.round(tot).toLocaleString('it-IT')} kcal</span></div>${rows}${profile.sf?`<div class="boost"><b>Extra superfood:</b> ${esc(BOOST[d])}</div>`:''}</article>`;
+    return `<article class="day ${d===TI?'today':''}" ${!ui.pweek&&d!==ui.pday?'hidden':''}><div class="day-h"><h3>${DAYS[d]}${d===TI?' <span class="badge">Oggi</span>':''}</h3><span class="tot num">${Math.round(tot).toLocaleString('it-IT')} kcal</span></div>${rows}${profile.sf?`<div class="boost"><b>Extra superfood:</b> ${esc(BOOST[d])}</div>`:''}</article>`;
   }).join('');
   el.innerHTML = `
     ${profile.esempio?`<div class="note"><b>Piano di esempio</b> per un uomo di 30 anni, 72 kg, obiettivo ricomposizione. <a href="#profilo">Inserisci i tuoi dati</a> per avere le tue calorie.</div>`:''}
-    <div class="row">${profile.obj==='ricomp'?'<span class="pill">Ricomposizione · skinny fat</span>':''}${profile.sf?'<span class="pill sf">Superfood attivo</span>':''}${profile.ai?'<span class="pill ai">Antinfiammatoria attiva</span>':''}${profile.dieta==='nopork'?'<span class="pill">Senza maiale</span>':''}</div>
     ${helloBlock()}
-    ${goalBlock()}
-    ${profile.obj==='ricomp'?`<p class="note"><b>Skinny fat:</b> leggero deficit (circa 10%) e proteine alte, circa 2 g per kg. Senza allenamento di forza non funziona: trovi le schede in <a href="#allenamento">Allenati</a>.</p>`:''}
-    ${covBlock()}
+    ${strip}
+    <div class="days ${ui.pweek?'':'one'}">${days}</div>
     <div class="row">
       <button class="btn primary" id="regen">Genera un nuovo piano</button>
       <button class="btn" id="toggle-shop" aria-expanded="${ui.showShop}">${ui.showShop?'Nascondi':'Mostra'} lista della spesa</button>
-      <span class="muted" style="font-size:.85rem">Tocca un piatto per la ricetta, ${svgSwap} per cambiarlo.</span>
+      <span class="muted" style="font-size:.85rem">Tocca un piatto per la ricetta, ${svgSwap} per cambiarlo${ui.pweek?'':'; scorri di lato sul menù per cambiare giorno'}.</span>
     </div>
     ${ui.showShop?shopBlock():''}
-    <div class="days">${days}</div>
+    ${goalBlock()}
+    ${profile.obj==='ricomp'?`<p class="note"><b>Skinny fat:</b> leggero deficit (circa 10%) e proteine alte, circa 2 g per kg. Senza allenamento di forza non funziona: trovi le schede in <a href="#allenamento">Allenati</a>.</p>`:''}
+    ${covBlock()}
+    <div class="row pills">${profile.obj==='ricomp'?'<span class="pill">Ricomposizione · skinny fat</span>':''}${profile.sf?'<span class="pill sf">Superfood attivo</span>':''}${profile.ai?'<span class="pill ai">Antinfiammatoria attiva</span>':''}${profile.dieta==='nopork'?'<span class="pill">Senza maiale</span>':''}</div>
     <p class="note">Il piano include sempre almeno <b>2 pasti di pesce</b> e <b>3 di legumi</b> a settimana e le porzioni sono adattate alle tue calorie. I valori sono stime: non sostituiscono il parere di un medico o di un dietista, soprattutto in caso di diabete o altre patologie.</p>`;
 }
 function covBlock(){
@@ -3416,6 +3431,11 @@ document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closes
 function openCat(c){ ui.catScroll=window.scrollY; ui.cat=c; history.pushState({fcat:c},'',location.href); viewConsigli(); window.scrollTo(0,0); }
 function closeCat(){ if(history.state&&history.state.fcat){ history.back(); return; } ui.cat=null; viewConsigli(); window.scrollTo(0,ui.catScroll||0); }
 // la categoria mostrata segue la voce della cronologia (indietro e avanti del telefono)
+// scorrere di lato sul menù del giorno: giorno dopo o prima
+let swX=null, swY=null;
+document.addEventListener('touchstart',e=>{ const d=e.target.closest&&e.target.closest('#v-piano .days.one .day'); if(!d||!e.touches||!e.touches[0]){ swX=null; return; } swX=e.touches[0].clientX; swY=e.touches[0].clientY; },{passive:true});
+document.addEventListener('touchend',e=>{ if(swX==null||!e.changedTouches||!e.changedTouches[0]) return; const dx=e.changedTouches[0].clientX-swX, dy=Math.abs(e.changedTouches[0].clientY-swY); swX=null;
+  if(Math.abs(dx)<60||dy>Math.abs(dx)) return; ui.pday=(ui.pday+(dx<0?1:6))%7; viewPiano(); },{passive:true});
 window.addEventListener('popstate',()=>{ if(ui.view!=='consigli'||current()!=='consigli') return; const c=history.state&&history.state.fcat, want=TIP_CATS.includes(c)?c:null;
   if(want!==ui.cat){ ui.cat=want; viewConsigli(); window.scrollTo(0,want?0:(ui.catScroll||0)); } });
 // la posizione di ogni sezione la gestisce l'app; dopo un ricaricamento non resta una categoria "fantasma" nella cronologia
@@ -3457,6 +3477,7 @@ const HANDLERS = {
   scanmanual:()=>{ closeScan(); const d=document.querySelector('details.manual'); if(!d) return; d.open=true; $('q-n').focus(); d.scrollIntoView({block:'center'}); },
   tipnext:()=>{ const cur=ui.tipPick!=null?ui.tipPick:tipOfDay(new Date()), ok=TIPS.map((x,i)=>i).filter(i=>!TIPS[i].table&&i!==cur); ui.tipPick=ok[Math.floor(Math.random()*ok.length)]; viewConsigli(); },
   tipclose:()=>closeTip(),
+  pweek:()=>{ ui.pweek=!ui.pweek; viewPiano(); },
   qdel:t=>{ ui.qscan=ui.qscan.filter(x=>x.key!==t.dataset.key); refreshQ(); },
   addq:()=>{ const v=id=>{ const x=$(id).value.trim(); return x===''?null:Math.max(0,parseFloat(x.replace(',','.'))||0); };
     const it=manualItem($('q-n').value.trim()||'Altro', v('q-k'), v('q-p'), v('q-c'), v('q-f')); if(!it){ $('q-k').focus(); return; }
@@ -3503,6 +3524,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.flt){const f=t.dataset.flt;ui.flt.has(f)?ui.flt.delete(f):ui.flt.add(f);viewRicette();return}
   if(t.dataset.cat!==undefined){ if(t.dataset.cat) openCat(t.dataset.cat); else closeCat(); return}
   if(t.dataset.tip!==undefined){openTip(+t.dataset.tip,t);return}
+  if(t.dataset.pday!==undefined){ ui.pday=+t.dataset.pday; ui.pweek=false; viewPiano(); return }
   if(t.dataset.wk){ui.wk=t.dataset.wk;viewAllenamento();return}
 });
 document.addEventListener('input',e=>{

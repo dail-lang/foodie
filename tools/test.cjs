@@ -1046,6 +1046,51 @@ test('[RF 7] deficit leggero spiegato come ricomposizione', async p => {
   assert(await ev(p, () => /ricomposizione/i.test(TIPS.find(t => t.t === 'Non tagliare troppo le calorie').b)));
 });
 
+/* ---------- Logo al centro e icone che riportano indietro ---------- */
+test('logo al centro sul telefono', async p => {
+  const r = await ev(p, () => { const b = document.querySelector('.brand').getBoundingClientRect(); return Math.abs((b.left + b.right) / 2 - innerWidth / 2); });
+  assert(r <= 8, 'distanza dal centro ' + r);
+});
+test('icona della sezione: dalla categoria torna alle righe dove eri', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await ev(p, () => window.scrollTo(0, 900)); await p.waitForTimeout(80);
+  await p.click('[data-cat="Spesa e cucina"]'); await p.waitForTimeout(80);
+  await ev(p, () => window.scrollTo(0, 1500)); await p.waitForTimeout(60);
+  await p.click('nav.tabs a[data-v="consigli"]'); await p.waitForTimeout(150);
+  assertEq(await ev(p, () => [document.querySelectorAll('.trow').length, Math.abs(scrollY - 900) < 60, location.hash]), [6, true, '#consigli']);
+});
+test('indietro del telefono dalla categoria torna alle righe', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await p.click('[data-cat="Alimentazione"]'); await p.waitForTimeout(80);
+  await p.goBack(); await p.waitForTimeout(150);
+  assertEq(await ev(p, () => [document.querySelectorAll('.trow').length, location.hash]), [6, '#consigli']);
+});
+test('cambiando sezione si ritrova il punto in cui eri', async p => {
+  await ev(p, () => { location.hash = 'ricette'; }); await p.waitForTimeout(200);
+  await ev(p, () => window.scrollTo(0, 800)); await p.waitForTimeout(80);
+  await p.click('nav.tabs a[data-v="oggi"]'); await p.waitForTimeout(150);
+  const top = await ev(p, () => scrollY);
+  await p.click('nav.tabs a[data-v="ricette"]'); await p.waitForTimeout(200);
+  assertEq([top, await ev(p, () => Math.abs(scrollY - 800) < 60)], [0, true]);
+});
+test('icona della sezione attiva senza niente aperto: torna in cima', async p => {
+  await ev(p, () => { location.hash = 'ricette'; }); await p.waitForTimeout(200);
+  await ev(p, () => window.scrollTo(0, 800)); await p.waitForTimeout(80);
+  await p.click('nav.tabs a[data-v="ricette"]'); await p.waitForTimeout(700);
+  assertEq(await ev(p, () => scrollY), 0);
+});
+test('icona Oggi su un giorno passato torna a oggi e chiude le voglie', async p => {
+  await ev(p, () => { location.hash = 'oggi'; ui.dayOff = 2; ui.voglia = 'fast'; viewOggi(); }); await p.waitForTimeout(150);
+  await p.click('nav.tabs a[data-v="oggi"]'); await p.waitForTimeout(150);
+  assertEq(await ev(p, () => [ui.dayOff, ui.voglia]), [0, null]);
+});
+test('icona della sezione chiude la scheda ricetta aperta', async p => {
+  await ev(p, () => { location.hash = 'ricette'; }); await p.waitForTimeout(200);
+  await ev(p, () => openRecipe(R[0].id, 1)); await p.waitForTimeout(80);
+  await ev(p, () => document.querySelector('nav.tabs a[data-v="ricette"]').click()); await p.waitForTimeout(100);
+  assertEq(await ev(p, () => !!document.getElementById('ov')), false);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

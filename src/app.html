@@ -478,6 +478,8 @@ nav.tabs a[aria-current="page"]{color:var(--basil-text);background:var(--surface
 @media (prefers-reduced-motion:reduce){.tpill.done{animation:none}.card{transition:none}}
 body.cooking #timer-dock{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
 @media (max-width:700px){
+  .top .wrap{justify-content:center}
+  .brand{margin:0 auto}
   nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;width:auto;max-width:none;border-radius:0;background:var(--surface);box-shadow:0 -1px 0 var(--line), 0 -6px 18px rgb(0 0 0 / .06);
     padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));justify-content:space-around;overflow:visible;gap:2px}
   nav.tabs a{flex:1;flex-direction:column;gap:2px;padding:6px 2px;font-size:.66rem;font-weight:600;border-radius:12px;text-align:center}
@@ -1727,7 +1729,7 @@ function badgesBlock(){
 }
 function saveLog(){ Object.keys(log).forEach(k=>{ if(!log[k].items.length&&!log[k].water&&!log[k].train) delete log[k]; });
   const keys=Object.keys(log).sort(); while(keys.length>400) delete log[keys.shift()]; store.set('log',log); }
-const ui = {tipPick:null,q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,voglia:null,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
+const ui = {tipPick:null,view:null,scroll:{},catScroll:0,q:'',slot:'tutti',flt:new Set(),cat:'Tutti',showShop:false,wk:'casa',pantry:'',dayOff:0,voglia:null,qtxt:'',qedit:{},qscan:[],qalt:null,qoff:{}};
 
 /* ---------- Calcoli ---------- */
 const ACT = {sed:[1.2,'Sedentario'],leggero:[1.375,'Leggero (1–3 allenamenti/sett.)'],moderato:[1.55,'Moderato (3–5/sett.)'],intenso:[1.725,'Intenso (6–7/sett.)']};
@@ -3373,11 +3375,26 @@ const VIEWS = {piano:viewPiano,oggi:viewOggi,ricette:viewRicette,allenamento:vie
 const current = ()=>{const h=location.hash.slice(1);return VIEWS[h]?h:'piano'};
 function render(){
   const v = current();
+  if(ui.view&&ui.view!==v) ui.scroll[ui.view]=window.scrollY; ui.view=v;
   document.querySelectorAll('nav.tabs a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   Object.keys(VIEWS).forEach(k=>document.getElementById('v-'+k).hidden=(k!==v));
   VIEWS[v]();
 }
-window.addEventListener('hashchange',()=>{render();window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{render();window.scrollTo(0,ui.scroll[current()]||0)});
+// icona della sezione in cui sei: chiude quello che è aperto e torna alla pagina principale della sezione
+function goHome(v){
+  if($('tipd')&&$('tipd').classList.contains('on')){ closeTip(); return; }
+  if($('scan')&&$('scan').classList.contains('on')){ closeScan(); return; }
+  const ov=$('ov'); if(ov&&ov.querySelector('#rt')&&$('close')){ $('close').click(); return; }
+  if(v==='consigli'&&ui.cat){ closeCat(); return; }
+  if(v==='oggi'&&(ui.dayOff||ui.voglia)){ ui.dayOff=0; ui.voglia=null; viewOggi(); window.scrollTo(0,0); return; }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('nav.tabs a'); if(!a||a.dataset.v!==current()) return; e.preventDefault(); goHome(a.dataset.v); });
+// lista di una categoria dei Consigli: il tasto indietro del telefono torna alle righe
+function openCat(c){ ui.catScroll=window.scrollY; ui.cat=c; history.pushState({fcat:c},'',location.href); viewConsigli(); window.scrollTo(0,0); }
+function closeCat(){ if(history.state&&history.state.fcat){ history.back(); return; } ui.cat=null; viewConsigli(); window.scrollTo(0,ui.catScroll||0); }
+window.addEventListener('popstate',()=>{ if(ui.view==='consigli'&&current()==='consigli'&&ui.cat&&!(history.state&&history.state.fcat)){ ui.cat=null; viewConsigli(); window.scrollTo(0,ui.catScroll||0); } });
 
 const HANDLERS = {
   addform:()=>addForm(),
@@ -3458,7 +3475,7 @@ document.addEventListener('click',e=>{
   if(t.id==='toggle-shop'){ui.showShop=!ui.showShop;render();return}
   if(t.dataset.slot){ui.slot=t.dataset.slot;viewRicette();return}
   if(t.dataset.flt){const f=t.dataset.flt;ui.flt.has(f)?ui.flt.delete(f):ui.flt.add(f);viewRicette();return}
-  if(t.dataset.cat!==undefined){ui.cat=t.dataset.cat||null;viewConsigli();window.scrollTo(0,0);return}
+  if(t.dataset.cat!==undefined){ if(t.dataset.cat) openCat(t.dataset.cat); else closeCat(); return}
   if(t.dataset.tip!==undefined){openTip(+t.dataset.tip,t);return}
   if(t.dataset.wk){ui.wk=t.dataset.wk;viewAllenamento();return}
 });

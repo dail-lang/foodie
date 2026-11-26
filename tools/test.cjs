@@ -1090,6 +1090,25 @@ test('icona della sezione chiude la scheda ricetta aperta', async p => {
   await ev(p, () => document.querySelector('nav.tabs a[data-v="ricette"]').click()); await p.waitForTimeout(100);
   assertEq(await ev(p, () => !!document.getElementById('ov')), false);
 });
+test('[RF 1] dopo aver ricaricato in una categoria, Tutte le categorie funziona al primo tocco', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await p.click('[data-cat="Alimentazione"]'); await p.waitForTimeout(80);
+  await p.reload(); await p.waitForTimeout(300);
+  await p.click('[data-cat="Spesa e cucina"]'); await p.waitForTimeout(80);
+  await p.click('[data-cat=""]'); await p.waitForTimeout(150);
+  assertEq(await ev(p, () => document.querySelectorAll('.trow').length), 6);
+});
+test('[RF 2] indietro del telefono conserva il punto della sezione lasciata', async p => {
+  await ev(p, () => { location.hash = 'ricette'; }); await p.waitForTimeout(200);
+  await ev(p, () => window.scrollTo(0, 800)); await p.waitForTimeout(80);
+  await p.click('nav.tabs a[data-v="consigli"]'); await p.waitForTimeout(150);
+  await ev(p, () => window.scrollTo(0, 700)); await p.waitForTimeout(80);
+  const y = await ev(p, () => scrollY);
+  await p.goBack(); await p.waitForTimeout(200);
+  const r = await ev(p, () => [location.hash, Math.abs(scrollY - 800) < 60]);
+  await p.click('nav.tabs a[data-v="consigli"]'); await p.waitForTimeout(200);
+  assertEq([r, await ev(p, y => Math.abs(scrollY - y) < 60, y)], [['#ricette', true], true]);
+});
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 

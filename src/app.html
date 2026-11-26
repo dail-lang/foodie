@@ -3394,7 +3394,12 @@ document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closes
 // lista di una categoria dei Consigli: il tasto indietro del telefono torna alle righe
 function openCat(c){ ui.catScroll=window.scrollY; ui.cat=c; history.pushState({fcat:c},'',location.href); viewConsigli(); window.scrollTo(0,0); }
 function closeCat(){ if(history.state&&history.state.fcat){ history.back(); return; } ui.cat=null; viewConsigli(); window.scrollTo(0,ui.catScroll||0); }
-window.addEventListener('popstate',()=>{ if(ui.view==='consigli'&&current()==='consigli'&&ui.cat&&!(history.state&&history.state.fcat)){ ui.cat=null; viewConsigli(); window.scrollTo(0,ui.catScroll||0); } });
+// la categoria mostrata segue la voce della cronologia (indietro e avanti del telefono)
+window.addEventListener('popstate',()=>{ if(ui.view!=='consigli'||current()!=='consigli') return; const c=history.state&&history.state.fcat, want=TIP_CATS.includes(c)?c:null;
+  if(want!==ui.cat){ ui.cat=want; viewConsigli(); window.scrollTo(0,want?0:(ui.catScroll||0)); } });
+// la posizione di ogni sezione la gestisce l'app; dopo un ricaricamento non resta una categoria "fantasma" nella cronologia
+if('scrollRestoration' in history) history.scrollRestoration='manual';
+if(history.state&&history.state.fcat) history.replaceState(null,'');
 
 const HANDLERS = {
   addform:()=>addForm(),

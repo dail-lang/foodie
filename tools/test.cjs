@@ -1134,6 +1134,33 @@ test('piano: obiettivo e note stanno sotto il menù', async p => {
   await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
   assert(await ev(p, () => { const d = document.querySelector('.days').getBoundingClientRect().top, g = document.querySelector('#v-piano .goal, #v-piano [data-goal]'); return !g || g.getBoundingClientRect().top > d; }));
 });
+test('[RF 1] piano: il fuoco resta sul giorno scelto con la tastiera', async p => {
+  await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
+  await p.focus('[data-pday="5"]'); await p.keyboard.press('Enter'); await p.waitForTimeout(60);
+  const a = await ev(p, () => document.activeElement.dataset.pday);
+  await p.focus('[data-act="pweek"]'); await p.keyboard.press('Enter'); await p.waitForTimeout(60);
+  assertEq([a, await ev(p, () => document.activeElement.dataset.act)], ['5', 'pweek']);
+});
+test('[RF 2] piano: dopo mezzanotte il primo tocco su un giorno funziona', async p => {
+  await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
+  await ev(p, () => { ui.pdayKey = '2000-01-01'; });
+  await p.click('[data-pday="6"]'); await p.waitForTimeout(60);
+  assertEq(await ev(p, () => ui.pday), 6);
+});
+test('[RF 3] piano: scorrere in diagonale o in verticale non cambia giorno', async p => {
+  await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
+  const before = await ev(p, () => ui.pday);
+  await ev(p, () => { const sw = (x0, y0, x1, y1) => { const el = document.querySelector('.day:not([hidden])'), mk = (t, x, y) => { const e = new Event(t, { bubbles: true }); e.changedTouches = [{ clientX: x, clientY: y }]; e.touches = t === 'touchend' ? [] : e.changedTouches; return e; }; el.dispatchEvent(mk('touchstart', x0, y0)); el.dispatchEvent(mk('touchend', x1, y1)); };
+    sw(300, 300, 230, 365); sw(200, 400, 210, 150); });
+  await p.waitForTimeout(60);
+  assertEq(await ev(p, () => ui.pday), before);
+});
+test('[RF 4] piano: oggi si riconosce anche quando guardi un altro giorno', async p => {
+  await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
+  const ti = await ev(p, () => (new Date().getDay() + 6) % 7);
+  await p.click(`[data-pday="${(ti + 1) % 7}"]`); await p.waitForTimeout(60);
+  assert(await ev(p, ti => { const t = getComputedStyle(document.querySelector(`[data-pday="${ti}"]`)), o = getComputedStyle(document.querySelector(`[data-pday="${(ti + 2) % 7}"]`)); return t.borderTopColor !== o.borderTopColor; }, ti));
+});
 
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 

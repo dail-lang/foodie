@@ -383,7 +383,8 @@ label.btn{cursor:pointer}
 .tcard:hover,.tcard:focus-visible{border-color:var(--basil)}
 .tcard .tag{justify-self:start}.tcard b{font-size:1rem;line-height:1.3}
 .tprev{font-size:.86rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.tipbox{width:min(100%,560px)}.tipbox .tag{justify-self:start}
+.tipbox{width:min(100%,560px)}
+#tipd table.pt{min-width:0;font-size:.85rem}#tipd .pt th,#tipd .pt td{padding:6px 4px}#tipd .pe{grid-template-columns:minmax(24px,1fr) 46px;gap:6px}.tipbox .tag{justify-self:start}
 @media (min-width:900px){ .tcard{flex-basis:260px} }
 .scan{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:none;place-items:center;padding:16px}
 .scan.on{display:grid}
@@ -1539,7 +1540,7 @@ const TIPS = [
  {cat:'Spesa e cucina',t:'Meal prep: cucina una volta, mangia tre',b:'La domenica cuoci cereali e legumi in quantità, rassoda qualche uovo e lava le verdure. Bonus: cereali e patate cotti e conservati in frigo hanno più amido resistente.',src:'Consiglio pratico'},
  {cat:'Spesa e cucina',t:'Surgelati e scatolame sono alleati',b:'Verdure e pesce surgelati mantengono i nutrienti e non si sprecano. Legumi in barattolo e tonno al naturale salvano la cena in 10 minuti.',src:'Linee guida CREA'},
  {cat:'Skinny fat e muscoli',t:'Quante proteine ci sono in…',b:'La tabella dei cibi più comuni con i grammi di proteine ogni 100 g e ogni 100 kcal: ti aiuta a costruire pasti da 25–40 g di proteine con meno calorie.',src:'Tabelle di composizione degli alimenti CREA',table:true},
- {cat:'Skinny fat e muscoli',t:'Non tagliare troppo le calorie',b:'Mangiare pochissimo fa perdere anche muscolo e peggiora lo skinny fat. Meglio il mantenimento o un deficit leggero (200–300 kcal) mentre ti alleni con i pesi.',src:'Studi sulla ricomposizione corporea (Barakat et al., 2020)'},
+ {cat:'Skinny fat e muscoli',t:'Non tagliare troppo le calorie',b:'Mangiare pochissimo fa perdere anche muscolo e peggiora lo skinny fat. In ricomposizione (perdere grasso e mettere muscolo insieme) meglio il mantenimento o un deficit leggero (200–300 kcal) mentre ti alleni con i pesi; il deficit più ampio serve solo se l\'obiettivo è dimagrire.',src:'Studi sulla ricomposizione corporea (Barakat et al., 2020)'},
  {cat:'Skinny fat e muscoli',t:'Sovraccarico progressivo',b:'Il muscolo cresce se lo sforzo aumenta piano piano: ogni settimana prova ad aggiungere una ripetizione o un po\' di peso. Segna gli allenamenti nell\'app per vedere i progressi.',src:'ACSM, modelli di progressione nell\'allenamento di forza (2009)'},
  {cat:'Skinny fat e muscoli',t:'Pesi 3 volte a settimana',b:'Tre allenamenti total body bastano: ogni muscolo lavora 2 volte a settimana, con 10 o più serie settimanali per gruppo muscolare.',src:'Meta-analisi di Schoenfeld su volume e frequenza (2016, 2017)'},
  {cat:'Skinny fat e muscoli',t:'Esercizi che usano tanti muscoli',b:'Squat, stacchi, affondi, panca o piegamenti, rematore e trazioni: lavorano più muscoli insieme e danno più risultati nel tempo che hai.',src:'Linee guida NSCA sull\'allenamento di forza'},
@@ -1568,7 +1569,7 @@ const TIPS = [
  {cat:'Allenamento e sonno',t:'Bevi durante l\'allenamento',b:'Arriva idratato e bevi a piccoli sorsi durante lo sforzo, soprattutto quando fa caldo: anche una piccola disidratazione riduce la forza.',src:'ACSM, posizione su esercizio e reintegro dei liquidi (2007)'},
  {cat:'Allenamento e sonno',t:'A digiuno o dopo mangiato: conta il totale',b:'Allenarsi a digiuno non fa perdere più grasso nel lungo periodo. Scegli il momento in cui ti senti meglio: conta il totale della giornata.',src:'Schoenfeld et al., 2014, sul cardio a digiuno'},
  {cat:'Spesa e cucina',t:'Lista della spesa prima di uscire',b:'Decidi i pasti della settimana e scrivi la lista (l\'app la prepara dal piano): compri meno cose inutili e sprechi meno.',src:'Linee guida per una sana alimentazione, CREA 2018'},
- {cat:'Spesa e cucina',t:'Non fare la spesa affamato',b:'Con la fame si mettono nel carrello più cibi calorici e confezionati. Fai la spesa dopo un pasto o uno spuntino.',src:'Studi sul comportamento d\'acquisto a stomaco vuoto (Xu et al., PNAS 2015)'},
+ {cat:'Spesa e cucina',t:'Non fare la spesa affamato',b:'Con la fame si mettono nel carrello più cibi calorici e confezionati. Fai la spesa dopo un pasto o uno spuntino.',src:'Studi su fame e acquisti alimentari'},
  {cat:'Spesa e cucina',t:'Avanzi in frigo 3–4 giorni',b:'I piatti cotti si conservano in frigo per 3–4 giorni in contenitori chiusi. Se vuoi tenerli di più, congelali subito in porzioni.',src:'Ministero della Salute, consigli sulla conservazione degli alimenti'},
  {cat:'Spesa e cucina',t:'Friggitrice ad aria',b:'Croccante come il fritto con un cucchiaino d\'olio invece di un bagno d\'olio: patatine, pollo impanato e verdure con molte meno calorie.',src:'Studi sulla frittura ad aria e il contenuto di grassi'},
  {cat:'Spesa e cucina',t:'Basi pronte in frigo',b:'Tieni pronti un cereale cotto, un legume e delle verdure grigliate: con una proteina veloce (uova, tonno, pollo) il pasto è pronto in 5 minuti.',src:'Linee guida per una sana alimentazione, CREA 2018'},
@@ -2054,8 +2055,10 @@ function cardsHTML(){
   return `<div class="cards">${list.map(r=>cardHTML(r,null)).join('')}</div>`;
 }
 // consiglio del giorno: lo stesso per tutta la data, mai la scheda della tabella
-function tipOfDay(d){ const key=todayKey(d||new Date()); let h=0; for(const ch of key) h=(h*31+ch.charCodeAt(0))>>>0;
-  const ok=TIPS.map((t,i)=>i).filter(i=>!TIPS[i].table); return ok[h%ok.length]; }
+// salta di P posizioni al giorno (P primo con il numero di consigli): ogni consiglio esce una volta prima di ripetersi e le categorie si alternano
+function tipOfDay(d){ d=d||new Date(); const day=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5);
+  const ok=TIPS.map((t,i)=>i).filter(i=>!TIPS[i].table), n=ok.length, gcd=(a,b)=>b?gcd(b,a%b):a;
+  let P=37; while(gcd(P,n)!==1) P+=2; return ok[(day*P)%n]; }
 const tipLv=t=>t.lv?`<span class="tag lv lv-${t.lv}">${LV_LBL[t.lv]}</span>`:'';
 function viewConsigli(){
   const el = document.getElementById('v-consigli');
@@ -3357,12 +3360,13 @@ const PSRC=[['Albume d\'uovo',11,43],['Merluzzo',17,71],['Fesa di tacchino',24,1
 function proteinTable(){
   const rows=PSRC.map(([n,p,k])=>({n,p,k,e:p/k*100})).sort((a,b)=>b.e-a.e);
   const mx=rows[0].e;
-  return `<div><div class="eyebrow">Fonti proteiche</div><h2 style="font-size:1.3rem">Le proteine che costano meno calorie</h2>
-    <p class="muted" style="margin:.3rem 0 0;max-width:65ch">L'ultima colonna dice quanti grammi di proteine ottieni ogni 100 kcal. Più è alta, più è utile in ricomposizione e in dimagrimento.</p></div>
-    <div class="tbl"><table class="pt"><thead><tr><th>Alimento</th><th class="n">Proteine / 100 g</th><th class="n">kcal / 100 g</th><th>Proteine ogni 100 kcal</th></tr></thead>
-    <tbody>${rows.map(r=>`<tr><td>${esc(r.n)}</td><td class="n num">${fmt(r.p)} g</td><td class="n num">${r.k}</td><td><div class="pe"><div class="bar"><i style="width:${Math.round(r.e/mx*100)}%;background:var(--basil)"></i></div><span class="num">${fmt(Math.round(r.e*10)/10)} g</span></div></td></tr>`).join('')}</tbody></table></div>
+  // compatta per il pannello a 400 px: prima la colonna che conta (proteine ogni 100 kcal)
+  return `<p class="muted" style="margin:0;font-size:.85rem">Più proteine ogni 100 kcal = più utile in ricomposizione e dimagrimento.</p>
+    <div class="tbl"><table class="pt"><thead><tr><th>Alimento</th><th>Proteine ogni 100 kcal</th><th class="n">Proteine / 100 g</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${esc(r.n)}</td><td><div class="pe"><div class="bar"><i style="width:${Math.round(r.e/mx*100)}%;background:var(--basil)"></i></div><span class="num">${fmt(Math.round(r.e*10)/10)} g</span></div></td><td class="n num">${fmt(r.p)} g</td></tr>`).join('')}</tbody></table></div>
     <p class="muted" style="margin:0;font-size:.8rem">Valori indicativi da tabelle di composizione CREA e USDA, alimenti crudi salvo dove indicato.</p>`;
 }
+
 
 /* ---------- Navigazione ed eventi ---------- */
 const VIEWS = {piano:viewPiano,oggi:viewOggi,ricette:viewRicette,allenamento:viewAllenamento,consigli:viewConsigli,profilo:viewProfilo};

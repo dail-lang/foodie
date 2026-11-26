@@ -1030,6 +1030,22 @@ test('consigli: testi lunghi restano dentro la scheda', async p => {
   assertEq(await ev(p, () => [...document.querySelectorAll('.tcard')].filter(c => c.scrollWidth > c.clientWidth + 1 || c.getBoundingClientRect().height > 260).length), 0);
 });
 
+/* ---------- Revisione finale consigli ---------- */
+test('[RF 1] consiglio del giorno: 14 giorni tutti diversi e almeno 4 categorie', async p => {
+  assertEq(await ev(p, () => { const ids = [...Array(14)].map((_, k) => tipOfDay(new Date(2026, 10, 7 + k, 12))); return [new Set(ids).size, new Set(ids.map(i => TIPS[i].cat)).size >= 4, ids.every(i => !TIPS[i].table)]; }), [14, true, true]);
+});
+test('[RF 2] citazione della spesa affamati corretta', async p => {
+  assert(await ev(p, () => !/Xu et al\./.test(TIPS.find(t => t.t === 'Non fare la spesa affamato').src)));
+});
+test('[RF 5] tabella proteine nel pannello: la colonna utile si vede a 400 px', async p => {
+  await ev(p, () => { location.hash = 'consigli'; }); await p.waitForTimeout(150);
+  await ev(p, () => document.querySelector(`.tcard[data-tip="${TIPS.findIndex(t => t.table)}"]`).click()); await p.waitForTimeout(80);
+  assertEq(await ev(p, () => { const th = [...document.querySelectorAll('#tipd th')].find(x => /ogni 100 kcal/.test(x.textContent)), box = document.querySelector('#tipd .scan-box').getBoundingClientRect(), r = th.getBoundingClientRect(); return [r.right <= box.right + 1, document.querySelectorAll('#tipd h2').length]; }), [true, 0]);
+});
+test('[RF 7] deficit leggero spiegato come ricomposizione', async p => {
+  assert(await ev(p, () => /ricomposizione/i.test(TIPS.find(t => t.t === 'Non tagliare troppo le calorie').b)));
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

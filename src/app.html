@@ -1938,7 +1938,7 @@ function viewPiano(){
   }).join('');
   el.innerHTML = `
     ${profile.esempio?`<div class="note"><b>Piano di esempio</b> per un uomo di 30 anni, 72 kg, obiettivo ricomposizione. <a href="#profilo">Inserisci i tuoi dati</a> per avere le tue calorie.</div>`:''}
-    ${helloBlock()}
+    ${goalBlock()}
     ${strip}
     <div class="days ${ui.pweek?'':'one'}">${days}</div>
     <div class="row">
@@ -1947,9 +1947,9 @@ function viewPiano(){
       <span class="muted" style="font-size:.85rem">Tocca un piatto per la ricetta, ${svgSwap} per cambiarlo${ui.pweek?'':'; scorri di lato sul menù per cambiare giorno'}.</span>
     </div>
     ${ui.showShop?shopBlock():''}
-    ${goalBlock()}
-    ${profile.obj==='ricomp'?`<p class="note"><b>Skinny fat:</b> leggero deficit (circa 10%) e proteine alte, circa 2 g per kg. Senza allenamento di forza non funziona: trovi le schede in <a href="#allenamento">Allenati</a>.</p>`:''}
     ${covBlock()}
+    ${helloBlock()}
+    ${profile.obj==='ricomp'?`<p class="note"><b>Skinny fat:</b> leggero deficit (circa 10%) e proteine alte, circa 2 g per kg. Senza allenamento di forza non funziona: trovi le schede in <a href="#allenamento">Allenati</a>.</p>`:''}
     <div class="row pills">${profile.obj==='ricomp'?'<span class="pill">Ricomposizione · skinny fat</span>':''}${profile.sf?'<span class="pill sf">Superfood attivo</span>':''}${profile.ai?'<span class="pill ai">Antinfiammatoria attiva</span>':''}${profile.dieta==='nopork'?'<span class="pill">Senza maiale</span>':''}</div>
     <p class="note">Il piano include sempre almeno <b>2 pasti di pesce</b> e <b>3 di legumi</b> a settimana e le porzioni sono adattate alle tue calorie. I valori sono stime: non sostituiscono il parere di un medico o di un dietista, soprattutto in caso di diabete o altre patologie.</p>`;
 }

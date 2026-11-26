@@ -13,3 +13,6 @@ Per vedere il menù di oggi la persona doveva scorrere fino in fondo alla pagina
 1. Striscia dei giorni + un giorno alla volta (scelta): il menù di oggi entra nella prima schermata.
 2. Solo un pulsante "Vai a oggi" che fa scorrere fino al giorno: resta la pagina lunghissima.
 3. Mettere oggi per primo nella lista: rompe l'ordine della settimana.
+
+## Modifica richiesta dalla persona (26/11)
+"Lascia l'obiettivo giornaliero in alto poi il menù e sotto i nutrienti": ordine ora obiettivo → menù (striscia, giorno, pulsanti) → nutrienti → prossimo pasto → nota skinny fat ed etichette. Il riquadro "prossimo pasto" va sotto i nutrienti (decisione di Claude: il menù ha già i pulsanti per segnare i pasti).

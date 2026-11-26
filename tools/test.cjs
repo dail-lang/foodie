@@ -1130,9 +1130,9 @@ test('piano: scorrere di lato sul menù passa al giorno dopo', async p => {
   await p.waitForTimeout(60);
   assertEq(await ev(p, () => ui.pday), (before + 1) % 7);
 });
-test('piano: obiettivo e note stanno sotto il menù', async p => {
+test('piano: obiettivo in alto, poi il menù, poi i nutrienti', async p => {
   await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);
-  assert(await ev(p, () => { const d = document.querySelector('.days').getBoundingClientRect().top, g = document.querySelector('#v-piano .goal, #v-piano [data-goal]'); return !g || g.getBoundingClientRect().top > d; }));
+  assertEq(await ev(p, () => { const y = sel => document.querySelector('#v-piano ' + sel).getBoundingClientRect().top, g = y('.goal'), d = y('.days'), c = y('.cov'); return [g < d, d < c, y('.dstrip') > g]; }), [true, true, true]);
 });
 test('[RF 1] piano: il fuoco resta sul giorno scelto con la tastiera', async p => {
   await ev(p, () => { location.hash = 'piano'; }); await p.waitForTimeout(150);

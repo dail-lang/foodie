@@ -2,8 +2,8 @@
 """Dati nutrizionali per Foodie.
 
 Fonti: CREA – Tabelle di composizione degli alimenti (alimentinutrizione.it, 2019),
-riutilizzabili citando la fonte; Ciqual 2020 (ANSES, licenza aperta) solo per i valori
-che CREA non ha. Nessun dato USDA.
+riutilizzabili citando la fonte; Banca dati svizzera dei valori nutritivi (USAV, V 7.1, dati
+aperti) per i valori e gli alimenti che CREA non ha (vedi nutr_ch.py). Nessun dato USDA.
 
 Uso:
   python3 tools/nutr_data.py fetch-crea     # scarica le schede (1 al secondo, con cache)
@@ -107,42 +107,91 @@ def parse(code):
         # gli acidi grassi sono in % del totale degli acidi grassi; acidi grassi ≈ 90% dei lipidi
         v['o3'] = round((epa + dha) * lip * 0.9 * 10, 1) if lip is not None and epa is not None and dha is not None else None
         v['sat'] = round(sat * lip * 0.9 / 100, 2) if lip is not None and sat is not None else None
+    v['_kcal'] = field(t, 'Energia (kcal)')
     eng = re.search(r'English Name\|([^|]+)\|', t)
     return name, (eng.group(1).strip() if eng else ''), v
 
 
 def build():
     items = index()
-    db = {}
-    missing = 0
+    sys.path.insert(0, os.path.join(ROOT, 'tools'))
+    import nutr_map, nutr_foods, nutr_ch
+    used = set()
+    for m in list(nutr_map.ING.values()) + list(nutr_foods.F.values()):
+        used.update([m] if isinstance(m, str) else [c for c, _ in (m or [])])
+    db, kcal, missing = {}, {}, 0
     for c, _ in items:
         if not os.path.exists(os.path.join(CACHE, c + '.html')):
             missing += 1
             continue
         name, _eng, v = parse(c)
+        kcal[c] = v.pop('_kcal')
+        for k in nutr_map.CREA_BAD.get(c, []):
+            v[k] = None
         db[c] = {'n': name, 'v': [None if v[k] is None else round(v[k], 3) for k in KEYS], 'eu': 0, 'sim': 0}
-    # valore mancante: mediana delle varianti CREA dello stesso alimento (stessa prima parte del nome,
-    # es. "Latte di vacca, …", "Yogurt greco, …"); segnato in 'sim'
+    # 1) valori mancanti dalla Banca dati svizzera: abbinamento a mano per i cibi dell'app,
+    #    automatico (stesso nome e stato, calorie simili) per gli altri; segnati in 'eu'
+    CH = nutr_ch.load()
+    ch_used, n_eu = set(), 0
+    for c, d in db.items():
+        fix = nutr_map.CH_FIX.get(c)
+        if fix is None and c not in used:
+            m = nutr_ch.match(d['n'], kcal[c])
+            if m and kcal[c] and CH[m]['kcal'] and 0.75 < CH[m]['kcal'] / kcal[c] < 1.33:
+                fix = int(m[2:])
+        if fix is None:
+            continue
+        sid, scale = (fix if isinstance(fix, tuple) else (fix, None))
+        s_ = CH['ch%d' % sid]
+        f = (kcal[c] / s_['kcal']) if scale == 'k' and kcal[c] and s_['kcal'] else 1
+        salted = 'acqua salata' in s_['n']
+        for i, k in enumerate(KEYS):
+            x = s_['v'].get(k)
+            if d['v'][i] is None and x is not None and not (k == 'na' and salted):
+                d['v'][i] = round(x * f, 3); d['eu'] |= 1 << i; n_eu += 1
+    print(f'{n_eu} valori dalla Banca dati svizzera')
+    # i vegetali non contengono B12 né vitamina D (tranne i funghi per la D): 0, non "dato mancante"
+    ib12, ivd = KEYS.index('b12'), KEYS.index('vD')
+    for c, d in db.items():
+        if c[0] == '0' or c.startswith('40'):
+            if d['v'][ib12] is None: d['v'][ib12] = 0.0
+            if d['v'][ivd] is None and 'fungh' not in d['n'].lower(): d['v'][ivd] = 0.0
+    # 2) ancora mancante: mediana delle varianti CREA dello stesso alimento, solo se nello stesso stato
+    #    (una pesca fresca non prende i valori della pesca secca) e con calorie simili; segnato in 'sim'
     fam = {}
     for c, d in db.items():
-        fam.setdefault(d['n'].split(',')[0].strip().lower(), []).append(c)
+        fam.setdefault((d['n'].split(',')[0].strip().lower(), frozenset(nutr_ch.states(d['n']) - {'crudo'})), []).append(c)
     filled = 0
     for c, d in db.items():
-        sib = [o for o in fam[d['n'].split(',')[0].strip().lower()] if o != c]
+        key = (d['n'].split(',')[0].strip().lower(), frozenset(nutr_ch.states(d['n']) - {'crudo'}))
+        sib = [o for o in fam[key] if o != c and kcal[o] and kcal[c] and 0.75 < kcal[o] / kcal[c] < 1.33]
         for i in range(len(KEYS)):
             if d['v'][i] is None:
-                vals = sorted(db[o]['v'][i] for o in sib if db[o]['v'][i] is not None and not (db[o]['sim'] >> i) & 1)
+                vals = sorted(db[o]['v'][i] for o in sib if db[o]['v'][i] is not None and not ((db[o]['sim'] | db[o]['eu']) >> i) & 1)
                 if vals:
                     d['v'][i] = vals[len(vals) // 2]; d['sim'] |= 1 << i; filled += 1
     print(f'{filled} valori presi da varianti dello stesso alimento')
-    sys.path.insert(0, os.path.join(ROOT, 'tools'))
-    import nutr_map, nutr_foods
+    # 3) alimenti svizzeri usati direttamente dalle ricette (tofu, chia, hummus…)
+    def res(v):
+        return nutr_map.ING.get(v, nutr_foods.F.get(v)) if isinstance(v, str) and not re.fullmatch(r'\d{6}|ch\d+', v) else v
+    SYN = {k: res(v) for k, v in nutr_map.SYN.items()}
+    assert all(v is not None for v in SYN.values()), [k for k, v in SYN.items() if v is None]
+    for m in list(nutr_map.ING.values()) + list(nutr_foods.F.values()) + list(SYN.values()):
+        for code in ([m] if isinstance(m, str) else [c for c, _ in (m or [])]):
+            if code.startswith('ch'):
+                ch_used.add(code)
+    for code in sorted(ch_used):
+        s_ = CH[code]; v = [None if s_['v'].get(k) is None else round(s_['v'][k], 3) for k in KEYS]
+        cat = s_['cat']
+        a = 1 if re.match(r'Carne|Pesce|Prodotti carnei', cat) else 2 if re.match(r'Latte|Uova', cat) or 'miele' in s_['n'].lower() else 0
+        db[code] = {'n': s_['n'], 'v': v, 'eu': sum(1 << i for i, x in enumerate(v) if x is not None), 'sim': 0, **({'a': a} if a else {})}
     J = lambda o: json.dumps(o, ensure_ascii=False, separators=(',', ':'))
     js = ('/* NUTDB:START */\n'
           f"const NUT_KEYS={json.dumps(KEYS)};\n"
           f"const ING_CREA={J(nutr_map.ING)};\nconst PZ_G={J(nutr_map.PZ_G)};\nconst CUCCH_G={J(nutr_map.CUCCH_G)};\n"
           f"const FOOD_CREA={J(nutr_foods.F)};\n"
-          "const NUT_SRC={crea:'CREA – Tabelle di composizione degli alimenti (2019)',ciqual:'Ciqual 2020 – ANSES'};\n"
+          f"const NUT_SYN={J(SYN)};\n"
+          "const NUT_SRC={crea:'CREA – Tabelle di composizione degli alimenti (2019)',ch:'Banca dati svizzera dei valori nutritivi (USAV, 2026)'};\n"
           f"const NUTDB={json.dumps(db, ensure_ascii=False, separators=(',', ':'))};\n"
           '/* NUTDB:END */')
     s = open(APP, encoding='utf-8').read()

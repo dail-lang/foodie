@@ -68,3 +68,20 @@ La persona vuole sapere **se mangia tutti i nutrienti** e **a cosa servono quell
 
 ## Rischi noti
 - Il sito Ciqual era in manutenzione il 27/11/2026: i valori di riserva si scaricano appena torna raggiungibile (anche tramite data.gouv.fr).
+
+## Aggiornamento 27/11/2026: banca dati svizzera al posto di Ciqual
+
+Ciqual è rimasto irraggiungibile (manutenzione; web.archive.org non consentito dall'ambiente). La persona ha chiesto
+una soluzione per vitamina B12, D, magnesio e gli altri. Si usa la **Banca dati svizzera dei valori nutritivi**
+(USAV, V 7.1 del 01/07/2026, dati aperti citando la fonte, nomi in italiano, nessun dato USDA) con lo stesso ruolo
+previsto per Ciqual: riempie solo i valori che CREA non ha, segnati come "valore europeo".
+
+- Ordine: valore CREA → valore svizzero dell'alimento corrispondente → mediana delle varianti CREA **nello stesso stato**
+  (crudo/cotto/secco/in polvere/in scatola/integrale) e con calorie simili → nessun dato.
+- Corrispondenza scelta a mano per i 219 alimenti CREA usati dall'app (`nutr_map.CH_FIX`); per gli altri, automatica
+  e prudente (stessa parola principale, stesso stato, calorie entro ±33%). Se la Svizzera non ha l'alimento si usa il più
+  simile (sgombro → sardina, orata/spigola → pesce medio, polpo/seppia → calamaro); stato diverso → scalato sulle calorie.
+- Il sodio dei cibi svizzeri "cotti in acqua salata" non si usa. I vegetali hanno B12 = 0 e vitamina D = 0 (tranne i funghi).
+- Alimenti che CREA non ha (tofu, chia, hummus, tahina, edamame, semi, bevande vegetali, cavolo riccio…) presi direttamente
+  dalla banca dati svizzera.
+- Il rame non c'è nella banca dati svizzera: resta solo CREA.

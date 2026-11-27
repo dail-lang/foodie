@@ -1162,6 +1162,71 @@ test('[RF 4] piano: oggi si riconosce anche quando guardi un altro giorno', asyn
   assert(await ev(p, ti => { const t = getComputedStyle(document.querySelector(`[data-pday="${ti}"]`)), o = getComputedStyle(document.querySelector(`[data-pday="${(ti + 2) % 7}"]`)); return t.borderTopColor !== o.borderTopColor; }, ti));
 });
 
+/* ---------- Nutrienti (CREA) ---------- */
+test('nutrienti: tabella CREA incorporata', async p => {
+  assertEq(await ev(p, () => { const sp = NUTDB['005700'], kf = NUT_KEYS.indexOf('fe'), kc = NUT_KEYS.indexOf('ca');
+    return [NUT_KEYS.length, Object.keys(NUTDB).length >= 800, /Spinaci, crudi/.test(sp.n), sp.v[kf] > 2 && sp.v[kf] < 4, sp.v[kc] > 60, typeof NUT_SRC.crea]; }),
+    [24, true, true, true, true, 'string']);
+});
+
+test('nutrienti: ogni ingrediente delle ricette è collegato', async p => {
+  assertEq(await ev(p, () => [...new Set(R.filter(r => !r.tags.includes('mia')).flatMap(r => r.ing.filter(i => i[2] !== 'q.b.').map(i => i[0])))].filter(n => !(n in ING_CREA))), []);
+});
+test('nutrienti: ogni cibo del calcolatore è collegato', async p => {
+  assertEq(await ev(p, () => FOODS.filter(f => !f.mine && !f.prod && !(f.n in FOOD_CREA)).map(f => f.n)), []);
+});
+test('nutrienti: collegamenti puntano a codici esistenti', async p => {
+  assertEq(await ev(p, () => Object.values(ING_CREA).concat(Object.values(FOOD_CREA)).filter(v => v).flatMap(v => typeof v === 'string' ? [v] : v.map(x => x[0])).filter(c => !NUTDB[c])), []);
+});
+test('nutrienti: testo libero abbinato', async p => {
+  assertEq(await ev(p, () => ['salmone', 'spinaci', 'ceci cotti', 'zzzz'].map(t => { const c = nutMatch(t); return c ? NUTDB[c].n.split(',')[0] : null; })), ['Salmone', 'Spinaci', 'Ceci', null]);
+});
+
+test('nutrienti: una ricetta scala con le porzioni e il sale è stimato', async p => {
+  assertEq(await ev(p, () => { const r = R.find(x => x.s.some(t => /\bsale\b/i.test(t)) && !x.tags.includes('sgarro')), a = nutOfRecipe(r, 1), b = nutOfRecipe(r, .5), fe = NUT_KEYS.indexOf('fe'), na = NUT_KEYS.indexOf('na');
+    return [Math.abs(b.v[fe] * 2 - a.v[fe]) < 1e-6, a.v[na] >= 393, a.est.na]; }), [true, true, true]);
+});
+test('nutrienti: 250 g di spinaci dal calcolatore', async p => {
+  assertEq(await ev(p, () => { const it = rowsToItems(calcRows('250 g spinaci', {}, []))[0], fe = NUT_KEYS.indexOf('fe'), ref = nutOfCode(FOOD_CREA['Spinaci'], 250).v[fe]; return Math.abs(it.nu[fe] - ref) < .2 && ref > 0; }), true);
+});
+test('nutrienti: fabbisogni LARN cambiano con sesso ed età', async p => {
+  assertEq(await ev(p, () => { const fe = NUT_KEYS.indexOf('fe'), ca = NUT_KEYS.indexOf('ca'); return [nutTargets({ sesso: 'f', eta: 25, peso: 60, alt: 165, att: 'leggero', obj: 'mant' })[fe], nutTargets({ sesso: 'm', eta: 65, peso: 75, alt: 175, att: 'leggero', obj: 'mant' })[ca], nutTargets({ sesso: 'm', eta: 30, peso: 72, alt: 178, att: 'leggero', obj: 'mant' })[ca]]; }), [18, 1100, 950]);
+});
+test('nutrienti: prodotti Open Food Facts convertiti in mg', async p => {
+  assertEq(await ev(p, () => { const pr = offNorm({ code: '80000040', product_name: 'Cereali', nutriments: { 'energy-kcal_100g': 380, iron_100g: 0.012, 'vitamin-c_100g': 0.03 } }); return [Math.round(pr.nu[NUT_KEYS.indexOf('fe')]), Math.round(pr.nu[NUT_KEYS.indexOf('vC')]), pr.nu[NUT_KEYS.indexOf('ca')]]; }), [12, 30, null]);
+});
+test('nutrienti: voci senza dati non diventano carenze', async p => {
+  assertEq(await ev(p, () => { const k = todayKey(); log[k] = { items: [{ n: 'Cibo insegnato', k: 500, p: 20, c: 50, f: 20, src: 'q' }], water: 0 }; const d = dayNutrients(k), fe = NUT_KEYS.indexOf('fe'); return [d.cover[fe], d.v[fe]]; }), [0, 0]);
+});
+test('nutrienti: la settimana conta solo i giorni con pasti', async p => {
+  assertEq(await ev(p, () => { const r = R.find(x => x.id === 'mug-cake'); const add = off => { const d = new Date(); d.setDate(d.getDate() - off); log[todayKey(d)] = { items: [{ n: r.n, rid: r.id, k: r.k, p: r.p, c: r.c, f: r.f, src: 'r' }], water: 0 }; }; add(0); add(3);
+    const w = weekNutrients(new Date()), dd = dayNutrients(todayKey()), ca = NUT_KEYS.indexOf('ca'); return [w.days, Math.abs(w.v[ca] - dd.v[ca]) < 1e-6]; }), [2, true]);
+});
+
+test('nutrienti: riquadro in Oggi e vista completa', async p => {
+  await ev(p, () => { location.hash = 'oggi'; const r = R.find(x => x.id === 'mug-cake'); dayLog().items.push({ n: r.n, rid: r.id, k: r.k, p: r.p, c: r.c, f: r.f, src: 'r' }); saveLog(); viewOggi(); }); await p.waitForTimeout(150);
+  const card = await p.textContent('#nut-card');
+  await p.click('[data-act="nutopen"]'); await p.waitForTimeout(80);
+  const groups = await p.locator('#nutv .ngroup h3').allTextContents();
+  await p.locator('#nutv .nrow[data-nk="ca"]').first().click(); await p.waitForTimeout(80);
+  const det = await p.textContent('#nutv');
+  assertEq([/raggiunti su \d+/.test(card), groups.includes('Ossa e denti'), groups.includes('Da limitare'), /A cosa serve/.test(det), /Mug cake/.test(det), /Fonte/.test(det)], [true, true, true, true, true, true]);
+});
+test('nutrienti: settimana e nota sui dati mancanti', async p => {
+  await ev(p, () => { location.hash = 'oggi'; dayLog().items.push({ n: 'Cibo insegnato', k: 600, p: 20, c: 60, f: 25, src: 'q' }); saveLog(); viewOggi(); }); await p.waitForTimeout(150);
+  await p.click('[data-act="nutopen"]'); await p.click('[data-act="nutmode"][data-m="week"]'); await p.waitForTimeout(80);
+  const t = await p.textContent('#nutv');
+  assert(/media/i.test(t) && /dati/i.test(t), t.slice(0, 300));
+});
+test('nutrienti: la scheda ricetta mostra i nutrienti per porzione', async p => {
+  await ev(p, () => openRecipe('mug-cake', 1)); await p.waitForTimeout(80);
+  assert(/Nutrienti per porzione/.test(await p.textContent('#ov')) && await p.locator('#ov .rnut').count() === 1);
+});
+test('nutrienti: senza pasti il riquadro invita a segnare', async p => {
+  await ev(p, () => { location.hash = 'oggi'; }); await p.waitForTimeout(150);
+  assert(/Segna/.test(await p.textContent('#nut-card')));
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {

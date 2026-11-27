@@ -120,7 +120,21 @@ def build():
             missing += 1
             continue
         name, _eng, v = parse(c)
-        db[c] = {'n': name, 'v': [None if v[k] is None else round(v[k], 3) for k in KEYS], 'eu': 0}
+        db[c] = {'n': name, 'v': [None if v[k] is None else round(v[k], 3) for k in KEYS], 'eu': 0, 'sim': 0}
+    # valore mancante: mediana delle varianti CREA dello stesso alimento (stessa prima parte del nome,
+    # es. "Latte di vacca, …", "Yogurt greco, …"); segnato in 'sim'
+    fam = {}
+    for c, d in db.items():
+        fam.setdefault(d['n'].split(',')[0].strip().lower(), []).append(c)
+    filled = 0
+    for c, d in db.items():
+        sib = [o for o in fam[d['n'].split(',')[0].strip().lower()] if o != c]
+        for i in range(len(KEYS)):
+            if d['v'][i] is None:
+                vals = sorted(db[o]['v'][i] for o in sib if db[o]['v'][i] is not None and not (db[o]['sim'] >> i) & 1)
+                if vals:
+                    d['v'][i] = vals[len(vals) // 2]; d['sim'] |= 1 << i; filled += 1
+    print(f'{filled} valori presi da varianti dello stesso alimento')
     sys.path.insert(0, os.path.join(ROOT, 'tools'))
     import nutr_map, nutr_foods
     J = lambda o: json.dumps(o, ensure_ascii=False, separators=(',', ':'))

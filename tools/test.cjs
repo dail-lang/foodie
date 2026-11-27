@@ -1227,6 +1227,18 @@ test('nutrienti: senza pasti il riquadro invita a segnare', async p => {
   assert(/Segna/.test(await p.textContent('#nut-card')));
 });
 
+test('nutrienti: niente carenze finte con dati scarsi (B12, B6, iodio)', async p => {
+  await ev(p, () => { location.hash = 'oggi'; eatAllPlanned(todayKey()); viewOggi(); }); await p.waitForTimeout(150);
+  const r = await ev(p, () => { const st = dayNutrients(todayKey()), low = (document.querySelector('#nut-card').innerText.split('I più bassi')[1] || ''); return { low, poor: NUT_KEYS.filter((k, i) => st.cover[i] > 0 && st.cover[i] < .6).map(k => NUT_INFO[k].n) }; });
+  assert(r.poor.length > 0 && r.poor.every(n => !r.low.includes(n)), JSON.stringify(r));
+});
+
+test('nutrienti: cibi ricchi senza maiale, tè in foglie o frattaglie strane, e rispettano la dieta', async p => {
+  const r = await ev(p, () => { const out = {}; for (const d of ['onni', 'veg']) { profile.dieta = d; out[d] = ['fe', 'ca', 'b12', 'zn'].flatMap(k => nutRich(k).map(x => x.n)); } return out; });
+  const bad = r.onni.concat(r.veg).filter(n => /suin|maial|salam|prosciut|mortadel|lard|Tè, foglie|Milza|Caffe/i.test(n)).concat(r.veg.filter(n => /Bovino|Pollo|Tacchino|Vitello|Agnello|Fegato|Salmone|Tonno|Sgombro|Sardin|Acciug|Merluzzo|Cozz|Vongol|Gamber/i.test(n)));
+  assertEq(bad, []);
+});
+
 module.exports = { test, ev, assert, assertEq, keyOf, REAL };
 
 (async () => {
